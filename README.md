@@ -19,6 +19,7 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 
 ## Documentación
 
+- Plan por etapas: [docs/Stages_Plan_v1.md](/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/Stages_Plan_v1.md)
 - Plan de implementación por partes: [docs/Implementation_Plan_v1.md](/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/Implementation_Plan_v1.md)
 - Plan de ejecución: [docs/Execution_Plan_v2.md](/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/Execution_Plan_v2.md)
 - Especificación de API: [docs/API_Spec_v2.md](/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/API_Spec_v2.md)

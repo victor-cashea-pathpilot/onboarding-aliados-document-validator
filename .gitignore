@@ -1,3 +1,7 @@
 .DS_Store
 *.DS_Store
 .private_docs/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
