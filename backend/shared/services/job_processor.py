@@ -2,7 +2,6 @@
 
 from backend.shared.models.contracts import DocumentError
 from backend.shared.models.contracts import (
-    CrossValidationCheck,
     CrossValidationResult,
     DocumentResultItem,
     DocumentsResult,
@@ -10,8 +9,10 @@ from backend.shared.models.contracts import (
     ProgressInfo,
     utc_now,
 )
+from backend.shared.services.cross_validation import CrossValidationService
 from backend.shared.services.document_extraction import DocumentExtractionService
 from backend.shared.services.document_intake import DocumentIntakeService
+from backend.shared.services.document_normalization import DocumentNormalizationService
 
 
 class JobProcessor:
@@ -22,6 +23,8 @@ class JobProcessor:
         self.mock_mode = mock_mode
         self.document_intake = DocumentIntakeService()
         self.document_extraction = DocumentExtractionService(mock_mode=mock_mode)
+        self.document_normalization = DocumentNormalizationService()
+        self.cross_validation = CrossValidationService()
 
     def process(self, job_id: str) -> None:
         """Process a single job end to end."""
@@ -50,7 +53,26 @@ class JobProcessor:
             self.repository.update(record)
             documents = self.document_extraction.extract_documents(documents)
 
-        checks = self._build_checks(record.request)
+        record.progress = ProgressInfo(
+            stage="document_normalization",
+            percentage=80,
+            message="Normalizando datos extraídos y consolidando snapshot canónico.",
+        )
+        record.updated_at = utc_now()
+        self.repository.update(record)
+        normalized_snapshot = self.document_normalization.normalize(
+            merchant_id=record.merchant_id,
+            documents=documents,
+        )
+
+        record.progress = ProgressInfo(
+            stage="cross_validation",
+            percentage=90,
+            message="Ejecutando validaciones cruzadas sobre datos normalizados.",
+        )
+        record.updated_at = utc_now()
+        self.repository.update(record)
+        checks = self.cross_validation.validate(normalized_snapshot)
         failed_checks = [check for check in checks if check.status == "FAILED"]
         technical_failures = self._count_technical_failures(documents)
         extraction_failures = self._count_extraction_failures(documents)
@@ -70,17 +92,22 @@ class JobProcessor:
                 error_codes=self._collect_document_error_codes(documents),
             )
         elif failed_checks:
+            failed_codes = [check.code for check in failed_checks]
+            if any(code in {"HAS_RIF", "HAS_CEDULA", "HAS_CONSTITUTIVE_DOC"} for code in failed_codes):
+                summary = "El caso requiere revisión manual porque faltan documentos obligatorios."
+            else:
+                summary = "El caso requiere revisión manual porque una o más validaciones cruzadas fallaron."
             overall_result = OverallResult(
                 status="REQUIRES_REVIEW",
                 confidence=78,
-                summary="El caso requiere revisión manual en el mock porque faltan documentos requeridos o un check base falló.",
-                error_codes=[check.code for check in failed_checks],
+                summary=summary,
+                error_codes=failed_codes,
             )
         else:
             overall_result = OverallResult(
                 status="APPROVED",
                 confidence=91,
-                summary="Mock aprobado: se recibieron los documentos mínimos y los checks base pasaron.",
+                summary="El caso pasó las validaciones técnicas, de extracción y las validaciones cruzadas actuales.",
                 error_codes=[],
             )
 
@@ -91,6 +118,7 @@ class JobProcessor:
             message="Job completado.",
         )
         record.documents = documents
+        record.normalized_snapshot = normalized_snapshot
         record.cross_validation = CrossValidationResult(checks=checks)
         record.overall_result = overall_result
         record.updated_at = utc_now()
@@ -173,44 +201,6 @@ class JobProcessor:
             },
             errors=[],
         )
-
-    def _build_checks(self, request) -> list[CrossValidationCheck]:
-        has_rif = bool(request.documents.rif)
-        has_cedula = bool(request.documents.cedula)
-        has_constitutive = bool(
-            request.documents.acta_constitutiva
-            or request.documents.acta_mercantil
-            or request.documents.certificado_emprendimiento
-        )
-
-        return [
-            CrossValidationCheck(
-                code="HAS_RIF",
-                status="PASSED" if has_rif else "FAILED",
-                message="Se recibió al menos un RIF."
-                if has_rif
-                else "No se recibió RIF.",
-            ),
-            CrossValidationCheck(
-                code="HAS_CEDULA",
-                status="PASSED" if has_cedula else "FAILED",
-                message="Se recibió al menos una cédula."
-                if has_cedula
-                else "No se recibió cédula.",
-            ),
-            CrossValidationCheck(
-                code="HAS_CONSTITUTIVE_DOC",
-                status="PASSED" if has_constitutive else "FAILED",
-                message="Se recibió al menos un documento constitutivo."
-                if has_constitutive
-                else "No se recibió documento constitutivo o certificado de emprendimiento.",
-            ),
-            CrossValidationCheck(
-                code="MOCK_DATA_CONSISTENCY",
-                status="PASSED",
-                message="Mock mode asume consistencia entre documentos recibidos.",
-            ),
-        ]
 
     def _count_technical_failures(self, documents: DocumentsResult) -> int:
         return sum(

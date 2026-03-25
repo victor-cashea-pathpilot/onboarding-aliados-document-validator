@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from backend.shared.models.canonical import CanonicalMerchantSnapshot
 from backend.shared.models.contracts import (
     CrossValidationResult,
     DocumentsResult,
@@ -27,6 +28,7 @@ class JobRecord(BaseModel):
     progress: ProgressInfo | None = None
     overall_result: OverallResult | None = None
     documents: DocumentsResult | None = None
+    normalized_snapshot: CanonicalMerchantSnapshot | None = None
     cross_validation: CrossValidationResult | None = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
