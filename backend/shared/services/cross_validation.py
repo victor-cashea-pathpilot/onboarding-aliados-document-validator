@@ -50,12 +50,13 @@ class CrossValidationService:
                 status="SKIPPED",
                 message="No hay suficientes datos para comparar la razón social entre RIF y documentos legales.",
             )
+        names_match = self._names_match(snapshot, rif_name, legal_name)
         return CrossValidationCheck(
             code="COMPANY_NAME_MATCH",
-            status="PASSED" if rif_name == legal_name else "FAILED",
+            status="PASSED" if names_match else "FAILED",
             message=(
                 "La razón social del RIF coincide con la de los documentos legales."
-                if rif_name == legal_name
+                if names_match
                 else "La razón social del RIF no coincide con la de los documentos legales."
             ),
         )
@@ -163,6 +164,48 @@ class CrossValidationService:
 
     def _normalize_id(self, value: str) -> str:
         return "".join(ch for ch in value.lower() if ch.isalnum())
+
+    def _names_match(
+        self,
+        snapshot: CanonicalMerchantSnapshot,
+        rif_name: str,
+        legal_name: str,
+    ) -> bool:
+        if rif_name == legal_name:
+            return True
+
+        rif_tokens = self._token_set(rif_name)
+        legal_tokens = self._token_set(legal_name)
+        if rif_tokens and rif_tokens == legal_tokens:
+            return True
+
+        if snapshot.company_record.source_document_type == "certificado_emprendimiento":
+            representative_tokens = {
+                token
+                for rep in snapshot.representatives
+                for token in self._token_set(self._normalize_text(rep.full_name))
+            }
+            if rif_tokens and representative_tokens and rif_tokens == representative_tokens:
+                return True
+
+        return False
+
+    def _token_set(self, value: str) -> set[str]:
+        stopwords = {
+            "emprendimiento",
+            "ca",
+            "c",
+            "a",
+            "srl",
+            "sa",
+            "compania",
+            "cia",
+        }
+        return {
+            token
+            for token in self._normalize_text(value).split()
+            if token and token not in stopwords and not token.isdigit()
+        }
 
     def _parse_date(self, value: str):
         cleaned = value.strip()

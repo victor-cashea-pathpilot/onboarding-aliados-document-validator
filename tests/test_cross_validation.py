@@ -79,3 +79,38 @@ def test_cross_validation_detects_failed_board_and_id_mismatch() -> None:
     assert checks["CEDULA_MATCHES_LEGAL_REPRESENTATIVE"].status == "FAILED"
     assert checks["BOARD_VALIDITY"].status == "FAILED"
     assert checks["RIF_VALIDITY"].status == "FAILED"
+
+
+def test_cross_validation_allows_emprendimiento_name_match_against_representative() -> None:
+    snapshot = CanonicalMerchantSnapshot(
+        merchant_id="merchant-3",
+        rif_number="V-25610388-1",
+        rif_company_name="PARRA GARCIA RAUL AMERICO",
+        rif_expiration_date="04/03/2029",
+        primary_cedula_id="V-25.610.388",
+        company_record=CanonicalCompanyRecord(
+            company_name="EMPRENDIMIENTO RAUL PARRA 3",
+            source_document_type="certificado_emprendimiento",
+            board_status="VIGENTE",
+        ),
+        representatives=[
+            CanonicalRepresentative(
+                full_name="RAUL AMERICO PARRA GARCIA",
+                id_number="V-25.610.388",
+                signature_type="SEPARADA",
+                authority_details="Titular del emprendimiento",
+                board_status="VIGENTE",
+            )
+        ],
+        presence={
+            "rif": True,
+            "cedula": True,
+            "acta_constitutiva": False,
+            "acta_mercantil": False,
+            "certificado_emprendimiento": True,
+        },
+    )
+
+    checks = {check.code: check for check in CrossValidationService().validate(snapshot)}
+
+    assert checks["COMPANY_NAME_MATCH"].status == "PASSED"
