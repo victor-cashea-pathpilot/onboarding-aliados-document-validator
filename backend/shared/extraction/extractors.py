@@ -2,6 +2,13 @@
 
 from backend.shared.config import get_settings
 from backend.shared.extraction.base import BaseDocumentExtractor
+from backend.shared.extraction.prompts import (
+    build_acta_constitutiva_prompt,
+    build_acta_mercantil_prompt,
+    build_cedula_prompt,
+    build_certificado_emprendimiento_prompt,
+    build_rif_prompt,
+)
 
 
 class RifExtractor(BaseDocumentExtractor):
@@ -13,11 +20,7 @@ class RifExtractor(BaseDocumentExtractor):
         self.model_name = get_settings().gemini_model_simple
 
     def build_prompt(self) -> str:
-        return (
-            "Analiza este RIF venezolano y responde SOLO un JSON válido con estas claves: "
-            "rif_number, company_name, fiscal_address, expiration_date. "
-            "Si no encuentras un valor, usa cadena vacía."
-        )
+        return build_rif_prompt()
 
     def mock_extract(self, *, document_id: str | None, source_url: str) -> dict:
         return {
@@ -39,11 +42,7 @@ class CedulaExtractor(BaseDocumentExtractor):
         self.model_name = get_settings().gemini_model_simple
 
     def build_prompt(self) -> str:
-        return (
-            "Analiza esta cédula de identidad venezolana y responde SOLO un JSON válido "
-            "con estas claves: id_number, first_name, last_name. "
-            "Si no encuentras un valor, usa cadena vacía."
-        )
+        return build_cedula_prompt()
 
     def mock_extract(self, *, document_id: str | None, source_url: str) -> dict:
         return {
@@ -63,10 +62,18 @@ class PlaceholderExtractor(BaseDocumentExtractor):
         self.model_name = get_settings().gemini_model_complex
 
     def build_prompt(self) -> str:
-        return (
-            f"Analiza este documento de tipo {self.document_type} y responde SOLO un JSON válido "
-            "con un resumen estructurado del documento."
-        )
+        prompt_builders = {
+            "acta_constitutiva": build_acta_constitutiva_prompt,
+            "acta_mercantil": build_acta_mercantil_prompt,
+            "certificado_emprendimiento": build_certificado_emprendimiento_prompt,
+        }
+        builder = prompt_builders.get(self.document_type)
+        if builder is None:
+            return (
+                f"Analiza este documento de tipo {self.document_type} y responde SOLO un JSON válido "
+                "con un resumen estructurado del documento."
+            )
+        return builder()
 
     def mock_extract(self, *, document_id: str | None, source_url: str) -> dict:
         return {
