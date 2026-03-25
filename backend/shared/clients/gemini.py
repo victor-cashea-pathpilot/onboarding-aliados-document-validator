@@ -7,26 +7,28 @@ from backend.shared.config import get_settings
 
 
 class GeminiExtractionClient:
-    """Small wrapper over the Google Gen AI SDK for JSON extraction."""
+    """Small wrapper over the Vertex AI SDK for JSON extraction."""
 
     def __init__(self) -> None:
         self.settings = get_settings()
 
         try:
-            from google import genai
-            from google.genai import types
+            import vertexai
+            from vertexai.generative_models import GenerationConfig
+            from vertexai.generative_models import GenerativeModel
+            from vertexai.generative_models import Part
         except ImportError as exc:
             raise RuntimeError(
-                "google-genai is not installed. Install backend/requirements.txt."
+                "google-cloud-aiplatform is not installed. Install backend/requirements.txt."
             ) from exc
 
-        self._genai = genai
-        self._types = types
-        self._client = genai.Client(
-            vertexai=True,
+        vertexai.init(
             project=self.settings.gcp_project_id,
             location=self.settings.gemini_location,
         )
+        self._GenerationConfig = GenerationConfig
+        self._GenerativeModel = GenerativeModel
+        self._Part = Part
 
     def extract_json(
         self,
@@ -38,11 +40,11 @@ class GeminiExtractionClient:
     ) -> dict:
         """Generate structured JSON from a document."""
 
-        part = self._types.Part.from_bytes(data=file_bytes, mime_type=mime_type)
-        response = self._client.models.generate_content(
-            model=model,
-            contents=[prompt, part],
-            config=self._types.GenerateContentConfig(
+        model_client = self._GenerativeModel(model)
+        part = self._Part.from_data(data=file_bytes, mime_type=mime_type)
+        response = model_client.generate_content(
+            [prompt, part],
+            generation_config=self._GenerationConfig(
                 response_mime_type="application/json",
                 temperature=0,
             ),
