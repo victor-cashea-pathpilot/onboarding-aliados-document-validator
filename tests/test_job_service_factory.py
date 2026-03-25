@@ -16,6 +16,7 @@ def test_job_service_factory_defaults_to_inmemory(monkeypatch) -> None:
     clear_caches()
     monkeypatch.delenv("JOB_REPOSITORY_MODE", raising=False)
     monkeypatch.setenv("MOCK_MODE", "true")
+    monkeypatch.setenv("JOB_QUEUE_MODE", "mock")
 
     service = get_job_service()
 
@@ -26,6 +27,7 @@ def test_job_service_factory_can_select_firestore(monkeypatch) -> None:
     clear_caches()
     monkeypatch.setenv("JOB_REPOSITORY_MODE", "firestore")
     monkeypatch.setenv("MOCK_MODE", "true")
+    monkeypatch.setenv("JOB_QUEUE_MODE", "mock")
 
     class FakeFirestoreRepository:
         def save(self, job):

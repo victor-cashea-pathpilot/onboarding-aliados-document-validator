@@ -33,6 +33,13 @@ class Settings(BaseSettings):
         alias="JOB_REPOSITORY_MODE",
     )
     job_queue_mode: str = Field(default="cloud_tasks", alias="JOB_QUEUE_MODE")
+    gcp_region: str | None = Field(default=None, alias="GCP_REGION")
+    cloud_tasks_queue_id: str | None = Field(
+        default=None,
+        alias="CLOUD_TASKS_QUEUE_ID",
+    )
+    worker_base_url: str | None = Field(default=None, alias="WORKER_BASE_URL")
+    worker_auth_token: str | None = Field(default=None, alias="WORKER_AUTH_TOKEN")
     api_key: str | None = Field(default=None, alias="API_KEY")
     mock_mode: bool = Field(default=True, alias="MOCK_MODE")
 

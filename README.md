@@ -72,6 +72,14 @@ pip install -r backend/requirements.txt
 cp backend/.env.example backend/.env
 ```
 
+Para prueba local simple, usa:
+
+```bash
+JOB_REPOSITORY_MODE=inmemory
+JOB_QUEUE_MODE=inline
+MOCK_MODE=true
+```
+
 3. Levanta la API:
 
 ```bash
@@ -121,6 +129,7 @@ curl -X POST http://127.0.0.1:8000/v1/onboarding/status \
 ```
 
 En `mock mode`, la primera llamada devuelve `PROCESSING` y la segunda devuelve `COMPLETED` con una estructura mock del resultado final.
+Con `JOB_QUEUE_MODE=inline`, el worker se ejecuta dentro del mismo proceso y el job usualmente aparecerá como `COMPLETED` en el primer status poll.
 
 ### Worker
 
@@ -135,13 +144,13 @@ uvicorn backend.worker.main:app --reload --port 8001
 Por ahora el API:
 
 - crea jobs mock
-- devuelve progreso mock
+- puede despachar inline para prueba local
 - devuelve resultado mock consistente con el contrato base
 
 Todavía no hace:
 
 - persistencia real en `Firestore`
-- procesamiento real con `Cloud Tasks`
+- procesamiento real con `Cloud Tasks` en un entorno GCP configurado
 - descarga de archivos
 - extracción con Gemini
 - validación cruzada real
