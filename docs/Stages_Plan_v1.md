@@ -4,7 +4,45 @@
 
 Ordenar la implementación del MVP en etapas claras, cada una con un resultado verificable y una dependencia mínima respecto a la siguiente.
 
-Este documento complementa el plan de implementación detallado y funciona como roadmap ejecutivo del proyecto.
+Este documento es la fuente de verdad para el plan del proyecto.
+
+## Alcance del MVP
+
+Incluido:
+
+- API asíncrona para submit y status
+- routing directo por tipo documental enviado por Cashea
+- extracción estructurada con Gemini por tipo de documento
+- normalización a un modelo interno canónico
+- validación cruzada entre documentos
+- despliegue en Google Cloud
+
+Fuera de alcance del MVP:
+
+- integración con HubSpot
+- clasificación automática de documentos
+- generación de contratos
+- backoffice de revisión manual
+
+## Principios
+
+1. El contrato externo de Cashea manda.
+2. El tipo documental del payload es la fuente de verdad.
+3. API y worker se despliegan como componentes separados.
+4. Extracción y validación son capas distintas.
+5. Las reglas de negocio corren sobre datos normalizados.
+6. Los casos ambiguos deben terminar en `REQUIRES_REVIEW`, no en rechazos forzados.
+
+## Stack y arquitectura acordados
+
+- `Python 3.11`
+- `FastAPI`
+- `Pydantic`
+- `Cloud Run` para API y worker
+- `Cloud Tasks` como opción recomendada para el MVP
+- `Firestore` para estado de jobs
+- `Cloud Storage` opcional para staging temporal
+- `Vertex AI Gemini` para extracción y razonamiento documental
 
 ## Etapa 1: Base desplegable
 
@@ -25,6 +63,11 @@ Dejar la estructura del proyecto lista para desplegar en Google Cloud.
 - la API y el worker pueden desplegarse por separado
 - el proyecto queda listo para empezar integración real
 
+### Estado
+
+- iniciada en `develop`
+- scaffold base ya creado para `backend/api`, `backend/worker` y `backend/shared`
+
 ## Etapa 2: Jobs y orquestación asíncrona
 
 ### Objetivo
@@ -36,7 +79,7 @@ Conectar el contrato HTTP con un ciclo real de jobs.
 - creación de jobs
 - persistencia de estado
 - transición de estados
-- integración con `Cloud Tasks` o `Pub/Sub`
+- integración con `Cloud Tasks`
 - endpoint de polling funcional
 
 ### Resultado esperado
