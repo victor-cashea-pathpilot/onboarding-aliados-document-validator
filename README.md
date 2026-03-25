@@ -54,11 +54,94 @@ Excluido del MVP:
 
 Actualmente este repositorio contiene la documentación saneada del proyecto y la base para iniciar la implementación del MVP.
 
-## Próximo paso recomendado
+## Probar localmente
 
-Implementar la base del servicio con:
+### API pública
 
-- API en `Cloud Run`
-- procesamiento asíncrono con `Cloud Tasks` o `Pub/Sub`
-- persistencia en `Firestore`
-- extracción y validación con `Vertex AI Gemini`
+1. Instala dependencias:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+```
+
+2. Configura entorno local:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+3. Levanta la API:
+
+```bash
+uvicorn backend.api.main:app --reload
+```
+
+4. Verifica healthcheck:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+5. Crea un job mock:
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/onboarding/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "merchant_id": "98765",
+    "request_id": "local-test-001",
+    "documents": {
+      "rif": [{"url": "https://example.com/rif.pdf", "document_id": "rif-1"}],
+      "cedula": [{"url": "https://example.com/cedula.jpg", "document_id": "ced-1"}],
+      "certificado_emprendimiento": [],
+      "acta_constitutiva": [{"url": "https://example.com/acta.pdf", "document_id": "acta-1"}],
+      "acta_mercantil": []
+    }
+  }'
+```
+
+6. Consulta status:
+
+Primera llamada:
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/onboarding/status \
+  -H "Content-Type: application/json" \
+  -d '{"job_ids":["val_REPLACE_ME"]}'
+```
+
+Segunda llamada:
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/onboarding/status \
+  -H "Content-Type: application/json" \
+  -d '{"job_ids":["val_REPLACE_ME"]}'
+```
+
+En `mock mode`, la primera llamada devuelve `PROCESSING` y la segunda devuelve `COMPLETED` con una estructura mock del resultado final.
+
+### Worker
+
+Si quieres levantar el worker localmente:
+
+```bash
+uvicorn backend.worker.main:app --reload --port 8001
+```
+
+### Estado actual del mock
+
+Por ahora el API:
+
+- crea jobs mock
+- devuelve progreso mock
+- devuelve resultado mock consistente con el contrato base
+
+Todavía no hace:
+
+- persistencia real en `Firestore`
+- procesamiento real con `Cloud Tasks`
+- descarga de archivos
+- extracción con Gemini
+- validación cruzada real

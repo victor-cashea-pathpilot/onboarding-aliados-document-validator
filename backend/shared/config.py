@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     firestore_database: str = Field(default="(default)", alias="FIRESTORE_DATABASE")
     job_queue_mode: str = Field(default="cloud_tasks", alias="JOB_QUEUE_MODE")
     api_key: str | None = Field(default=None, alias="API_KEY")
+    mock_mode: bool = Field(default=True, alias="MOCK_MODE")
 
 
 @lru_cache(maxsize=1)

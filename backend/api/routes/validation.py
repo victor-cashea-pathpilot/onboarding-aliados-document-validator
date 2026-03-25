@@ -33,7 +33,7 @@ async def submit_validation(
         merchant_id=payload.merchant_id,
         request_id=payload.request_id,
     )
-    job_store.create_job(response)
+    job_store.create_job(payload, response)
     return response
 
 
