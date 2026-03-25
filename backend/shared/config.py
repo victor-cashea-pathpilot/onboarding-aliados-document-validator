@@ -50,6 +50,19 @@ class Settings(BaseSettings):
         default=15 * 1024 * 1024,
         alias="MAX_DOCUMENT_SIZE_BYTES",
     )
+    gemini_location: str = Field(default="global", alias="GEMINI_LOCATION")
+    gemini_model_simple: str = Field(
+        default="gemini-2.5-flash",
+        alias="GEMINI_MODEL_SIMPLE",
+    )
+    gemini_model_complex: str = Field(
+        default="gemini-2.5-pro",
+        alias="GEMINI_MODEL_COMPLEX",
+    )
+    max_extraction_concurrency: int = Field(
+        default=4,
+        alias="MAX_EXTRACTION_CONCURRENCY",
+    )
 
 
 @lru_cache(maxsize=1)

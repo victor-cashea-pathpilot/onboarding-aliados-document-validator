@@ -53,3 +53,37 @@ def test_job_processor_rejects_technical_document_failures(monkeypatch) -> None:
     assert updated.overall_result is not None
     assert updated.overall_result.status == "REJECTED"
     assert "DOCUMENT_CONTENT_TYPE_INVALID" in updated.overall_result.error_codes
+
+
+def test_job_processor_adds_mock_extracted_fields_for_valid_docs(monkeypatch) -> None:
+    repository = InMemoryJobRepository()
+    request = build_request("https://example.com/good.pdf")
+    record = JobRecord(
+        job_id="val_test_2",
+        merchant_id=request.merchant_id,
+        request=request,
+    )
+    repository.save(record)
+
+    processor = JobProcessor(repository=repository, mock_mode=True)
+
+    monkeypatch.setattr(
+        processor.document_intake,
+        "validate_url",
+        lambda url: IntakeResult(
+            ok=True,
+            url=url,
+            content_type="application/pdf",
+            content_length=1024,
+        ),
+    )
+
+    processor.process("val_test_2")
+    updated = repository.get("val_test_2")
+
+    assert updated is not None
+    assert updated.documents is not None
+    rif_result = updated.documents.rif[0]
+    assert rif_result.status == "APPROVED"
+    assert rif_result.extracted_data["extraction_status"] == "completed"
+    assert "rif_number" in rif_result.extracted_data["extracted_fields"]

@@ -10,6 +10,7 @@ from backend.shared.models.contracts import (
     ProgressInfo,
     utc_now,
 )
+from backend.shared.services.document_extraction import DocumentExtractionService
 from backend.shared.services.document_intake import DocumentIntakeService
 
 
@@ -20,6 +21,7 @@ class JobProcessor:
         self.repository = repository
         self.mock_mode = mock_mode
         self.document_intake = DocumentIntakeService()
+        self.document_extraction = DocumentExtractionService(mock_mode=mock_mode)
 
     def process(self, job_id: str) -> None:
         """Process a single job end to end."""
@@ -38,15 +40,33 @@ class JobProcessor:
         self.repository.update(record)
 
         documents = self._build_documents_result(record.request)
+        if self._count_extractable_documents(documents) > 0:
+            record.progress = ProgressInfo(
+                stage="document_extraction",
+                percentage=65,
+                message="Extrayendo datos de documentos en paralelo.",
+            )
+            record.updated_at = utc_now()
+            self.repository.update(record)
+            documents = self.document_extraction.extract_documents(documents)
+
         checks = self._build_checks(record.request)
         failed_checks = [check for check in checks if check.status == "FAILED"]
         technical_failures = self._count_technical_failures(documents)
+        extraction_failures = self._count_extraction_failures(documents)
 
         if technical_failures > 0:
             overall_result = OverallResult(
                 status="REJECTED",
                 confidence=95,
                 summary="El caso fue rechazado por errores técnicos en uno o más documentos.",
+                error_codes=self._collect_document_error_codes(documents),
+            )
+        elif extraction_failures > 0:
+            overall_result = OverallResult(
+                status="REQUIRES_REVIEW",
+                confidence=70,
+                summary="El caso requiere revisión manual porque una o más extracciones fallaron.",
                 error_codes=self._collect_document_error_codes(documents),
             )
         elif failed_checks:
@@ -220,3 +240,32 @@ class JobProcessor:
                     if error.error_code not in codes:
                         codes.append(error.error_code)
         return codes
+
+    def _count_extractable_documents(self, documents: DocumentsResult) -> int:
+        return sum(
+            1
+            for bucket in (
+                documents.rif,
+                documents.cedula,
+                documents.certificado_emprendimiento,
+                documents.acta_constitutiva,
+                documents.acta_mercantil,
+            )
+            for item in bucket
+            if item.status == "APPROVED"
+        )
+
+    def _count_extraction_failures(self, documents: DocumentsResult) -> int:
+        return sum(
+            1
+            for bucket in (
+                documents.rif,
+                documents.cedula,
+                documents.certificado_emprendimiento,
+                documents.acta_constitutiva,
+                documents.acta_mercantil,
+            )
+            for item in bucket
+            for error in item.errors
+            if error.error_code in {"EXTRACTION_FAILED", "EXTRACTION_NOT_IMPLEMENTED"}
+        )

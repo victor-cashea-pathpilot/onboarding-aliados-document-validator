@@ -152,6 +152,6 @@ Todavía no hace:
 
 - persistencia real en `Firestore`
 - procesamiento real con `Cloud Tasks` en un entorno GCP configurado
-- extracción con Gemini
+- extracción real con Gemini en entorno con credenciales configuradas
 - validación legal real
 - validación cruzada real
