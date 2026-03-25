@@ -8,9 +8,10 @@ from backend.shared.models.contracts import (
     SubmitValidationRequest,
     SubmitValidationResponse,
 )
-from backend.shared.services.job_store import job_store
+from backend.shared.services.job_service import get_job_service
 
 router = APIRouter(prefix="/v1/onboarding", tags=["validation"])
+job_service = get_job_service()
 
 
 @router.post(
@@ -29,12 +30,7 @@ async def submit_validation(
             detail="At least one document must be provided.",
         )
 
-    response = SubmitValidationResponse(
-        merchant_id=payload.merchant_id,
-        request_id=payload.request_id,
-    )
-    job_store.create_job(payload, response)
-    return response
+    return job_service.submit(payload)
 
 
 @router.post("/status", response_model=list[StatusResponseItem])
@@ -47,4 +43,4 @@ async def get_status(payload: StatusRequest) -> list[StatusResponseItem]:
             detail="At least one job_id must be provided.",
         )
 
-    return job_store.get_many(payload.job_ids)
+    return job_service.get_status(payload)

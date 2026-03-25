@@ -1,7 +1,9 @@
 """Tests for the mock job lifecycle."""
 
 from backend.shared.models.contracts import SubmitValidationRequest
-from backend.shared.services.job_store import InMemoryJobStore
+from backend.shared.dispatchers.mock_job_dispatcher import MockJobDispatcher
+from backend.shared.repositories.in_memory_job_repository import InMemoryJobRepository
+from backend.shared.services.job_service import JobService
 
 
 def build_request() -> SubmitValidationRequest:
@@ -22,15 +24,16 @@ def build_request() -> SubmitValidationRequest:
 
 
 def test_mock_job_lifecycle_progresses_to_completed() -> None:
-    store = InMemoryJobStore()
-    request = build_request()
-    response = store.create_job(
-        request=request,
-        response=request_to_response(request),
+    service = JobService(
+        repository=InMemoryJobRepository(),
+        dispatcher=MockJobDispatcher(),
+        mock_mode=True,
     )
+    request = build_request()
+    response = service.submit(request)
 
-    processing = store.get_many([response.job_id])[0]
-    completed = store.get_many([response.job_id])[0]
+    processing = service.get_status(job_ids_to_status_request([response.job_id]))[0]
+    completed = service.get_status(job_ids_to_status_request([response.job_id]))[0]
 
     assert processing.status == "PROCESSING"
     assert completed.status == "COMPLETED"
@@ -39,10 +42,7 @@ def test_mock_job_lifecycle_progresses_to_completed() -> None:
     assert completed.cross_validation is not None
 
 
-def request_to_response(request: SubmitValidationRequest):
-    from backend.shared.models.contracts import SubmitValidationResponse
+def job_ids_to_status_request(job_ids: list[str]):
+    from backend.shared.models.contracts import StatusRequest
 
-    return SubmitValidationResponse(
-        merchant_id=request.merchant_id,
-        request_id=request.request_id,
-    )
+    return StatusRequest(job_ids=job_ids)
