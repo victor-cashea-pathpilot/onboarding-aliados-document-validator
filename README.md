@@ -33,6 +33,8 @@ Incluido:
 - procesamiento local `inline` para pruebas
 - extracción real con Gemini vía Vertex AI para `rif`, `cedula`, `acta_constitutiva` y `acta_mercantil`
 - extracción paralela por documento
+- normalización a snapshot canónico interno
+- validaciones cruzadas determinísticas sobre datos normalizados
 - prompts reutilizados del workflow original de `n8n`, adaptados al contrato del backend
 
 Excluido del MVP:
@@ -58,6 +60,7 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 - API pública para crear jobs y consultar estado
 - worker con flujo de intake técnico y extracción
 - extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva` y `acta_mercantil`
+- normalización canónica y checks base de validación cruzada
 - extractor de `certificado_emprendimiento` preparado, pendiente de validación con documento real
 
 Todavía falta implementar:
@@ -65,8 +68,7 @@ Todavía falta implementar:
 - persistencia real en `Firestore`
 - despacho real con `Cloud Tasks`
 - extracción estructurada real para actas y certificado de emprendimiento
-- normalización canónica
-- validación cruzada real entre documentos
+- ampliar cobertura y profundidad de validación cruzada
 
 ## Probar localmente
 
@@ -178,6 +180,11 @@ En `MOCK_MODE=false`, hoy ya se validó extracción real con Vertex AI para:
 - `acta_constitutiva`
 - `acta_mercantil`
 
+Además, el pipeline ya ejecuta:
+
+- normalización a snapshot canónico
+- checks cruzados base de razón social, cédula, vigencia de RIF, vigencia de junta y facultad de firma
+
 ### Worker
 
 Si quieres levantar el worker localmente:
@@ -194,6 +201,8 @@ Por ahora el API:
 - puede despachar inline para prueba local
 - valida técnicamente URLs y tipos de archivo antes de seguir
 - extrae en paralelo por documento
+- normaliza resultados a un modelo interno común
+- ejecuta validaciones cruzadas determinísticas básicas
 - devuelve resultado consistente con el contrato base
 
 Todavía no hace:
@@ -201,6 +210,5 @@ Todavía no hace:
 - persistencia real en `Firestore`
 - procesamiento real con `Cloud Tasks` en un entorno GCP configurado
 - extracción real para `certificado_emprendimiento`
-- normalización canónica
 - validación legal real
-- validación cruzada real
+- cobertura completa de validación cruzada y reglas de negocio
