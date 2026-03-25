@@ -22,6 +22,7 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - Plan por etapas: [docs/Stages_Plan_v1.md](docs/Stages_Plan_v1.md)
 - Especificación de API: [docs/API_Spec_v2.md](docs/API_Spec_v2.md)
 - Arquitectura MVP: [docs/Architecture_v2.md](docs/Architecture_v2.md)
+- Casos reales de prueba y política de uso: [docs/Real_Test_Cases_v1.md](docs/Real_Test_Cases_v1.md)
 - Guía de setup de GitHub para esta cuenta/repositorio: [docs/GitHub_Setup_Cashea.md](docs/GitHub_Setup_Cashea.md)
 
 ## Alcance actual
