@@ -1,8 +1,10 @@
 """Tests for extraction prompt builders and extractor wiring."""
 
 from backend.shared.extraction.extractors import (
+    ActaConstitutivaExtractor,
+    ActaMercantilExtractor,
     CedulaExtractor,
-    PlaceholderExtractor,
+    CertificadoEmprendimientoExtractor,
     RifExtractor,
 )
 
@@ -29,20 +31,23 @@ def test_cedula_prompt_reuses_expected_schema() -> None:
 
 
 def test_complex_document_prompts_are_adapted_from_workflow() -> None:
-    constitutiva_prompt = PlaceholderExtractor("acta_constitutiva").build_prompt()
-    mercantil_prompt = PlaceholderExtractor("acta_mercantil").build_prompt()
-    emprendimiento_prompt = PlaceholderExtractor(
-        "certificado_emprendimiento"
-    ).build_prompt()
+    constitutiva_prompt = ActaConstitutivaExtractor().build_prompt()
+    mercantil_prompt = ActaMercantilExtractor().build_prompt()
+    emprendimiento_prompt = CertificadoEmprendimientoExtractor().build_prompt()
 
     assert "Due Diligence mercantil" in constitutiva_prompt
     assert '"registro_mercantil"' in constitutiva_prompt
+    assert "Firma Personal" in constitutiva_prompt
+    assert "LC: supermercado, farmacia o educación" in constitutiva_prompt
     assert "{{" not in constitutiva_prompt
 
     assert "Actas de Asamblea" in mercantil_prompt
     assert '"company_validity"' in mercantil_prompt
+    assert "fecha_vencimiento_junta" in mercantil_prompt
+    assert "tipo_firma" not in mercantil_prompt
     assert "$now" not in mercantil_prompt
 
     assert "Registro Nacional de Emprendimientos" in emprendimiento_prompt
     assert '"document_type": "CERTIFICADO_EMPRENDIMIENTO"' in emprendimiento_prompt
+    assert "duración legal es de 2 años" in emprendimiento_prompt
     assert "{{" not in emprendimiento_prompt

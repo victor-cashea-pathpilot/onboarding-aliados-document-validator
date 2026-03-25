@@ -31,7 +31,7 @@ Incluido:
 - API asíncrona para crear jobs y consultar estado
 - validación técnica de documentos por URL
 - procesamiento local `inline` para pruebas
-- extracción real con Gemini vía Vertex AI para `rif` y `cedula`
+- extracción real con Gemini vía Vertex AI para `rif`, `cedula`, `acta_constitutiva` y `acta_mercantil`
 - extracción paralela por documento
 - prompts reutilizados del workflow original de `n8n`, adaptados al contrato del backend
 
@@ -57,8 +57,8 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 
 - API pública para crear jobs y consultar estado
 - worker con flujo de intake técnico y extracción
-- extracción real validada contra Vertex AI para `rif` y `cedula`
-- extractores placeholder para `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
+- extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva` y `acta_mercantil`
+- extractor de `certificado_emprendimiento` preparado, pendiente de validación con documento real
 
 Todavía falta implementar:
 
@@ -175,6 +175,8 @@ En `MOCK_MODE=false`, hoy ya se validó extracción real con Vertex AI para:
 
 - `rif`
 - `cedula`
+- `acta_constitutiva`
+- `acta_mercantil`
 
 ### Worker
 
@@ -198,8 +200,6 @@ Todavía no hace:
 
 - persistencia real en `Firestore`
 - procesamiento real con `Cloud Tasks` en un entorno GCP configurado
-- extracción real para `acta_constitutiva`
-- extracción real para `acta_mercantil`
 - extracción real para `certificado_emprendimiento`
 - normalización canónica
 - validación legal real

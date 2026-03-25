@@ -1,8 +1,10 @@
 """Extractor registry."""
 
 from backend.shared.extraction.extractors import (
+    ActaConstitutivaExtractor,
+    ActaMercantilExtractor,
     CedulaExtractor,
-    PlaceholderExtractor,
+    CertificadoEmprendimientoExtractor,
     RifExtractor,
 )
 
@@ -14,11 +16,9 @@ class ExtractorRegistry:
         self._extractors = {
             "rif": RifExtractor(),
             "cedula": CedulaExtractor(),
-            "acta_constitutiva": PlaceholderExtractor("acta_constitutiva"),
-            "acta_mercantil": PlaceholderExtractor("acta_mercantil"),
-            "certificado_emprendimiento": PlaceholderExtractor(
-                "certificado_emprendimiento"
-            ),
+            "acta_constitutiva": ActaConstitutivaExtractor(),
+            "acta_mercantil": ActaMercantilExtractor(),
+            "certificado_emprendimiento": CertificadoEmprendimientoExtractor(),
         }
 
     def get(self, document_type: str):
