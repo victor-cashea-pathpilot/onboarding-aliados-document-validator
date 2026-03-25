@@ -257,7 +257,7 @@ def get_job_service() -> JobService:
         dispatcher = MockJobDispatcher()
 
     repository = InMemoryJobRepository()
-    if not settings.mock_mode:
+    if settings.job_repository_mode == "firestore":
         repository = FirestoreJobRepository()
 
     return JobService(

@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     api_version: str = Field(default="0.1.0", alias="API_VERSION")
     gcp_project_id: str | None = Field(default=None, alias="GCP_PROJECT_ID")
     firestore_database: str = Field(default="(default)", alias="FIRESTORE_DATABASE")
+    firestore_collection: str = Field(
+        default="validation_jobs",
+        alias="FIRESTORE_COLLECTION",
+    )
+    job_repository_mode: str = Field(
+        default="inmemory",
+        alias="JOB_REPOSITORY_MODE",
+    )
     job_queue_mode: str = Field(default="cloud_tasks", alias="JOB_QUEUE_MODE")
     api_key: str | None = Field(default=None, alias="API_KEY")
     mock_mode: bool = Field(default=True, alias="MOCK_MODE")
