@@ -6,3 +6,4 @@ __pycache__/
 .pytest_cache/
 .venv/
 backend/.env
+.local_test_docs/

@@ -42,6 +42,14 @@ class Settings(BaseSettings):
     worker_auth_token: str | None = Field(default=None, alias="WORKER_AUTH_TOKEN")
     api_key: str | None = Field(default=None, alias="API_KEY")
     mock_mode: bool = Field(default=True, alias="MOCK_MODE")
+    download_timeout_seconds: int = Field(
+        default=20,
+        alias="DOWNLOAD_TIMEOUT_SECONDS",
+    )
+    max_document_size_bytes: int = Field(
+        default=15 * 1024 * 1024,
+        alias="MAX_DOCUMENT_SIZE_BYTES",
+    )
 
 
 @lru_cache(maxsize=1)

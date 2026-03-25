@@ -145,12 +145,13 @@ Por ahora el API:
 
 - crea jobs mock
 - puede despachar inline para prueba local
+- valida técnicamente URLs y tipos de archivo antes de seguir
 - devuelve resultado mock consistente con el contrato base
 
 Todavía no hace:
 
 - persistencia real en `Firestore`
 - procesamiento real con `Cloud Tasks` en un entorno GCP configurado
-- descarga de archivos
 - extracción con Gemini
+- validación legal real
 - validación cruzada real

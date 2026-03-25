@@ -1,0 +1,55 @@
+"""Tests for job processor technical validation behavior."""
+
+from backend.shared.models.contracts import SubmitValidationRequest
+from backend.shared.models.jobs import JobRecord
+from backend.shared.repositories.in_memory_job_repository import InMemoryJobRepository
+from backend.shared.services.document_intake import IntakeResult
+from backend.shared.services.job_processor import JobProcessor
+
+
+def build_request(url: str) -> SubmitValidationRequest:
+    return SubmitValidationRequest.model_validate(
+        {
+            "merchant_id": "98765",
+            "documents": {
+                "rif": [{"url": url, "document_id": "rif-1"}],
+                "cedula": [],
+                "certificado_emprendimiento": [],
+                "acta_constitutiva": [],
+                "acta_mercantil": [],
+            },
+        }
+    )
+
+
+def test_job_processor_rejects_technical_document_failures(monkeypatch) -> None:
+    repository = InMemoryJobRepository()
+    request = build_request("https://example.com/bad")
+    record = JobRecord(
+        job_id="val_test_1",
+        merchant_id=request.merchant_id,
+        request=request,
+    )
+    repository.save(record)
+
+    processor = JobProcessor(repository=repository, mock_mode=True)
+
+    monkeypatch.setattr(
+        processor.document_intake,
+        "validate_url",
+        lambda url: IntakeResult(
+            ok=False,
+            url=url,
+            error_code="DOCUMENT_CONTENT_TYPE_INVALID",
+            message="Unsupported content type.",
+        ),
+    )
+
+    processor.process("val_test_1")
+    updated = repository.get("val_test_1")
+
+    assert updated is not None
+    assert updated.status == "COMPLETED"
+    assert updated.overall_result is not None
+    assert updated.overall_result.status == "REJECTED"
+    assert "DOCUMENT_CONTENT_TYPE_INVALID" in updated.overall_result.error_codes

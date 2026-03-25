@@ -1,5 +1,6 @@
 """Background job processing logic."""
 
+from backend.shared.models.contracts import DocumentError
 from backend.shared.models.contracts import (
     CrossValidationCheck,
     CrossValidationResult,
@@ -9,6 +10,7 @@ from backend.shared.models.contracts import (
     ProgressInfo,
     utc_now,
 )
+from backend.shared.services.document_intake import DocumentIntakeService
 
 
 class JobProcessor:
@@ -17,6 +19,7 @@ class JobProcessor:
     def __init__(self, repository, mock_mode: bool) -> None:
         self.repository = repository
         self.mock_mode = mock_mode
+        self.document_intake = DocumentIntakeService()
 
     def process(self, job_id: str) -> None:
         """Process a single job end to end."""
@@ -27,9 +30,9 @@ class JobProcessor:
 
         record.status = "PROCESSING"
         record.progress = ProgressInfo(
-            stage="mock_processing",
-            percentage=50,
-            message="Procesando job en worker.",
+            stage="document_intake",
+            percentage=25,
+            message="Validando acceso y formato de documentos.",
         )
         record.updated_at = utc_now()
         self.repository.update(record)
@@ -37,8 +40,16 @@ class JobProcessor:
         documents = self._build_documents_result(record.request)
         checks = self._build_checks(record.request)
         failed_checks = [check for check in checks if check.status == "FAILED"]
+        technical_failures = self._count_technical_failures(documents)
 
-        if failed_checks:
+        if technical_failures > 0:
+            overall_result = OverallResult(
+                status="REJECTED",
+                confidence=95,
+                summary="El caso fue rechazado por errores técnicos en uno o más documentos.",
+                error_codes=self._collect_document_error_codes(documents),
+            )
+        elif failed_checks:
             overall_result = OverallResult(
                 status="REQUIRES_REVIEW",
                 confidence=78,
@@ -107,6 +118,28 @@ class JobProcessor:
         document_id: str | None,
         url: str,
     ) -> DocumentResultItem:
+        intake = self.document_intake.validate_url(url)
+
+        if not intake.ok:
+            return DocumentResultItem(
+                document_id=document_id,
+                status="REJECTED",
+                confidence=100,
+                extracted_data={
+                    "document_type": document_type,
+                    "source_url": url,
+                    "mock": self.mock_mode,
+                    "content_type": intake.content_type,
+                    "content_length": intake.content_length,
+                },
+                errors=[
+                    DocumentError(
+                        error_code=intake.error_code or "DOCUMENT_VALIDATION_FAILED",
+                        message=intake.message or "Document validation failed.",
+                    )
+                ],
+            )
+
         return DocumentResultItem(
             document_id=document_id,
             status="APPROVED",
@@ -115,6 +148,8 @@ class JobProcessor:
                 "document_type": document_type,
                 "source_url": url,
                 "mock": self.mock_mode,
+                "content_type": intake.content_type,
+                "content_length": intake.content_length,
             },
             errors=[],
         )
@@ -156,3 +191,32 @@ class JobProcessor:
                 message="Mock mode asume consistencia entre documentos recibidos.",
             ),
         ]
+
+    def _count_technical_failures(self, documents: DocumentsResult) -> int:
+        return sum(
+            1
+            for bucket in (
+                documents.rif,
+                documents.cedula,
+                documents.certificado_emprendimiento,
+                documents.acta_constitutiva,
+                documents.acta_mercantil,
+            )
+            for item in bucket
+            if item.status == "REJECTED" and item.errors
+        )
+
+    def _collect_document_error_codes(self, documents: DocumentsResult) -> list[str]:
+        codes: list[str] = []
+        for bucket in (
+            documents.rif,
+            documents.cedula,
+            documents.certificado_emprendimiento,
+            documents.acta_constitutiva,
+            documents.acta_mercantil,
+        ):
+            for item in bucket:
+                for error in item.errors:
+                    if error.error_code not in codes:
+                        codes.append(error.error_code)
+        return codes
