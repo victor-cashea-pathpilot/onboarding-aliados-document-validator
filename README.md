@@ -22,6 +22,7 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - Plan por etapas: [docs/Stages_Plan_v1.md](docs/Stages_Plan_v1.md)
 - Especificación de API: [docs/API_Spec_v2.md](docs/API_Spec_v2.md)
 - Arquitectura MVP: [docs/Architecture_v2.md](docs/Architecture_v2.md)
+- Casos reales de prueba y política de uso: [docs/Real_Test_Cases_v1.md](docs/Real_Test_Cases_v1.md)
 - Guía de setup de GitHub para esta cuenta/repositorio: [docs/GitHub_Setup_Cashea.md](docs/GitHub_Setup_Cashea.md)
 
 ## Alcance actual
@@ -31,7 +32,7 @@ Incluido:
 - API asíncrona para crear jobs y consultar estado
 - validación técnica de documentos por URL
 - procesamiento local `inline` para pruebas
-- extracción real con Gemini vía Vertex AI para `rif`, `cedula`, `acta_constitutiva` y `acta_mercantil`
+- extracción real con Gemini vía Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
 - extracción paralela por documento
 - normalización a snapshot canónico interno
 - validaciones cruzadas determinísticas sobre datos normalizados
@@ -59,15 +60,13 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 
 - API pública para crear jobs y consultar estado
 - worker con flujo de intake técnico y extracción
-- extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva` y `acta_mercantil`
+- extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
 - normalización canónica y checks base de validación cruzada
-- extractor de `certificado_emprendimiento` preparado, pendiente de validación con documento real
 
 Todavía falta implementar:
 
 - persistencia real en `Firestore`
 - despacho real con `Cloud Tasks`
-- extracción estructurada real para actas y certificado de emprendimiento
 - ampliar cobertura y profundidad de validación cruzada
 
 ## Probar localmente
@@ -179,6 +178,7 @@ En `MOCK_MODE=false`, hoy ya se validó extracción real con Vertex AI para:
 - `cedula`
 - `acta_constitutiva`
 - `acta_mercantil`
+- `certificado_emprendimiento`
 
 Además, el pipeline ya ejecuta:
 
@@ -209,6 +209,5 @@ Todavía no hace:
 
 - persistencia real en `Firestore`
 - procesamiento real con `Cloud Tasks` en un entorno GCP configurado
-- extracción real para `certificado_emprendimiento`
 - validación legal real
 - cobertura completa de validación cruzada y reglas de negocio
