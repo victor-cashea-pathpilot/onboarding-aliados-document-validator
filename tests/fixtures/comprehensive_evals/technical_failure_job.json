@@ -1,0 +1,32 @@
+{
+  "name": "technical_failure_job",
+  "request": {
+    "merchant_id": "merchant-tech-job-001",
+    "request_id": "req-tech-job-001",
+    "documents": {
+      "rif": [
+        {
+          "url": "https://example.com/rif.exe",
+          "document_id": "rif-1"
+        }
+      ],
+      "cedula": [],
+      "certificado_emprendimiento": [],
+      "acta_constitutiva": [],
+      "acta_mercantil": []
+    }
+  },
+  "intake": {
+    "https://example.com/rif.exe": {
+      "error_code": "DOCUMENT_CONTENT_TYPE_INVALID",
+      "message": "Unsupported content type."
+    }
+  },
+  "mock_extraction": {},
+  "expected": {
+    "overall_status": "REJECTED",
+    "error_codes": [
+      "DOCUMENT_CONTENT_TYPE_INVALID"
+    ]
+  }
+}

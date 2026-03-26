@@ -1,0 +1,26 @@
+{
+  "document_type": "acta_constitutiva",
+  "expected_model_env_key": "GEMINI_MODEL_COMPLEX",
+  "expected_prompt_contains": [
+    "Acta Constitutiva",
+    "Registro de Firma Personal",
+    "razon_social",
+    "registro_mercantil",
+    "company_validity",
+    "corporate_structure"
+  ],
+  "client_response": {
+    "razon_social": "ALFA BELLEZA C.A.",
+    "registro_mercantil": {
+      "numero": "12"
+    },
+    "company_validity": {
+      "status": "VIGENTE"
+    },
+    "corporate_structure": {
+      "board": {
+        "status": "VIGENTE"
+      }
+    }
+  }
+}
