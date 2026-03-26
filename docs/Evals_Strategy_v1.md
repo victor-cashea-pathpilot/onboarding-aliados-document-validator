@@ -112,13 +112,15 @@ Esta capa sirve para regresión real del extractor, pero no debe correr en cada 
 
 Eso debe vivir después en una capa adicional de integration/staging evals.
 
-## Real Extraction Evals locales
+## Real Extraction Evals
 
-Para documentos reales aprobados, el repo incluye un runner local:
+Para documentos reales aprobados, el repo incluye un runner local/manual:
 
 - script: `scripts/run_real_extraction_evals.py`
 - cases locales: `eval_cases/cases.json`
 - baseline local: `eval_cases/baseline.json`
+
+También existe una variante de GitHub Actions manual para casos servidos por URL.
 
 Flujo:
 
@@ -160,6 +162,13 @@ CI:
 - GitHub Actions los ejecuta en cada push a `develop` o `main`, incluyendo merges
 - no requieren secretos
 - no requieren Vertex AI
+
+Real extraction evals:
+
+- no corren en cada PR
+- no corren en cada merge por default
+- corren manualmente con `workflow_dispatch`
+- sí requieren acceso a documentos por URL y credenciales de GCP
 
 ## Siguiente paso recomendado
 

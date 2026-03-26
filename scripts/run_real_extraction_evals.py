@@ -17,6 +17,8 @@ from pathlib import Path
 import sys
 import unicodedata
 
+import httpx
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -41,16 +43,28 @@ def _guess_mime_type(file_path: Path, declared: str | None) -> str:
     return guessed or "application/octet-stream"
 
 
-def _extract_case(case: dict, registry: ExtractorRegistry, client) -> dict:
-    file_path = Path(case["file_path"])
-    if not file_path.exists():
-        raise FileNotFoundError(f"Missing file for case {case['name']}: {file_path}")
+def _download_bytes(source_url: str) -> tuple[bytes, str]:
+    response = httpx.get(source_url, follow_redirects=True, timeout=60)
+    response.raise_for_status()
+    content_type = response.headers.get("content-type", "").split(";")[0].strip()
+    return response.content, content_type or "application/octet-stream"
 
+
+def _extract_case(case: dict, registry: ExtractorRegistry, client) -> dict:
     extractor = registry.get(case["document_type"])
-    mime_type = _guess_mime_type(file_path, case.get("mime_type"))
+    if case.get("source_url"):
+        file_bytes, downloaded_mime_type = _download_bytes(case["source_url"])
+        mime_type = case.get("mime_type") or downloaded_mime_type
+    else:
+        file_path = Path(case["file_path"])
+        if not file_path.exists():
+            raise FileNotFoundError(f"Missing file for case {case['name']}: {file_path}")
+        file_bytes = file_path.read_bytes()
+        mime_type = _guess_mime_type(file_path, case.get("mime_type"))
+
     return extractor.extract(
         client=client,
-        file_bytes=file_path.read_bytes(),
+        file_bytes=file_bytes,
         mime_type=mime_type,
     )
 
@@ -115,8 +129,9 @@ def record_baseline(cases_path: Path, baseline_path: Path) -> int:
             {
                 "name": case["name"],
                 "document_type": case["document_type"],
-                "file_path": case["file_path"],
-                "mime_type": _guess_mime_type(Path(case["file_path"]), case.get("mime_type")),
+                "file_path": case.get("file_path", ""),
+                "source_url": case.get("source_url", ""),
+                "mime_type": case.get("mime_type", ""),
                 "expected_output": actual,
             }
         )
