@@ -39,6 +39,10 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - [ ] Etapa 9: infraestructura async real en GCP
 - [ ] Etapa 10: staging, observabilidad y piloto
 
+Estado actual:
+- Etapa 7 está en progreso. Ya existen `unit tests`, `logic evals`, `extraction evals` y `comprehensive evals` en GitHub Actions.
+- Los `real extraction evals` quedan como un track manual/posterior mientras se valida la estrategia final de hosting y acceso a documentos por URL.
+
 ## Alcance actual
 
 Incluido:
@@ -79,6 +83,7 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 - normalización canónica y checks base de validación cruzada
 - tres flujos reales probados end-to-end: `sociedad mercantil`, `emprendimiento` y `firma personal`
 - framework base de evals por capas con fixtures sanitizados para regresión en CI/CD
+- runner local para `real extraction evals`, todavía fuera del CI estándar
 
 Todavía falta implementar:
 
