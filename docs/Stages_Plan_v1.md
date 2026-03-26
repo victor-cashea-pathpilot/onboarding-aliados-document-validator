@@ -198,30 +198,36 @@ Comparar la información entre documentos y construir un veredicto inicial del c
 
 - completada a nivel base
 
-## Etapa 7: Evals lógicos y regresión en CI/CD
+## Etapa 7: Evals por capas y regresión en CI/CD
 
 ### Objetivo
 
-Evitar regresiones en extracción, normalización y validación cruzada sin depender todavía de la infraestructura final en GCP.
+Evitar regresiones en extracción, normalización, validación cruzada y orquestación interna sin depender todavía de la infraestructura final en GCP.
 
 ### Incluye
 
 - suite de unit tests para servicios y reglas
-- evals lógicos sobre fixtures controlados
-- validación de expected outputs por tipo documental
+- logic evals sobre fixtures controlados
+- extraction evals por tipo documental
+- comprehensive evals sobre el pipeline interno
+- validación de expected outputs por tipo documental y por flujo
 - regresión de reglas de cross-validation
 - ejecución automática en `GitHub Actions` cuando cambien archivos relevantes
 
 ### Resultado esperado
 
-- los cambios de lógica quedan protegidos por CI/CD
+- los cambios de lógica y orquestación interna quedan protegidos por CI/CD
 - el equipo puede evolucionar prompts y reglas con menor riesgo
 
 ### Estado
 
 - iniciada
-- `GitHub Actions` ya corre tests unitarios
-- falta formalizar el framework de evals lógicos con fixtures y expected outputs
+- `GitHub Actions` ya corre tests y evals sanitizados
+- ya existe un framework base con:
+  - logic evals
+  - extraction evals
+  - comprehensive evals
+- falta ampliar cobertura de fixtures y casos de regresión
 
 ## Etapa 8: Profundización de reglas y semántica del resultado
 

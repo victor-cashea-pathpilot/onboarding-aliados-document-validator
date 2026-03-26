@@ -23,6 +23,8 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - Especificación de API: [docs/API_Spec_v2.md](docs/API_Spec_v2.md)
 - Arquitectura MVP: [docs/Architecture_v2.md](docs/Architecture_v2.md)
 - Casos reales de prueba y política de uso: [docs/Real_Test_Cases_v1.md](docs/Real_Test_Cases_v1.md)
+- Estrategia de evals: [docs/Evals_Strategy_v1.md](docs/Evals_Strategy_v1.md)
+- Real extraction evals locales: [docs/Real_Extraction_Evals_v1.md](docs/Real_Extraction_Evals_v1.md)
 
 ## Estado del plan
 
@@ -32,7 +34,7 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - [x] Etapa 4: extracción por tipo documental
 - [x] Etapa 5: normalización de datos
 - [x] Etapa 6: validación cruzada base
-- [ ] Etapa 7: evals lógicos y regresión en CI/CD
+- [ ] Etapa 7: evals lógicos, de extracción y comprehensive en CI/CD
 - [ ] Etapa 8: profundización de reglas y semántica del resultado
 - [ ] Etapa 9: infraestructura async real en GCP
 - [ ] Etapa 10: staging, observabilidad y piloto
@@ -76,12 +78,13 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 - extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
 - normalización canónica y checks base de validación cruzada
 - tres flujos reales probados end-to-end: `sociedad mercantil`, `emprendimiento` y `firma personal`
+- framework base de evals por capas con fixtures sanitizados para regresión en CI/CD
 
 Todavía falta implementar:
 
 - persistencia real en `Firestore`
 - despacho real con `Cloud Tasks`
-- framework de evals lógicos con fixtures y expected outputs en CI/CD
+- ampliar los evals lógicos, de extracción y comprehensive con más fixtures y expected outputs
 - ampliar cobertura y profundidad de validación cruzada
 
 ## Probar localmente

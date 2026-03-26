@@ -1,4 +1,4 @@
-"""Gemini client for Vertex AI extraction."""
+"""Gemini client for Vertex AI extraction via Google Gen AI SDK."""
 
 import json
 from functools import lru_cache
@@ -7,28 +7,25 @@ from backend.shared.config import get_settings
 
 
 class GeminiExtractionClient:
-    """Small wrapper over the Vertex AI SDK for JSON extraction."""
+    """Small wrapper over the Google Gen AI SDK for JSON extraction."""
 
     def __init__(self) -> None:
         self.settings = get_settings()
 
         try:
-            import vertexai
-            from vertexai.generative_models import GenerationConfig
-            from vertexai.generative_models import GenerativeModel
-            from vertexai.generative_models import Part
+            from google import genai
+            from google.genai import types
         except ImportError as exc:
             raise RuntimeError(
-                "google-cloud-aiplatform is not installed. Install backend/requirements.txt."
+                "google-genai is not installed. Install backend/requirements.txt."
             ) from exc
 
-        vertexai.init(
+        self._client = genai.Client(
+            vertexai=True,
             project=self.settings.gcp_project_id,
             location=self.settings.gemini_location,
         )
-        self._GenerationConfig = GenerationConfig
-        self._GenerativeModel = GenerativeModel
-        self._Part = Part
+        self._types = types
 
     def extract_json(
         self,
@@ -40,11 +37,13 @@ class GeminiExtractionClient:
     ) -> dict:
         """Generate structured JSON from a document."""
 
-        model_client = self._GenerativeModel(model)
-        part = self._Part.from_data(data=file_bytes, mime_type=mime_type)
-        response = model_client.generate_content(
-            [prompt, part],
-            generation_config=self._GenerationConfig(
+        response = self._client.models.generate_content(
+            model=model,
+            contents=[
+                prompt,
+                self._types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+            ],
+            config=self._types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0,
             ),

@@ -1,0 +1,16 @@
+{
+  "cases": [
+    {
+      "name": "rif_example",
+      "document_type": "rif",
+      "source_url": "https://example.com/path/to/rif.pdf",
+      "mime_type": "application/pdf"
+    },
+    {
+      "name": "cedula_example",
+      "document_type": "cedula",
+      "source_url": "https://example.com/path/to/cedula.jpg",
+      "mime_type": "image/jpeg"
+    }
+  ]
+}

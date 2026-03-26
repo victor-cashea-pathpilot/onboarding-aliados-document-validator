@@ -1,0 +1,97 @@
+{
+  "name": "name_mismatch_requires_review",
+  "merchant_id": "merchant-mm-001",
+  "documents": {
+    "rif": [
+      {
+        "document_id": "rif-1",
+        "status": "APPROVED",
+        "confidence": 90,
+        "extracted_data": {
+          "document_type": "rif",
+          "extraction_status": "completed",
+          "extracted_fields": {
+            "rif_number": "J400000001",
+            "company_name": "COMERCIAL LOS ROBLES C.A.",
+            "fiscal_address": "Valencia",
+            "expiration_date": "01/01/2020"
+          }
+        },
+        "errors": []
+      }
+    ],
+    "cedula": [
+      {
+        "document_id": "ced-1",
+        "status": "APPROVED",
+        "confidence": 90,
+        "extracted_data": {
+          "document_type": "cedula",
+          "extraction_status": "completed",
+          "extracted_fields": {
+            "id_number": "V-11.111.111",
+            "first_name": "LUIS",
+            "last_name": "MARTINEZ"
+          }
+        },
+        "errors": []
+      }
+    ],
+    "certificado_emprendimiento": [],
+    "acta_constitutiva": [
+      {
+        "document_id": "acta-1",
+        "status": "APPROVED",
+        "confidence": 90,
+        "extracted_data": {
+          "document_type": "acta_constitutiva",
+          "extraction_status": "completed",
+          "extracted_fields": {
+            "razon_social": "IMPORTADORA ORINOCO C.A.",
+            "company_validity": {
+              "status": "VIGENTE",
+              "expiration_date": "01/01/2035"
+            },
+            "corporate_structure": {
+              "board": {
+                "status": "VENCIDA",
+                "expiration_date": "01/01/2022"
+              },
+              "legal_representative": {
+                "signature_type": "",
+                "authority_details": "",
+                "representatives": [
+                  {
+                    "full_name": "CARLOS MENDEZ",
+                    "id_number": "V-22.222.222",
+                    "specific_role": "Presidente",
+                    "signature_validity_probability": "Baja"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "errors": []
+      }
+    ],
+    "acta_mercantil": []
+  },
+  "expected": {
+    "normalization_status": "complete",
+    "company_name": "IMPORTADORA ORINOCO C.A.",
+    "primary_cedula_id": "V-11.111.111",
+    "rif_number": "J400000001",
+    "representatives_count": 1,
+    "check_statuses": {
+      "HAS_RIF": "PASSED",
+      "HAS_CEDULA": "PASSED",
+      "HAS_CONSTITUTIVE_DOC": "PASSED",
+      "COMPANY_NAME_MATCH": "FAILED",
+      "CEDULA_MATCHES_LEGAL_REPRESENTATIVE": "FAILED",
+      "BOARD_VALIDITY": "FAILED",
+      "RIF_VALIDITY": "FAILED",
+      "SIGNATURE_AUTHORITY_PRESENT": "SKIPPED"
+    }
+  }
+}
