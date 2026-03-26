@@ -7,10 +7,11 @@ Correr regresión de extracción usando documentos reales aprobados, sin meter e
 ## Componentes
 
 - runner local: `scripts/run_real_extraction_evals.py`
-- casos locales: `.real_eval_cases/cases.json`
-- baseline local: `.real_eval_cases/baseline.json`
+- casos locales: `eval_cases/cases.json`
+- baseline local: `eval_cases/baseline.json`
 
-La carpeta `.real_eval_cases/` está ignorada por git.
+La carpeta `eval_cases/` sí puede versionarse.
+El archivo `eval_cases/baseline.json` se mantiene fuera de git para no commitear salidas generadas automáticamente por accidente.
 
 ## Requisitos
 

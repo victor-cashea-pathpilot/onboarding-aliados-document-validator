@@ -117,8 +117,8 @@ Eso debe vivir después en una capa adicional de integration/staging evals.
 Para documentos reales aprobados, el repo incluye un runner local:
 
 - script: `scripts/run_real_extraction_evals.py`
-- cases locales: `.real_eval_cases/cases.json`
-- baseline local: `.real_eval_cases/baseline.json`
+- cases locales: `eval_cases/cases.json`
+- baseline local: `eval_cases/baseline.json`
 
 Flujo:
 

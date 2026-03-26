@@ -173,12 +173,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cases",
-        default=str(ROOT / ".real_eval_cases" / "cases.json"),
+        default=str(ROOT / "eval_cases" / "cases.json"),
         help="Path to the local cases file.",
     )
     parser.add_argument(
         "--baseline",
-        default=str(ROOT / ".real_eval_cases" / "baseline.json"),
+        default=str(ROOT / "eval_cases" / "baseline.json"),
         help="Path to the local baseline file.",
     )
     return parser.parse_args()
