@@ -36,6 +36,7 @@ Incluido:
 - extracción paralela por documento
 - normalización a snapshot canónico interno
 - validaciones cruzadas determinísticas sobre datos normalizados
+- cobertura real validada para `sociedad mercantil`, `emprendimiento` y `firma personal`
 - prompts reutilizados del workflow original de `n8n`, adaptados al contrato del backend
 
 Excluido del MVP:
@@ -62,6 +63,7 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 - worker con flujo de intake técnico y extracción
 - extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
 - normalización canónica y checks base de validación cruzada
+- tres flujos reales probados end-to-end: `sociedad mercantil`, `emprendimiento` y `firma personal`
 
 Todavía falta implementar:
 
@@ -184,6 +186,7 @@ Además, el pipeline ya ejecuta:
 
 - normalización a snapshot canónico
 - checks cruzados base de razón social, cédula, vigencia de RIF, vigencia de junta y facultad de firma
+- lógica de matching por identidad para casos de `emprendimiento` y `firma personal`
 
 ### Worker
 

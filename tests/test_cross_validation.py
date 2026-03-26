@@ -114,3 +114,39 @@ def test_cross_validation_allows_emprendimiento_name_match_against_representativ
     checks = {check.code: check for check in CrossValidationService().validate(snapshot)}
 
     assert checks["COMPANY_NAME_MATCH"].status == "PASSED"
+
+
+def test_cross_validation_allows_firma_personal_name_match_against_owner_identity() -> None:
+    snapshot = CanonicalMerchantSnapshot(
+        merchant_id="merchant-4",
+        rif_number="V-12224346-6",
+        rif_company_name="MARIANA SINAY PRIMERA GUERRA",
+        rif_expiration_date="14/05/2028",
+        primary_cedula_id="V-12.224.346",
+        company_record=CanonicalCompanyRecord(
+            company_name="LAS COQUETERIAS DE MARIANA PRIMERA, F.P.",
+            source_document_type="acta_constitutiva",
+            board_status="N/A (FIRMA PERSONAL)",
+        ),
+        representatives=[
+            CanonicalRepresentative(
+                full_name="MARIANA SINAY PRIMERA GUERRA",
+                id_number="V-12.224.346",
+                role="PROPIETARIA",
+                signature_type="SEPARADA",
+                authority_details="Titular de la firma personal",
+                board_status="N/A (FIRMA PERSONAL)",
+            )
+        ],
+        presence={
+            "rif": True,
+            "cedula": True,
+            "acta_constitutiva": True,
+            "acta_mercantil": False,
+            "certificado_emprendimiento": False,
+        },
+    )
+
+    checks = {check.code: check for check in CrossValidationService().validate(snapshot)}
+
+    assert checks["COMPANY_NAME_MATCH"].status == "PASSED"

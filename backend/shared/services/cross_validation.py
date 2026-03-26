@@ -179,7 +179,7 @@ class CrossValidationService:
         if rif_tokens and rif_tokens == legal_tokens:
             return True
 
-        if snapshot.company_record.source_document_type == "certificado_emprendimiento":
+        if self._is_identity_based_legal_mode(snapshot):
             representative_tokens = {
                 token
                 for rep in snapshot.representatives
@@ -189,6 +189,21 @@ class CrossValidationService:
                 return True
 
         return False
+
+    def _is_identity_based_legal_mode(self, snapshot: CanonicalMerchantSnapshot) -> bool:
+        if snapshot.company_record.source_document_type == "certificado_emprendimiento":
+            return True
+
+        board_status = self._normalize_text(snapshot.company_record.board_status)
+        if "firma personal" in board_status:
+            return True
+
+        return any(
+            "firma personal" in self._normalize_text(rep.role)
+            or "propietaria" in self._normalize_text(rep.role)
+            or "propietario" in self._normalize_text(rep.role)
+            for rep in snapshot.representatives
+        )
 
     def _token_set(self, value: str) -> set[str]:
         stopwords = {
@@ -200,6 +215,15 @@ class CrossValidationService:
             "sa",
             "compania",
             "cia",
+            "fp",
+            "f",
+            "p",
+            "las",
+            "los",
+            "de",
+            "del",
+            "la",
+            "el",
         }
         return {
             token
