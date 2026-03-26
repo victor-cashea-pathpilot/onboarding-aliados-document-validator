@@ -125,6 +125,8 @@ pytest -q tests/test_comprehensive_evals.py
 CI:
 
 - estos tres grupos corren dentro de `pytest -q tests`
+- GitHub Actions los ejecuta en cada PR hacia `develop` o `main`
+- GitHub Actions los ejecuta en cada push a `develop` o `main`, incluyendo merges
 - no requieren secretos
 - no requieren Vertex AI
 
