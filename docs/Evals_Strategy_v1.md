@@ -23,6 +23,9 @@ La meta es poder proteger cambios en CI/CD sin depender todavía de:
 
 - normalización a snapshot canónico
 - checks de validación cruzada
+- derivación de `legal_mode`
+- precedencia entre documentos corporativos
+- soporte de firma conjunta vs separada
 - expected outputs de reglas
 
 ### Input
@@ -84,6 +87,8 @@ Esta capa sirve para regresión real del extractor, pero no debe correr en cada 
 - extracción mock por tipo
 - normalización
 - cross-validation
+- validación cruzada asistida por LLM en modo local determinístico
+- assessment legal asistido por LLM en modo local determinístico
 - veredicto final
 
 ### Input
@@ -137,13 +142,13 @@ python scripts/run_real_extraction_evals.py verify
 
 ## Política de datos
 
-Estos evals deben seguir usando datos sintéticos o sanitizados.
+Los evals de CI deben seguir usando datos sintéticos o sanitizados.
 
-Los documentos reales:
+Los documentos reales aprobados:
 
-- no deben commitearse
-- no deben entrar a CI
-- no deben usarse como fixtures oficiales sin aprobación explícita
+- pueden usarse en corridas locales/manuales
+- no deben entrar al CI estándar
+- no deben commitearse como archivos binarios al repo
 
 ## Ejecución
 
@@ -153,6 +158,7 @@ Local:
 pytest -q tests/test_logic_evals.py
 pytest -q tests/test_extraction_evals.py
 pytest -q tests/test_comprehensive_evals.py
+pytest -q tests/test_llm_validation_services.py
 ```
 
 CI:
@@ -178,3 +184,4 @@ Ampliar cobertura de fixtures con:
 - precedencia entre acta constitutiva y acta mercantil
 - casos de firma conjunta
 - casos de expiración de junta con firmante válido o inválido
+- más casos para la composición híbrida reglas + LLM

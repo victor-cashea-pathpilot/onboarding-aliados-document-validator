@@ -84,9 +84,24 @@ def test_comprehensive_eval_fixture(fixture_path: Path, monkeypatch) -> None:
     assert updated.overall_result is not None
     assert updated.overall_result.status == fixture["expected"]["overall_status"]
 
+    if "legal_mode" in fixture["expected"]:
+        assert updated.cross_validation.legal_mode == fixture["expected"]["legal_mode"]
+
     if "cross_validation" in fixture["expected"]:
         checks = {check.code: check.status for check in updated.cross_validation.checks}
         assert checks.items() >= fixture["expected"]["cross_validation"].items()
+
+    if "llm_cross_validation" in fixture["expected"]:
+        assert (
+            updated.cross_validation.llm_cross_validation.recommendation
+            == fixture["expected"]["llm_cross_validation"]
+        )
+
+    if "llm_legal_assessment" in fixture["expected"]:
+        assert (
+            updated.cross_validation.llm_legal_assessment.recommendation
+            == fixture["expected"]["llm_legal_assessment"]
+        )
 
     if "error_codes" in fixture["expected"]:
         assert updated.overall_result.error_codes == fixture["expected"]["error_codes"]

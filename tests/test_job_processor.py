@@ -83,6 +83,10 @@ def test_job_processor_adds_mock_extracted_fields_for_valid_docs(monkeypatch) ->
 
     assert updated is not None
     assert updated.documents is not None
+    assert updated.cross_validation is not None
+    assert updated.cross_validation.legal_mode == "unknown"
+    assert updated.cross_validation.llm_cross_validation is not None
+    assert updated.cross_validation.llm_legal_assessment is not None
     rif_result = updated.documents.rif[0]
     assert rif_result.status == "APPROVED"
     assert rif_result.extracted_data["extraction_status"] == "completed"

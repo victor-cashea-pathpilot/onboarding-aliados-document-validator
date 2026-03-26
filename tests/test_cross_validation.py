@@ -150,3 +150,46 @@ def test_cross_validation_allows_firma_personal_name_match_against_owner_identit
     checks = {check.code: check for check in CrossValidationService().validate(snapshot)}
 
     assert checks["COMPANY_NAME_MATCH"].status == "PASSED"
+
+
+def test_cross_validation_detects_unsupported_joint_signature_scheme() -> None:
+    snapshot = CanonicalMerchantSnapshot(
+        merchant_id="merchant-5",
+        legal_mode="sociedad_mercantil",
+        rif_number="J-41036436-0",
+        rif_company_name="ALFA BELLEZA C.A.",
+        rif_expiration_date="22/01/2029",
+        primary_cedula_id="V-12.048.047",
+        company_record=CanonicalCompanyRecord(
+            company_name="ALFA BELLEZA C.A.",
+            source_document_type="acta_mercantil",
+            source_document_date="12/06/2024",
+            board_status="VIGENTE",
+        ),
+        representatives=[
+            CanonicalRepresentative(
+                full_name="FREDDY RAMON CONTRERAS DIAZ",
+                id_number="V-12.048.047",
+                role="Presidente",
+                source_document_type="acta_mercantil",
+                source_document_date="12/06/2024",
+                signature_type="CONJUNTA",
+                authority_details="Firma conjunta de la directiva",
+                signature_validity_probability="100",
+            )
+        ],
+        presence={
+            "rif": True,
+            "cedula": True,
+            "acta_constitutiva": True,
+            "acta_mercantil": True,
+            "certificado_emprendimiento": False,
+        },
+    )
+
+    checks = {check.code: check for check in CrossValidationService().validate(snapshot)}
+
+    assert checks["LEGAL_MODE_DETECTED"].status == "PASSED"
+    assert checks["CORPORATE_DOCUMENT_PRECEDENCE"].status == "PASSED"
+    assert checks["SIGNATURE_AUTHORITY_PRESENT"].status == "PASSED"
+    assert checks["SIGNATURE_SCHEME_SUPPORTED"].status == "FAILED"

@@ -40,7 +40,9 @@ def test_logic_eval_fixture(fixture_path: Path) -> None:
     expected = fixture["expected"]
 
     assert snapshot.normalization_status == expected["normalization_status"]
+    assert snapshot.legal_mode == expected["legal_mode"]
     assert snapshot.company_record.company_name == expected["company_name"]
+    assert snapshot.company_record.source_document_type == expected["company_source_document_type"]
     assert snapshot.primary_cedula_id == expected["primary_cedula_id"]
     assert snapshot.rif_number == expected["rif_number"]
     assert len(snapshot.representatives) == expected["representatives_count"]

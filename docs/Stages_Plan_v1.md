@@ -243,8 +243,13 @@ Mejorar la calidad del veredicto antes de mover el flujo a infraestructura async
   - `emprendimiento`
 - reglas más fuertes de facultad de firma
 - precedencia entre acta constitutiva y actas mercantiles posteriores
+- capa híbrida de validación:
+  - checks determinísticos
+  - LLM de validación cruzada contextual
+  - LLM de assessment legal
 - mejor diferenciación entre `REJECTED` y `REQUIRES_REVIEW`
 - taxonomía más estable de reasons y error codes para Cashea
+- evals locales para validar la composición híbrida del resultado
 
 ### Resultado esperado
 
@@ -252,7 +257,14 @@ Mejorar la calidad del veredicto antes de mover el flujo a infraestructura async
 
 ### Estado
 
-- siguiente etapa recomendada
+- iniciada
+- ya existe:
+  - derivación explícita de `legal_mode`
+  - precedencia corporativa básica
+  - chequeo de soporte de firma conjunta/separada
+  - `CrossValidationLLMService`
+  - `LegalAssessmentLLMService`
+- falta ampliar reglas legales finas y conectarlas luego al flujo async real
 
 ## Etapa 9: Infraestructura async real en GCP
 

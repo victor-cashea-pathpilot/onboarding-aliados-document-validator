@@ -122,10 +122,36 @@ class CrossValidationCheck(BaseModel):
     message: str
 
 
+class CrossValidationFinding(BaseModel):
+    """Supplementary deterministic or LLM finding."""
+
+    source: Literal["rules", "llm_cross_validation", "llm_legal_assessment"]
+    severity: Literal["INFO", "WARNING", "CRITICAL"]
+    code: str
+    message: str
+    related_checks: list[str] = Field(default_factory=list)
+
+
+class LLMValidationReview(BaseModel):
+    """Structured LLM-assisted review output."""
+
+    recommendation: Literal["APPROVED", "REJECTED", "REQUIRES_REVIEW"]
+    confidence: int
+    summary: str
+    findings: list[CrossValidationFinding] = Field(default_factory=list)
+
+
 class CrossValidationResult(BaseModel):
     """Cross-validation section in the final response."""
 
+    legal_mode: (
+        Literal["sociedad_mercantil", "firma_personal", "emprendimiento", "unknown"]
+        | None
+    ) = None
     checks: list[CrossValidationCheck] = Field(default_factory=list)
+    findings: list[CrossValidationFinding] = Field(default_factory=list)
+    llm_cross_validation: LLMValidationReview | None = None
+    llm_legal_assessment: LLMValidationReview | None = None
 
 
 class StatusResponseItem(BaseModel):

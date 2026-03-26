@@ -1,8 +1,11 @@
 """Background job processing logic."""
 
-from backend.shared.models.contracts import DocumentError
+from __future__ import annotations
+
 from backend.shared.models.contracts import (
+    CrossValidationFinding,
     CrossValidationResult,
+    DocumentError,
     DocumentResultItem,
     DocumentsResult,
     OverallResult,
@@ -10,9 +13,11 @@ from backend.shared.models.contracts import (
     utc_now,
 )
 from backend.shared.services.cross_validation import CrossValidationService
+from backend.shared.services.cross_validation_llm import CrossValidationLLMService
 from backend.shared.services.document_extraction import DocumentExtractionService
 from backend.shared.services.document_intake import DocumentIntakeService
 from backend.shared.services.document_normalization import DocumentNormalizationService
+from backend.shared.services.legal_assessment_llm import LegalAssessmentLLMService
 
 
 class JobProcessor:
@@ -25,6 +30,8 @@ class JobProcessor:
         self.document_extraction = DocumentExtractionService(mock_mode=mock_mode)
         self.document_normalization = DocumentNormalizationService()
         self.cross_validation = CrossValidationService()
+        self.cross_validation_llm = CrossValidationLLMService(mock_mode=mock_mode)
+        self.legal_assessment_llm = LegalAssessmentLLMService(mock_mode=mock_mode)
 
     def process(self, job_id: str) -> None:
         """Process a single job end to end."""
@@ -73,6 +80,15 @@ class JobProcessor:
         record.updated_at = utc_now()
         self.repository.update(record)
         checks = self.cross_validation.validate(normalized_snapshot)
+        llm_cross_validation = self.cross_validation_llm.review(
+            snapshot=normalized_snapshot,
+            checks=checks,
+        )
+        llm_legal_assessment = self.legal_assessment_llm.assess(
+            snapshot=normalized_snapshot,
+            checks=checks,
+        )
+
         failed_checks = [check for check in checks if check.status == "FAILED"]
         technical_failures = self._count_technical_failures(documents)
         extraction_failures = self._count_extraction_failures(documents)
@@ -91,24 +107,11 @@ class JobProcessor:
                 summary="El caso requiere revisión manual porque una o más extracciones fallaron.",
                 error_codes=self._collect_document_error_codes(documents),
             )
-        elif failed_checks:
-            failed_codes = [check.code for check in failed_checks]
-            if any(code in {"HAS_RIF", "HAS_CEDULA", "HAS_CONSTITUTIVE_DOC"} for code in failed_codes):
-                summary = "El caso requiere revisión manual porque faltan documentos obligatorios."
-            else:
-                summary = "El caso requiere revisión manual porque una o más validaciones cruzadas fallaron."
-            overall_result = OverallResult(
-                status="REQUIRES_REVIEW",
-                confidence=78,
-                summary=summary,
-                error_codes=failed_codes,
-            )
         else:
-            overall_result = OverallResult(
-                status="APPROVED",
-                confidence=91,
-                summary="El caso pasó las validaciones técnicas, de extracción y las validaciones cruzadas actuales.",
-                error_codes=[],
+            overall_result = self._compose_cross_validation_result(
+                failed_checks=failed_checks,
+                llm_cross_validation=llm_cross_validation,
+                llm_legal_assessment=llm_legal_assessment,
             )
 
         record.status = "COMPLETED"
@@ -119,10 +122,87 @@ class JobProcessor:
         )
         record.documents = documents
         record.normalized_snapshot = normalized_snapshot
-        record.cross_validation = CrossValidationResult(checks=checks)
+        record.cross_validation = CrossValidationResult(
+            legal_mode=normalized_snapshot.legal_mode,
+            checks=checks,
+            findings=[
+                *self._build_rule_findings(checks),
+                *llm_cross_validation.findings,
+                *llm_legal_assessment.findings,
+            ],
+            llm_cross_validation=llm_cross_validation,
+            llm_legal_assessment=llm_legal_assessment,
+        )
         record.overall_result = overall_result
         record.updated_at = utc_now()
         self.repository.update(record)
+
+    def _compose_cross_validation_result(
+        self,
+        *,
+        failed_checks,
+        llm_cross_validation,
+        llm_legal_assessment,
+    ) -> OverallResult:
+        failed_codes = [check.code for check in failed_checks]
+        if failed_checks:
+            base_result = OverallResult(
+                status="REQUIRES_REVIEW",
+                confidence=78,
+                summary=(
+                    "El caso requiere revisión manual porque faltan documentos obligatorios."
+                    if any(
+                        code in {"HAS_RIF", "HAS_CEDULA", "HAS_CONSTITUTIVE_DOC"}
+                        for code in failed_codes
+                    )
+                    else "El caso requiere revisión manual porque una o más validaciones cruzadas fallaron."
+                ),
+                error_codes=failed_codes,
+            )
+        else:
+            base_result = OverallResult(
+                status="APPROVED",
+                confidence=91,
+                summary="El caso pasó las validaciones técnicas, de extracción y las validaciones cruzadas actuales.",
+                error_codes=[],
+            )
+
+        candidates = [
+            ("rules", base_result.status, base_result.confidence, base_result.summary),
+            (
+                "llm_cross_validation",
+                llm_cross_validation.recommendation,
+                llm_cross_validation.confidence,
+                llm_cross_validation.summary,
+            ),
+            (
+                "llm_legal_assessment",
+                llm_legal_assessment.recommendation,
+                llm_legal_assessment.confidence,
+                llm_legal_assessment.summary,
+            ),
+        ]
+        severity_order = {"APPROVED": 0, "REQUIRES_REVIEW": 1, "REJECTED": 2}
+        dominant_source, dominant_status, dominant_confidence, dominant_summary = max(
+            candidates,
+            key=lambda item: (severity_order[item[1]], item[2]),
+        )
+        if dominant_source == "rules":
+            return base_result
+
+        combined_error_codes = list(base_result.error_codes)
+        for review in (llm_cross_validation, llm_legal_assessment):
+            for finding in review.findings:
+                for related_check in finding.related_checks:
+                    if related_check not in combined_error_codes:
+                        combined_error_codes.append(related_check)
+
+        return OverallResult(
+            status=dominant_status,
+            confidence=dominant_confidence,
+            summary=dominant_summary,
+            error_codes=combined_error_codes,
+        )
 
     def _build_documents_result(self, request) -> DocumentsResult:
         return DocumentsResult(
@@ -259,3 +339,19 @@ class JobProcessor:
             for error in item.errors
             if error.error_code in {"EXTRACTION_FAILED", "EXTRACTION_NOT_IMPLEMENTED"}
         )
+
+    def _build_rule_findings(self, checks) -> list[CrossValidationFinding]:
+        findings: list[CrossValidationFinding] = []
+        for check in checks:
+            if check.status == "PASSED":
+                continue
+            findings.append(
+                CrossValidationFinding(
+                    source="rules",
+                    severity="CRITICAL" if check.status == "FAILED" else "WARNING",
+                    code=check.code,
+                    message=check.message,
+                    related_checks=[check.code],
+                )
+            )
+        return findings

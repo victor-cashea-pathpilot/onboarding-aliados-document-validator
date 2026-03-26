@@ -63,6 +63,14 @@ class Settings(BaseSettings):
         default=4,
         alias="MAX_EXTRACTION_CONCURRENCY",
     )
+    enable_llm_cross_validation: bool = Field(
+        default=True,
+        alias="ENABLE_LLM_CROSS_VALIDATION",
+    )
+    enable_llm_legal_assessment: bool = Field(
+        default=True,
+        alias="ENABLE_LLM_LEGAL_ASSESSMENT",
+    )
 
 
 @lru_cache(maxsize=1)
