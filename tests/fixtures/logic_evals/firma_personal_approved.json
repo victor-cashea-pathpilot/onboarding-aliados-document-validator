@@ -1,0 +1,100 @@
+{
+  "name": "firma_personal_approved",
+  "merchant_id": "merchant-fp-001",
+  "documents": {
+    "rif": [
+      {
+        "document_id": "rif-1",
+        "status": "APPROVED",
+        "confidence": 90,
+        "extracted_data": {
+          "document_type": "rif",
+          "extraction_status": "completed",
+          "extracted_fields": {
+            "rif_number": "V122243466",
+            "company_name": "MARIANA SINAY PRIMERA GUERRA",
+            "fiscal_address": "La Guardia",
+            "expiration_date": "14/05/2028"
+          }
+        },
+        "errors": []
+      }
+    ],
+    "cedula": [
+      {
+        "document_id": "ced-1",
+        "status": "APPROVED",
+        "confidence": 90,
+        "extracted_data": {
+          "document_type": "cedula",
+          "extraction_status": "completed",
+          "extracted_fields": {
+            "id_number": "V-12.224.346",
+            "first_name": "MARIANA SINAY",
+            "last_name": "PRIMERA GUERRA"
+          }
+        },
+        "errors": []
+      }
+    ],
+    "certificado_emprendimiento": [],
+    "acta_constitutiva": [
+      {
+        "document_id": "acta-1",
+        "status": "APPROVED",
+        "confidence": 90,
+        "extracted_data": {
+          "document_type": "acta_constitutiva",
+          "extraction_status": "completed",
+          "extracted_fields": {
+            "razon_social": "LAS COQUETERIAS DE MARIANA PRIMERA, F.P.",
+            "company_validity": {
+              "status": "VIGENTE",
+              "expiration_date": "PERPETUA"
+            },
+            "locations": {
+              "fiscal_address": "La Guardia"
+            },
+            "corporate_structure": {
+              "board": {
+                "status": "N/A (FIRMA PERSONAL)",
+                "expiration_date": "N/A (FIRMA PERSONAL)"
+              },
+              "legal_representative": {
+                "signature_type": "SEPARADA",
+                "authority_details": "Titular de la firma personal",
+                "representatives": [
+                  {
+                    "full_name": "MARIANA SINAY PRIMERA GUERRA",
+                    "id_number": "V-12.224.346",
+                    "specific_role": "Propietaria",
+                    "signature_validity_probability": "Alta"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "errors": []
+      }
+    ],
+    "acta_mercantil": []
+  },
+  "expected": {
+    "normalization_status": "complete",
+    "company_name": "LAS COQUETERIAS DE MARIANA PRIMERA, F.P.",
+    "primary_cedula_id": "V-12.224.346",
+    "rif_number": "V122243466",
+    "representatives_count": 1,
+    "check_statuses": {
+      "HAS_RIF": "PASSED",
+      "HAS_CEDULA": "PASSED",
+      "HAS_CONSTITUTIVE_DOC": "PASSED",
+      "COMPANY_NAME_MATCH": "PASSED",
+      "CEDULA_MATCHES_LEGAL_REPRESENTATIVE": "PASSED",
+      "BOARD_VALIDITY": "PASSED",
+      "RIF_VALIDITY": "PASSED",
+      "SIGNATURE_AUTHORITY_PRESENT": "PASSED"
+    }
+  }
+}

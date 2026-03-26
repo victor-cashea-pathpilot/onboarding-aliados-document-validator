@@ -1,0 +1,108 @@
+{
+  "name": "sociedad_mercantil_approved",
+  "merchant_id": "merchant-sm-001",
+  "documents": {
+    "rif": [
+      {
+        "document_id": "rif-1",
+        "status": "APPROVED",
+        "confidence": 90,
+        "extracted_data": {
+          "document_type": "rif",
+          "extraction_status": "completed",
+          "extracted_fields": {
+            "rif_number": "J412345678",
+            "company_name": "ALFA BELLEZA C.A.",
+            "fiscal_address": "Av. Principal de Caracas",
+            "expiration_date": "31/12/2028"
+          }
+        },
+        "errors": []
+      }
+    ],
+    "cedula": [
+      {
+        "document_id": "ced-1",
+        "status": "APPROVED",
+        "confidence": 90,
+        "extracted_data": {
+          "document_type": "cedula",
+          "extraction_status": "completed",
+          "extracted_fields": {
+            "id_number": "V-10.203.040",
+            "first_name": "ANA MARIA",
+            "last_name": "PEREZ LOPEZ"
+          }
+        },
+        "errors": []
+      }
+    ],
+    "certificado_emprendimiento": [],
+    "acta_constitutiva": [
+      {
+        "document_id": "acta-1",
+        "status": "APPROVED",
+        "confidence": 90,
+        "extracted_data": {
+          "document_type": "acta_constitutiva",
+          "extraction_status": "completed",
+          "extracted_fields": {
+            "razon_social": "ALFA BELLEZA C.A.",
+            "registro_mercantil": {
+              "numero": "12",
+              "tomo": "34-A",
+              "fecha_registro": "10/01/2020"
+            },
+            "company_validity": {
+              "status": "VIGENTE",
+              "expiration_date": "10/01/2050"
+            },
+            "business_classification": {
+              "line_code": "LP"
+            },
+            "locations": {
+              "fiscal_address": "Av. Principal de Caracas"
+            },
+            "corporate_structure": {
+              "board": {
+                "status": "VIGENTE",
+                "expiration_date": "10/01/2028"
+              },
+              "legal_representative": {
+                "signature_type": "SEPARADA",
+                "authority_details": "Facultades generales",
+                "representatives": [
+                  {
+                    "full_name": "ANA MARIA PEREZ LOPEZ",
+                    "id_number": "V-10.203.040",
+                    "specific_role": "Presidenta",
+                    "signature_validity_probability": "Alta"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "errors": []
+      }
+    ],
+    "acta_mercantil": []
+  },
+  "expected": {
+    "normalization_status": "complete",
+    "company_name": "ALFA BELLEZA C.A.",
+    "primary_cedula_id": "V-10.203.040",
+    "rif_number": "J412345678",
+    "representatives_count": 1,
+    "check_statuses": {
+      "HAS_RIF": "PASSED",
+      "HAS_CEDULA": "PASSED",
+      "HAS_CONSTITUTIVE_DOC": "PASSED",
+      "COMPANY_NAME_MATCH": "PASSED",
+      "CEDULA_MATCHES_LEGAL_REPRESENTATIVE": "PASSED",
+      "BOARD_VALIDITY": "PASSED",
+      "RIF_VALIDITY": "PASSED",
+      "SIGNATURE_AUTHORITY_PRESENT": "PASSED"
+    }
+  }
+}

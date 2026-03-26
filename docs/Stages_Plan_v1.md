@@ -221,7 +221,8 @@ Evitar regresiones en extracción, normalización y validación cruzada sin depe
 
 - iniciada
 - `GitHub Actions` ya corre tests unitarios
-- falta formalizar el framework de evals lógicos con fixtures y expected outputs
+- ya existe un framework base con fixtures sanitizados y expected outputs
+- falta ampliar cobertura de fixtures y casos de regresión
 
 ## Etapa 8: Profundización de reglas y semántica del resultado
 

@@ -23,6 +23,7 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - Especificación de API: [docs/API_Spec_v2.md](docs/API_Spec_v2.md)
 - Arquitectura MVP: [docs/Architecture_v2.md](docs/Architecture_v2.md)
 - Casos reales de prueba y política de uso: [docs/Real_Test_Cases_v1.md](docs/Real_Test_Cases_v1.md)
+- Evals lógicos y regresión sanitizada: [docs/Logic_Evals_v1.md](docs/Logic_Evals_v1.md)
 
 ## Estado del plan
 
@@ -76,12 +77,13 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 - extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
 - normalización canónica y checks base de validación cruzada
 - tres flujos reales probados end-to-end: `sociedad mercantil`, `emprendimiento` y `firma personal`
+- framework base de evals lógicos con fixtures sanitizados para regresión en CI/CD
 
 Todavía falta implementar:
 
 - persistencia real en `Firestore`
 - despacho real con `Cloud Tasks`
-- framework de evals lógicos con fixtures y expected outputs en CI/CD
+- ampliar el framework de evals lógicos con más fixtures y expected outputs
 - ampliar cobertura y profundidad de validación cruzada
 
 ## Probar localmente
