@@ -24,6 +24,7 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - Arquitectura MVP: [docs/Architecture_v2.md](docs/Architecture_v2.md)
 - Casos reales de prueba y política de uso: [docs/Real_Test_Cases_v1.md](docs/Real_Test_Cases_v1.md)
 - Estrategia de evals: [docs/Evals_Strategy_v1.md](docs/Evals_Strategy_v1.md)
+- Real extraction evals locales: [docs/Real_Extraction_Evals_v1.md](docs/Real_Extraction_Evals_v1.md)
 
 ## Estado del plan
 

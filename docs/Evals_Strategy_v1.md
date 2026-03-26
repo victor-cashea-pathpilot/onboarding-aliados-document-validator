@@ -65,6 +65,16 @@ La meta es poder proteger cambios en CI/CD sin depender todavía de:
 - fixtures: `tests/fixtures/extraction_evals/`
 - runner: `tests/test_extraction_evals.py`
 
+### Variante con documentos reales aprobados
+
+Además de los extraction evals sanitizados para CI, existe una variante local/manual con:
+
+- documentos reales aprobados
+- llamadas reales a Vertex AI Gemini
+- baseline local fuera de git
+
+Esta capa sirve para regresión real del extractor, pero no debe correr en cada PR.
+
 ## 3. Comprehensive Evals
 
 ### Qué validan
@@ -101,6 +111,27 @@ La meta es poder proteger cambios en CI/CD sin depender todavía de:
 - despliegue en staging
 
 Eso debe vivir después en una capa adicional de integration/staging evals.
+
+## Real Extraction Evals locales
+
+Para documentos reales aprobados, el repo incluye un runner local:
+
+- script: `scripts/run_real_extraction_evals.py`
+- cases locales: `.real_eval_cases/cases.json`
+- baseline local: `.real_eval_cases/baseline.json`
+
+Flujo:
+
+1. reautenticar ADC si hace falta
+2. grabar baseline una vez
+3. verificar regresión contra ese baseline
+
+Ejemplo:
+
+```bash
+python scripts/run_real_extraction_evals.py record
+python scripts/run_real_extraction_evals.py verify
+```
 
 ## Política de datos
 
