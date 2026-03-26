@@ -159,6 +159,56 @@ curl -X POST http://127.0.0.1:8002/v1/onboarding/validate \
 - validaciones cruzadas base
 - caso aprobado con la lógica actual de emprendimiento
 
+## Caso 3: Firma Personal
+
+### Documentos
+
+- `FirmaPersonal-RIF.pdf`
+- `FirmaPersonal-Cedula.jpg`
+- `FirmaPersonal-Acta.pdf`
+
+### Payload
+
+```bash
+curl -X POST http://127.0.0.1:8002/v1/onboarding/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "merchant_id": "firma-personal-001",
+    "request_id": "real-firma-personal-001",
+    "documents": {
+      "rif": [
+        {
+          "url": "http://127.0.0.1:9000/FirmaPersonal-RIF.pdf",
+          "document_id": "fp-rif-1"
+        }
+      ],
+      "cedula": [
+        {
+          "url": "http://127.0.0.1:9000/FirmaPersonal-Cedula.jpg",
+          "document_id": "fp-ced-1"
+        }
+      ],
+      "certificado_emprendimiento": [],
+      "acta_constitutiva": [
+        {
+          "url": "http://127.0.0.1:9000/FirmaPersonal-Acta.pdf",
+          "document_id": "fp-acta-1"
+        }
+      ],
+      "acta_mercantil": []
+    }
+  }'
+```
+
+### Resultado esperado
+
+- extracción real de `rif`
+- extracción real de `cedula`
+- extracción real de `acta_constitutiva` como `firma personal`
+- normalización canónica
+- validaciones cruzadas base
+- caso aprobado con lógica de identidad para `firma personal`
+
 ## Consultar status
 
 Usa el `job_id` devuelto por `validate`:
@@ -175,9 +225,6 @@ Casos reales ya probados:
 
 - `sociedad mercantil`
 - `emprendimiento`
-
-Caso todavía pendiente con documento real:
-
 - `firma personal`
 
 ## Próximo uso para evals
