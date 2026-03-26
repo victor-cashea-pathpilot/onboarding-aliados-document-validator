@@ -23,7 +23,19 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - Especificación de API: [docs/API_Spec_v2.md](docs/API_Spec_v2.md)
 - Arquitectura MVP: [docs/Architecture_v2.md](docs/Architecture_v2.md)
 - Casos reales de prueba y política de uso: [docs/Real_Test_Cases_v1.md](docs/Real_Test_Cases_v1.md)
-- Guía de setup de GitHub para esta cuenta/repositorio: [docs/GitHub_Setup_Cashea.md](docs/GitHub_Setup_Cashea.md)
+
+## Estado del plan
+
+- [x] Etapa 1: base desplegable
+- [x] Etapa 2: jobs y ejecución local
+- [x] Etapa 3: descarga y validación técnica de archivos
+- [x] Etapa 4: extracción por tipo documental
+- [x] Etapa 5: normalización de datos
+- [x] Etapa 6: validación cruzada base
+- [ ] Etapa 7: evals lógicos y regresión en CI/CD
+- [ ] Etapa 8: profundización de reglas y semántica del resultado
+- [ ] Etapa 9: infraestructura async real en GCP
+- [ ] Etapa 10: staging, observabilidad y piloto
 
 ## Alcance actual
 
@@ -69,6 +81,7 @@ Todavía falta implementar:
 
 - persistencia real en `Firestore`
 - despacho real con `Cloud Tasks`
+- framework de evals lógicos con fixtures y expected outputs en CI/CD
 - ampliar cobertura y profundidad de validación cruzada
 
 ## Probar localmente
