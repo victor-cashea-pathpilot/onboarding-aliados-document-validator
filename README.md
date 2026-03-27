@@ -25,6 +25,7 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - Casos reales de prueba y política de uso: [docs/Real_Test_Cases_v1.md](docs/Real_Test_Cases_v1.md)
 - Estrategia de evals: [docs/Evals_Strategy_v1.md](docs/Evals_Strategy_v1.md)
 - Real extraction evals locales: [docs/Real_Extraction_Evals_v1.md](docs/Real_Extraction_Evals_v1.md)
+- Despliegue GCP: [infra/gcp/README.md](infra/gcp/README.md)
 
 ## Estado del plan
 
@@ -50,6 +51,7 @@ Estado actual:
   - factorías compartidas para repo, dispatcher y processor
   - wiring consistente para `Firestore` y `Cloud Tasks`
   - tests de infraestructura local
+  - scripts de bootstrap y despliegue en `infra/gcp/`
 - Los `real extraction evals` quedan como un track manual/posterior mientras se valida la estrategia final de hosting y acceso a documentos por URL.
 
 ## Alcance actual
@@ -97,6 +99,7 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 - tres flujos reales probados end-to-end: `sociedad mercantil`, `emprendimiento` y `firma personal`
 - framework base de evals por capas con fixtures sanitizados para regresión en CI/CD
 - runner local para `real extraction evals`, todavía fuera del CI estándar
+- scripts operativos para bootstrap y despliegue de `Cloud Run + Firestore + Cloud Tasks`
 
 Todavía falta implementar:
 

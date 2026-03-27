@@ -222,6 +222,11 @@ Evitar regresiones en extracción, normalización, validación cruzada y orquest
 ### Estado
 
 - iniciada
+- ya existe carpeta operativa `infra/gcp/` con scripts para:
+  - bootstrap de proyecto
+  - deploy de worker
+  - deploy de api
+  - smoke test de infraestructura
 - `GitHub Actions` ya corre tests y evals sanitizados
 - ya existe un framework base con:
   - logic evals
