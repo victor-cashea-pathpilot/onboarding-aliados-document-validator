@@ -40,6 +40,13 @@ class CloudTasksJobDispatcher:
             }
         }
 
+        if settings.cloud_tasks_service_account_email:
+            task["http_request"]["oidc_token"] = {
+                "service_account_email": settings.cloud_tasks_service_account_email,
+                "audience": settings.worker_audience
+                or settings.worker_base_url.rstrip("/"),
+            }
+
         if settings.worker_auth_token:
             task["http_request"]["headers"]["X-Worker-Token"] = settings.worker_auth_token
 
