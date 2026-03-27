@@ -85,19 +85,24 @@
   },
   "expected": {
     "normalization_status": "complete",
+    "legal_mode": "emprendimiento",
     "company_name": "EMPRENDIMIENTO RAUL PARRA",
+    "company_source_document_type": "certificado_emprendimiento",
     "primary_cedula_id": "V-25.610.388",
     "rif_number": "V256103881",
     "representatives_count": 1,
     "check_statuses": {
+      "LEGAL_MODE_DETECTED": "PASSED",
       "HAS_RIF": "PASSED",
       "HAS_CEDULA": "PASSED",
       "HAS_CONSTITUTIVE_DOC": "PASSED",
+      "CORPORATE_DOCUMENT_PRECEDENCE": "SKIPPED",
       "COMPANY_NAME_MATCH": "PASSED",
       "CEDULA_MATCHES_LEGAL_REPRESENTATIVE": "PASSED",
       "BOARD_VALIDITY": "PASSED",
       "RIF_VALIDITY": "PASSED",
-      "SIGNATURE_AUTHORITY_PRESENT": "PASSED"
+      "SIGNATURE_AUTHORITY_PRESENT": "PASSED",
+      "SIGNATURE_SCHEME_SUPPORTED": "PASSED"
     }
   }
 }

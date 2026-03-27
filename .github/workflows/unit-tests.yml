@@ -47,7 +47,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          pytest -q tests \
+          pytest -vv -rA tests \
             --ignore=tests/test_logic_evals.py \
             --ignore=tests/test_extraction_evals.py \
             --ignore=tests/test_comprehensive_evals.py
@@ -73,7 +73,7 @@ jobs:
           pip install -r backend/requirements.txt
 
       - name: Run logic evals
-        run: pytest -q tests/test_logic_evals.py
+        run: pytest -vv -rA tests/test_logic_evals.py
 
   extraction-evals:
     name: Extraction Evals
@@ -96,7 +96,7 @@ jobs:
           pip install -r backend/requirements.txt
 
       - name: Run extraction evals
-        run: pytest -q tests/test_extraction_evals.py
+        run: pytest -vv -rA tests/test_extraction_evals.py
 
   comprehensive-evals:
     name: Comprehensive Evals
@@ -119,4 +119,4 @@ jobs:
           pip install -r backend/requirements.txt
 
       - name: Run comprehensive evals
-        run: pytest -q tests/test_comprehensive_evals.py
+        run: pytest -vv -rA tests/test_comprehensive_evals.py

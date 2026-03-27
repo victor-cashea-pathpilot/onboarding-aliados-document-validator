@@ -1,6 +1,6 @@
 {
-  "name": "sociedad_mercantil_approved",
-  "merchant_id": "merchant-sm-001",
+  "name": "mercantil_precedence_joint_signature_review",
+  "merchant_id": "merchant-sm-002",
   "documents": {
     "rif": [
       {
@@ -11,7 +11,7 @@
           "document_type": "rif",
           "extraction_status": "completed",
           "extracted_fields": {
-            "rif_number": "J412345678",
+            "rif_number": "J412340001",
             "company_name": "ALFA BELLEZA C.A.",
             "fiscal_address": "Av. Principal de Caracas",
             "expiration_date": "31/12/2028"
@@ -49,19 +49,11 @@
           "extracted_fields": {
             "razon_social": "ALFA BELLEZA C.A.",
             "registro_mercantil": {
-              "numero": "12",
-              "tomo": "34-A",
               "fecha_registro": "10/01/2020"
             },
             "company_validity": {
               "status": "VIGENTE",
               "expiration_date": "10/01/2050"
-            },
-            "business_classification": {
-              "line_code": "LP"
-            },
-            "locations": {
-              "fiscal_address": "Av. Principal de Caracas"
             },
             "corporate_structure": {
               "board": {
@@ -86,16 +78,51 @@
         "errors": []
       }
     ],
-    "acta_mercantil": []
+    "acta_mercantil": [
+      {
+        "document_id": "merc-1",
+        "status": "APPROVED",
+        "confidence": 90,
+        "extracted_data": {
+          "document_type": "acta_mercantil",
+          "extraction_status": "completed",
+          "extracted_fields": {
+            "razon_social": "ALFA BELLEZA C.A.",
+            "registro_mercantil": {
+              "fecha_registro": "12/06/2024"
+            },
+            "corporate_structure": {
+              "board": {
+                "status": "VIGENTE",
+                "expiration_date": "12/06/2029"
+              },
+              "legal_representative": {
+                "signature_type": "CONJUNTA",
+                "authority_details": "Firma conjunta de la directiva",
+                "representatives": [
+                  {
+                    "full_name": "ANA MARIA PEREZ LOPEZ",
+                    "id_number": "V-10.203.040",
+                    "specific_role": "Presidenta",
+                    "signature_validity_probability": "100"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "errors": []
+      }
+    ]
   },
   "expected": {
     "normalization_status": "complete",
     "legal_mode": "sociedad_mercantil",
     "company_name": "ALFA BELLEZA C.A.",
-    "company_source_document_type": "acta_constitutiva",
+    "company_source_document_type": "acta_mercantil",
     "primary_cedula_id": "V-10.203.040",
-    "rif_number": "J412345678",
-    "representatives_count": 1,
+    "rif_number": "J412340001",
+    "representatives_count": 2,
     "check_statuses": {
       "LEGAL_MODE_DETECTED": "PASSED",
       "HAS_RIF": "PASSED",
@@ -107,7 +134,7 @@
       "BOARD_VALIDITY": "PASSED",
       "RIF_VALIDITY": "PASSED",
       "SIGNATURE_AUTHORITY_PRESENT": "PASSED",
-      "SIGNATURE_SCHEME_SUPPORTED": "PASSED"
+      "SIGNATURE_SCHEME_SUPPORTED": "FAILED"
     }
   }
 }

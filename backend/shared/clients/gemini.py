@@ -2,6 +2,7 @@
 
 import json
 from functools import lru_cache
+from typing import Any
 
 from backend.shared.config import get_settings
 
@@ -37,12 +38,37 @@ class GeminiExtractionClient:
     ) -> dict:
         """Generate structured JSON from a document."""
 
-        response = self._client.models.generate_content(
+        return self.generate_json(
             model=model,
             contents=[
                 prompt,
                 self._types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
             ],
+        )
+
+    def analyze_json(
+        self,
+        *,
+        model: str,
+        prompt: str,
+        payload: dict[str, Any],
+    ) -> dict:
+        """Generate structured JSON from a prompt plus text payload."""
+
+        return self.generate_json(
+            model=model,
+            contents=[
+                prompt,
+                json.dumps(payload, ensure_ascii=False, indent=2),
+            ],
+        )
+
+    def generate_json(self, *, model: str, contents: list[Any]) -> dict:
+        """Generate structured JSON from generic multimodal contents."""
+
+        response = self._client.models.generate_content(
+            model=model,
+            contents=contents,
             config=self._types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0,

@@ -222,6 +222,11 @@ Evitar regresiones en extracción, normalización, validación cruzada y orquest
 ### Estado
 
 - iniciada
+- ya existe carpeta operativa `infra/gcp/` con scripts para:
+  - bootstrap de proyecto
+  - deploy de worker
+  - deploy de api
+  - smoke test de infraestructura
 - `GitHub Actions` ya corre tests y evals sanitizados
 - ya existe un framework base con:
   - logic evals
@@ -243,8 +248,13 @@ Mejorar la calidad del veredicto antes de mover el flujo a infraestructura async
   - `emprendimiento`
 - reglas más fuertes de facultad de firma
 - precedencia entre acta constitutiva y actas mercantiles posteriores
+- capa híbrida de validación:
+  - checks determinísticos
+  - LLM de validación cruzada contextual
+  - LLM de assessment legal
 - mejor diferenciación entre `REJECTED` y `REQUIRES_REVIEW`
 - taxonomía más estable de reasons y error codes para Cashea
+- evals locales para validar la composición híbrida del resultado
 
 ### Resultado esperado
 
@@ -252,7 +262,14 @@ Mejorar la calidad del veredicto antes de mover el flujo a infraestructura async
 
 ### Estado
 
-- siguiente etapa recomendada
+- iniciada
+- ya existe:
+  - derivación explícita de `legal_mode`
+  - precedencia corporativa básica
+  - chequeo de soporte de firma conjunta/separada
+  - `CrossValidationLLMService`
+  - `LegalAssessmentLLMService`
+- falta ampliar reglas legales finas y conectarlas luego al flujo async real
 
 ## Etapa 9: Infraestructura async real en GCP
 
@@ -275,9 +292,39 @@ Reemplazar el modo local `inmemory + inline` por un flujo compartido y desplegab
 
 ### Estado
 
-- preparada en código, no activada como path principal
+- iniciada
+- ya existe:
+  - factorías compartidas para repo, dispatcher y processor
+  - wiring consistente para `Firestore` y `Cloud Tasks`
+  - tests de repo `Firestore` y payload de `Cloud Tasks`
+- falta activar esta ruta como path principal y validarla fuera del modo local
 
-## Etapa 10: Staging, observabilidad y piloto
+## Etapa 10: Despliegue de arquitectura completa
+
+### Objetivo
+
+Acercar la solución al diagrama objetivo pedido por Cashea y cerrar los componentes de plataforma que hoy siguen siendo opcionales o propuestos.
+
+### Incluye
+
+- decisión final de `Cloud Tasks` vs `Pub/Sub` para la arquitectura objetivo
+- `Apigee` o gateway equivalente para auth, cuotas, versionado y analytics
+- `Cloud Storage` para staging temporal o retención controlada de documentos
+- decisión final sobre `Document AI` como OCR complementario o no
+- `BigQuery` para logs, analytics y trazabilidad de evals
+- estrategia de `Vertex AI Experiments` o equivalente para seguimiento de calidad
+- endurecimiento de seguridad y operación alineado al entorno Cashea
+
+### Resultado esperado
+
+- la solución desplegada se acerca a la arquitectura objetivo del cliente
+- quedan definidos con claridad los componentes mandatorios vs opcionales
+
+### Estado
+
+- pendiente
+
+## Etapa 11: Staging, observabilidad y piloto
 
 ### Objetivo
 
@@ -307,6 +354,7 @@ Cerrar el flujo operativo para pruebas en ambiente real y piloto controlado.
 3. Etapa 8
 4. Etapa 9
 5. Etapa 10
+6. Etapa 11
 
 ## Estado actual
 

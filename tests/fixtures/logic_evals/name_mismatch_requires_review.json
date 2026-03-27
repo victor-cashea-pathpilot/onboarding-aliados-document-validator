@@ -79,19 +79,24 @@
   },
   "expected": {
     "normalization_status": "complete",
+    "legal_mode": "sociedad_mercantil",
     "company_name": "IMPORTADORA ORINOCO C.A.",
+    "company_source_document_type": "acta_constitutiva",
     "primary_cedula_id": "V-11.111.111",
     "rif_number": "J400000001",
     "representatives_count": 1,
     "check_statuses": {
+      "LEGAL_MODE_DETECTED": "PASSED",
       "HAS_RIF": "PASSED",
       "HAS_CEDULA": "PASSED",
       "HAS_CONSTITUTIVE_DOC": "PASSED",
+      "CORPORATE_DOCUMENT_PRECEDENCE": "PASSED",
       "COMPANY_NAME_MATCH": "FAILED",
       "CEDULA_MATCHES_LEGAL_REPRESENTATIVE": "FAILED",
       "BOARD_VALIDITY": "FAILED",
       "RIF_VALIDITY": "FAILED",
-      "SIGNATURE_AUTHORITY_PRESENT": "SKIPPED"
+      "SIGNATURE_AUTHORITY_PRESENT": "FAILED",
+      "SIGNATURE_SCHEME_SUPPORTED": "SKIPPED"
     }
   }
 }

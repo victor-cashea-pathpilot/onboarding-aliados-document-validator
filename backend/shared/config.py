@@ -38,7 +38,12 @@ class Settings(BaseSettings):
         default=None,
         alias="CLOUD_TASKS_QUEUE_ID",
     )
+    cloud_tasks_service_account_email: str | None = Field(
+        default=None,
+        alias="CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL",
+    )
     worker_base_url: str | None = Field(default=None, alias="WORKER_BASE_URL")
+    worker_audience: str | None = Field(default=None, alias="WORKER_AUDIENCE")
     worker_auth_token: str | None = Field(default=None, alias="WORKER_AUTH_TOKEN")
     api_key: str | None = Field(default=None, alias="API_KEY")
     mock_mode: bool = Field(default=True, alias="MOCK_MODE")
@@ -62,6 +67,14 @@ class Settings(BaseSettings):
     max_extraction_concurrency: int = Field(
         default=4,
         alias="MAX_EXTRACTION_CONCURRENCY",
+    )
+    enable_llm_cross_validation: bool = Field(
+        default=True,
+        alias="ENABLE_LLM_CROSS_VALIDATION",
+    )
+    enable_llm_legal_assessment: bool = Field(
+        default=True,
+        alias="ENABLE_LLM_LEGAL_ASSESSMENT",
     )
 
 

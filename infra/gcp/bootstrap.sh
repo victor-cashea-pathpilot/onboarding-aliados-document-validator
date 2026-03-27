@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname "$0")/common.sh"
+
+require_base_env
+gcloud_auth_healthcheck
+
+echo "Enabling required APIs..."
+gcloud services enable \
+  run.googleapis.com \
+  cloudtasks.googleapis.com \
+  artifactregistry.googleapis.com \
+  cloudbuild.googleapis.com \
+  firestore.googleapis.com \
+  --project "$PROJECT_ID"
+
+echo "Ensuring Firestore database exists..."
+if ! gcloud firestore databases list --project "$PROJECT_ID" --format='value(name)' | grep -Fq "/databases/${FIRESTORE_DATABASE}"; then
+  gcloud firestore databases create \
+    --project "$PROJECT_ID" \
+    --database="$FIRESTORE_DATABASE" \
+    --location="$FIRESTORE_LOCATION"
+else
+  echo "Firestore database already exists."
+fi
+
+echo "Ensuring Artifact Registry exists..."
+if ! gcloud artifacts repositories describe "$ARTIFACT_REPOSITORY" \
+  --location="$REGION" \
+  --project "$PROJECT_ID" >/dev/null 2>&1; then
+  gcloud artifacts repositories create "$ARTIFACT_REPOSITORY" \
+    --project "$PROJECT_ID" \
+    --location="$REGION" \
+    --repository-format=docker \
+    --description="Onboarding agent images"
+else
+  echo "Artifact Registry already exists."
+fi
+
+echo "Ensuring Cloud Tasks queue exists..."
+if ! gcloud tasks queues describe "$CLOUD_TASKS_QUEUE_ID" \
+  --location="$REGION" \
+  --project "$PROJECT_ID" >/dev/null 2>&1; then
+  gcloud tasks queues create "$CLOUD_TASKS_QUEUE_ID" \
+    --location="$REGION" \
+    --project "$PROJECT_ID"
+else
+  echo "Cloud Tasks queue already exists."
+fi
+
+echo "Applying IAM bindings..."
+grant_project_role "serviceAccount:${RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/datastore.user"
+grant_project_role "serviceAccount:${RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/cloudtasks.enqueuer"
+grant_service_account_actas \
+  "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" \
+  "serviceAccount:$(cloud_tasks_service_agent)"
+
+echo "Bootstrap complete."

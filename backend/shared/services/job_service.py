@@ -2,10 +2,7 @@
 
 from functools import lru_cache
 
-from backend.shared.config import get_settings
-from backend.shared.dispatchers.cloud_tasks_dispatcher import CloudTasksJobDispatcher
-from backend.shared.dispatchers.inline_job_dispatcher import InlineJobDispatcher
-from backend.shared.dispatchers.mock_job_dispatcher import MockJobDispatcher
+from backend.shared.factories import build_dispatcher, build_repository
 from backend.shared.models.contracts import (
     StatusRequest,
     StatusResponseItem,
@@ -13,9 +10,7 @@ from backend.shared.models.contracts import (
     SubmitValidationResponse,
 )
 from backend.shared.models.jobs import JobRecord
-from backend.shared.repositories.firestore_job_repository import FirestoreJobRepository
-from backend.shared.repositories.in_memory_job_repository import InMemoryJobRepository
-from backend.shared.services.job_processor import JobProcessor
+from backend.shared.config import get_settings
 
 
 class JobService:
@@ -78,19 +73,8 @@ def get_job_service() -> JobService:
     """Build the service with the configured repository and dispatcher."""
 
     settings = get_settings()
-
-    repository = InMemoryJobRepository()
-    if settings.job_repository_mode == "firestore":
-        repository = FirestoreJobRepository()
-
-    if settings.job_queue_mode == "cloud_tasks":
-        dispatcher = CloudTasksJobDispatcher()
-    elif settings.job_queue_mode == "inline":
-        dispatcher = InlineJobDispatcher(
-            processor=JobProcessor(repository=repository, mock_mode=settings.mock_mode)
-        )
-    else:
-        dispatcher = MockJobDispatcher()
+    repository = build_repository()
+    dispatcher = build_dispatcher(repository=repository)
 
     return JobService(
         repository=repository,

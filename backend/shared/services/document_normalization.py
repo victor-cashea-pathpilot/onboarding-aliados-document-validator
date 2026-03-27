@@ -1,5 +1,9 @@
 """Normalization layer that maps extracted document data into one canonical snapshot."""
 
+from __future__ import annotations
+
+from datetime import datetime
+
 from backend.shared.models.canonical import (
     CanonicalCompanyRecord,
     CanonicalMerchantSnapshot,
@@ -26,6 +30,7 @@ class DocumentNormalizationService:
         self._apply_rif(snapshot, documents)
         self._apply_cedula(snapshot, documents)
         self._apply_company_documents(snapshot, documents)
+        snapshot.legal_mode = self._derive_legal_mode(snapshot)
         snapshot.normalization_status = (
             "complete"
             if snapshot.rif_number
@@ -82,16 +87,17 @@ class DocumentNormalizationService:
         snapshot: CanonicalMerchantSnapshot,
         documents: DocumentsResult,
     ) -> None:
-        prioritized_items = [
-            *self._approved_items(documents.acta_mercantil),
-            *self._approved_items(documents.acta_constitutiva),
-            *self._approved_items(documents.certificado_emprendimiento),
-        ]
+        prioritized_items = self._prioritized_company_items(documents)
 
         for item in prioritized_items:
             fields = item.extracted_data.get("extracted_fields", {})
             document_type = str(item.extracted_data.get("document_type", "")).strip()
             if not snapshot.company_record.company_name:
+                source_document_date = self._nested_get(
+                    fields,
+                    "registro_mercantil",
+                    "fecha_registro",
+                )
                 snapshot.company_record = CanonicalCompanyRecord(
                     company_name=str(
                         fields.get("razon_social")
@@ -120,6 +126,7 @@ class DocumentNormalizationService:
                         "registro_mercantil",
                         "fecha_registro",
                     ),
+                    source_document_date=source_document_date,
                     company_status=(
                         self._nested_get(fields, "company_validity", "status")
                         or self._nested_get(fields, "company_validity", "current_status")
@@ -169,6 +176,11 @@ class DocumentNormalizationService:
         board_status = self._nested_get(fields, "corporate_structure", "board", "status") or str(
             legal_rep.get("board_status", "")
         ).strip()
+        source_document_date = self._nested_get(
+            fields,
+            "registro_mercantil",
+            "fecha_registro",
+        )
         signature_type = str(legal_rep.get("signature_type", "")).strip()
         signature_quote = str(legal_rep.get("signature_quote", "")).strip()
         authority_details = str(legal_rep.get("authority_details", "")).strip()
@@ -190,6 +202,7 @@ class DocumentNormalizationService:
                         signature_validity_probability=str(
                             rep.get("signature_validity_probability", "")
                         ).strip(),
+                        source_document_date=source_document_date,
                     )
                 )
             return
@@ -209,8 +222,53 @@ class DocumentNormalizationService:
                     signature_validity_probability=str(
                         legal_rep.get("signature_validity_probability", "")
                     ).strip(),
+                    source_document_date=source_document_date,
                 )
             )
+
+    def _prioritized_company_items(self, documents: DocumentsResult) -> list:
+        approved_items = [
+            *self._approved_items(documents.acta_mercantil),
+            *self._approved_items(documents.acta_constitutiva),
+            *self._approved_items(documents.certificado_emprendimiento),
+        ]
+        return sorted(
+            approved_items,
+            key=self._company_item_sort_key,
+            reverse=True,
+        )
+
+    def _company_item_sort_key(self, item) -> tuple:
+        fields = item.extracted_data.get("extracted_fields", {})
+        document_type = str(item.extracted_data.get("document_type", "")).strip()
+        document_date = self._nested_get(fields, "registro_mercantil", "fecha_registro")
+        priority = {
+            "acta_mercantil": 3,
+            "acta_constitutiva": 2,
+            "certificado_emprendimiento": 1,
+        }.get(document_type, 0)
+        return (self._parse_date(document_date), priority)
+
+    def _derive_legal_mode(self, snapshot: CanonicalMerchantSnapshot) -> str:
+        if snapshot.presence.get("certificado_emprendimiento"):
+            return "emprendimiento"
+
+        board_status = self._normalize_text(snapshot.company_record.board_status)
+        company_name = self._normalize_text(snapshot.company_record.company_name)
+        if "firma personal" in board_status or " f p " in f" {company_name} ":
+            return "firma_personal"
+
+        if any(
+            keyword in self._normalize_text(rep.role)
+            for rep in snapshot.representatives
+            for keyword in ("propietaria", "propietario", "titular")
+        ):
+            return "firma_personal"
+
+        if snapshot.company_record.company_name or snapshot.presence.get("acta_mercantil") or snapshot.presence.get("acta_constitutiva"):
+            return "sociedad_mercantil"
+
+        return "unknown"
 
     def _approved_items(self, items):
         return [
@@ -235,3 +293,15 @@ class DocumentNormalizationService:
                 return {}
             current = current.get(key)
         return current if isinstance(current, dict) else {}
+
+    def _parse_date(self, value: str) -> datetime:
+        cleaned = value.strip()
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(cleaned, fmt)
+            except ValueError:
+                continue
+        return datetime.min
+
+    def _normalize_text(self, value: str) -> str:
+        return " ".join(str(value).strip().lower().replace(".", " ").split())

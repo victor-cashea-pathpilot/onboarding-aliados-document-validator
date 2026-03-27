@@ -18,6 +18,7 @@ class CanonicalRepresentative(BaseModel):
     authority_details: str = ""
     board_status: str = ""
     signature_validity_probability: str = ""
+    source_document_date: str = ""
 
 
 class CanonicalCompanyRecord(BaseModel):
@@ -35,6 +36,7 @@ class CanonicalCompanyRecord(BaseModel):
     board_status: str = ""
     board_expiration_date: str = ""
     line_code: str = ""
+    source_document_date: str = ""
 
 
 class CanonicalMerchantSnapshot(BaseModel):
@@ -47,6 +49,12 @@ class CanonicalMerchantSnapshot(BaseModel):
     rif_fiscal_address: str = ""
     primary_cedula_id: str = ""
     primary_cedula_full_name: str = ""
+    legal_mode: Literal[
+        "sociedad_mercantil",
+        "firma_personal",
+        "emprendimiento",
+        "unknown",
+    ] = "unknown"
     company_record: CanonicalCompanyRecord = Field(
         default_factory=CanonicalCompanyRecord
     )

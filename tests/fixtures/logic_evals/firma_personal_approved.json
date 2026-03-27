@@ -82,19 +82,24 @@
   },
   "expected": {
     "normalization_status": "complete",
+    "legal_mode": "firma_personal",
     "company_name": "LAS COQUETERIAS DE MARIANA PRIMERA, F.P.",
+    "company_source_document_type": "acta_constitutiva",
     "primary_cedula_id": "V-12.224.346",
     "rif_number": "V122243466",
     "representatives_count": 1,
     "check_statuses": {
+      "LEGAL_MODE_DETECTED": "PASSED",
       "HAS_RIF": "PASSED",
       "HAS_CEDULA": "PASSED",
       "HAS_CONSTITUTIVE_DOC": "PASSED",
+      "CORPORATE_DOCUMENT_PRECEDENCE": "PASSED",
       "COMPANY_NAME_MATCH": "PASSED",
       "CEDULA_MATCHES_LEGAL_REPRESENTATIVE": "PASSED",
       "BOARD_VALIDITY": "PASSED",
       "RIF_VALIDITY": "PASSED",
-      "SIGNATURE_AUTHORITY_PRESENT": "PASSED"
+      "SIGNATURE_AUTHORITY_PRESENT": "PASSED",
+      "SIGNATURE_SCHEME_SUPPORTED": "PASSED"
     }
   }
 }

@@ -1,8 +1,8 @@
 {
-  "name": "sociedad_mercantil_job",
+  "name": "joint_signature_requires_review_job",
   "request": {
-    "merchant_id": "merchant-sm-job-001",
-    "request_id": "req-sm-job-001",
+    "merchant_id": "merchant-js-job-001",
+    "request_id": "req-js-job-001",
     "documents": {
       "rif": [
         {
@@ -23,7 +23,12 @@
           "document_id": "acta-1"
         }
       ],
-      "acta_mercantil": []
+      "acta_mercantil": [
+        {
+          "url": "https://example.com/merc.pdf",
+          "document_id": "merc-1"
+        }
+      ]
     }
   },
   "intake": {
@@ -38,6 +43,10 @@
     "https://example.com/acta.pdf": {
       "content_type": "application/pdf",
       "content_length": 2400
+    },
+    "https://example.com/merc.pdf": {
+      "content_type": "application/pdf",
+      "content_length": 1800
     }
   },
   "mock_extraction": {
@@ -54,12 +63,12 @@
     },
     "acta_constitutiva": {
       "razon_social": "ALFA BELLEZA C.A.",
+      "registro_mercantil": {
+        "fecha_registro": "10/01/2020"
+      },
       "company_validity": {
         "status": "VIGENTE",
         "expiration_date": "10/01/2050"
-      },
-      "locations": {
-        "fiscal_address": "Av. Principal de Caracas"
       },
       "corporate_structure": {
         "board": {
@@ -79,20 +88,43 @@
           ]
         }
       }
+    },
+    "acta_mercantil": {
+      "razon_social": "ALFA BELLEZA C.A.",
+      "registro_mercantil": {
+        "fecha_registro": "12/06/2024"
+      },
+      "corporate_structure": {
+        "board": {
+          "status": "VIGENTE",
+          "expiration_date": "12/06/2029"
+        },
+        "legal_representative": {
+          "signature_type": "CONJUNTA",
+          "authority_details": "Firma conjunta de la directiva",
+          "representatives": [
+            {
+              "full_name": "ANA MARIA PEREZ LOPEZ",
+              "id_number": "V-10.203.040",
+              "specific_role": "Presidenta",
+              "signature_validity_probability": "100"
+            }
+          ]
+        }
+      }
     }
   },
   "expected": {
-    "overall_status": "APPROVED",
+    "overall_status": "REQUIRES_REVIEW",
     "legal_mode": "sociedad_mercantil",
-    "llm_cross_validation": "APPROVED",
-    "llm_legal_assessment": "APPROVED",
+    "llm_cross_validation": "REQUIRES_REVIEW",
+    "llm_legal_assessment": "REQUIRES_REVIEW",
     "cross_validation": {
-      "LEGAL_MODE_DETECTED": "PASSED",
-      "COMPANY_NAME_MATCH": "PASSED",
-      "CEDULA_MATCHES_LEGAL_REPRESENTATIVE": "PASSED",
-      "BOARD_VALIDITY": "PASSED",
-      "RIF_VALIDITY": "PASSED",
-      "SIGNATURE_SCHEME_SUPPORTED": "PASSED"
-    }
+      "CORPORATE_DOCUMENT_PRECEDENCE": "PASSED",
+      "SIGNATURE_SCHEME_SUPPORTED": "FAILED"
+    },
+    "error_codes": [
+      "SIGNATURE_SCHEME_SUPPORTED"
+    ]
   }
 }
