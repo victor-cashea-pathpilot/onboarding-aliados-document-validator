@@ -48,7 +48,8 @@ Variables más importantes:
 - `CLOUD_TASKS_QUEUE_ID`
 - `API_SERVICE_NAME`
 - `WORKER_SERVICE_NAME`
-- `RUNTIME_SERVICE_ACCOUNT_EMAIL`
+- `API_RUNTIME_SERVICE_ACCOUNT_EMAIL`
+- `WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL`
 - `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
 - `WORKER_AUTH_TOKEN`
 - `IMAGE_TAG`
@@ -68,7 +69,8 @@ Esto:
 - crea Firestore si no existe
 - crea Artifact Registry si no existe
 - crea la cola de Cloud Tasks si no existe
-- aplica IAM mínimo para Firestore, Cloud Tasks y worker privado
+- crea service accounts dedicadas si no existen
+- aplica IAM mínimo para Firestore, Vertex AI, Cloud Tasks y worker privado
 
 ### 2. Deploy del worker
 
@@ -117,6 +119,7 @@ flowchart LR
 - Los builds se publican en `linux/amd64` para compatibilidad con Cloud Run.
 - El worker se despliega privado.
 - Cloud Tasks invoca al worker con `OIDC` usando `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`.
+- `api`, `worker` y `Cloud Tasks` ya no dependen de la compute default service account.
 - La aplicación todavía puede correrse localmente con:
   - `JOB_REPOSITORY_MODE=inmemory`
   - `JOB_QUEUE_MODE=inline`

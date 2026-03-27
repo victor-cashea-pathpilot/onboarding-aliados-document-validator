@@ -21,7 +21,7 @@ gcloud run deploy "$API_SERVICE_NAME" \
   --project "$PROJECT_ID" \
   --region "$REGION" \
   --platform managed \
-  --service-account "$RUNTIME_SERVICE_ACCOUNT_EMAIL" \
+  --service-account "$API_RUNTIME_SERVICE_ACCOUNT_EMAIL" \
   $ALLOW_FLAG \
   --image "$IMAGE" \
   --set-env-vars \
