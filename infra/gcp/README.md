@@ -5,6 +5,9 @@ Esta carpeta es la fuente de verdad operativa para desplegar la arquitectura en 
 ## Contenido
 
 - `env.template`: variables base para despliegue
+- `env.dev.template`: configuración ejemplo para `dev`
+- `env.staging.template`: configuración ejemplo para `staging`
+- `env.prod.template`: configuración ejemplo para `prod`
 - `common.sh`: helpers compartidos
 - `bootstrap.sh`: habilita APIs y crea recursos base
 - `deploy_worker.sh`: build y deploy del worker a Cloud Run
@@ -27,16 +30,16 @@ Esta carpeta es la fuente de verdad operativa para desplegar la arquitectura en 
 
 ## Variables
 
-Parte de `infra/gcp/env.template` y crea un archivo local, por ejemplo:
+Parte de uno de los templates y crea un archivo local, por ejemplo:
 
 ```bash
-cp infra/gcp/env.template infra/gcp/.env.dev
+cp infra/gcp/env.staging.template infra/gcp/.env.staging
 ```
 
 Luego edítalo y cárgalo antes de ejecutar scripts:
 
 ```bash
-source infra/gcp/.env.dev
+source infra/gcp/.env.staging
 ```
 
 Variables más importantes:
@@ -53,6 +56,12 @@ Variables más importantes:
 - `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
 - `WORKER_AUTH_TOKEN`
 - `IMAGE_TAG`
+
+Templates recomendados:
+
+- `env.dev.template`: para pruebas internas rápidas o sandboxes
+- `env.staging.template`: para validación operativa pre-piloto
+- `env.prod.template`: base para producción, con `MOCK_MODE=false`
 
 ## Orden recomendado
 
