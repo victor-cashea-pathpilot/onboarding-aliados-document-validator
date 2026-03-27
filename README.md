@@ -46,6 +46,10 @@ Estado actual:
   - reglas determinísticas
   - `CrossValidationLLMService`
   - `LegalAssessmentLLMService`
+- Etapa 9 está iniciada:
+  - factorías compartidas para repo, dispatcher y processor
+  - wiring consistente para `Firestore` y `Cloud Tasks`
+  - tests de infraestructura local
 - Los `real extraction evals` quedan como un track manual/posterior mientras se valida la estrategia final de hosting y acceso a documentos por URL.
 
 ## Alcance actual
@@ -97,7 +101,7 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 Todavía falta implementar:
 
 - persistencia real en `Firestore`
-- despacho real con `Cloud Tasks`
+- despacho real con `Cloud Tasks` como path principal
 - cierre de arquitectura completa alineada al diagrama del cliente (`Apigee`, storage, analytics, OCR complementario si aplica)
 - ampliar los evals lógicos, de extracción y comprehensive con más fixtures y expected outputs
 - ampliar cobertura y profundidad de validación cruzada
@@ -177,6 +181,21 @@ JOB_REPOSITORY_MODE=inmemory
 JOB_QUEUE_MODE=inline
 MOCK_MODE=true
 ```
+
+Para probar la fase de infraestructura con persistencia compartida local:
+
+```bash
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+JOB_REPOSITORY_MODE=firestore
+JOB_QUEUE_MODE=inline
+MOCK_MODE=true
+```
+
+Ese modo permite validar:
+
+- repositorio real de jobs en `Firestore`
+- API y worker compartiendo el mismo estado
+- flujo async lógico sin depender todavía de `Cloud Tasks` remoto
 
 Para prueba real con Vertex AI, además necesitas:
 

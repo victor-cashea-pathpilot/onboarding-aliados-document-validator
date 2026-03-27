@@ -287,7 +287,12 @@ Reemplazar el modo local `inmemory + inline` por un flujo compartido y desplegab
 
 ### Estado
 
-- preparada en código, no activada como path principal
+- iniciada
+- ya existe:
+  - factorías compartidas para repo, dispatcher y processor
+  - wiring consistente para `Firestore` y `Cloud Tasks`
+  - tests de repo `Firestore` y payload de `Cloud Tasks`
+- falta activar esta ruta como path principal y validarla fuera del modo local
 
 ## Etapa 10: Despliegue de arquitectura completa
 

@@ -4,9 +4,7 @@ from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 
 from backend.shared.config import get_settings
-from backend.shared.repositories.firestore_job_repository import FirestoreJobRepository
-from backend.shared.repositories.in_memory_job_repository import InMemoryJobRepository
-from backend.shared.services.job_processor import JobProcessor
+from backend.shared.factories import build_processor
 
 
 class ProcessJobRequest(BaseModel):
@@ -16,13 +14,6 @@ class ProcessJobRequest(BaseModel):
 
 
 router = APIRouter(prefix="/internal", tags=["jobs"])
-settings = get_settings()
-
-
-def _get_repository():
-    if settings.job_repository_mode == "firestore":
-        return FirestoreJobRepository()
-    return InMemoryJobRepository()
 
 
 @router.post("/process-job")
@@ -32,16 +23,14 @@ async def process_job(
 ) -> dict[str, str]:
     """Process a job from Cloud Tasks or a local caller."""
 
+    settings = get_settings()
     if settings.worker_auth_token and x_worker_token != settings.worker_auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid worker token.",
         )
 
-    processor = JobProcessor(
-        repository=_get_repository(),
-        mock_mode=settings.mock_mode,
-    )
+    processor = build_processor()
     processor.process(payload.job_id)
 
     return {

@@ -41,10 +41,52 @@ def test_job_service_factory_can_select_firestore(monkeypatch) -> None:
 
     monkeypatch.setattr(
         job_service_module,
-        "FirestoreJobRepository",
-        FakeFirestoreRepository,
+        "build_repository",
+        lambda: FakeFirestoreRepository(),
     )
 
     service = get_job_service()
 
     assert service.repository.__class__.__name__ == "FakeFirestoreRepository"
+
+
+def test_job_service_factory_can_select_cloud_tasks_dispatcher(monkeypatch) -> None:
+    clear_caches()
+    monkeypatch.setenv("JOB_REPOSITORY_MODE", "inmemory")
+    monkeypatch.setenv("MOCK_MODE", "true")
+    monkeypatch.setenv("JOB_QUEUE_MODE", "cloud_tasks")
+
+    class FakeCloudTasksDispatcher:
+        def dispatch(self, job):
+            return None
+
+    monkeypatch.setattr(
+        job_service_module,
+        "build_dispatcher",
+        lambda repository=None: FakeCloudTasksDispatcher(),
+    )
+
+    service = get_job_service()
+
+    assert service.dispatcher.__class__.__name__ == "FakeCloudTasksDispatcher"
+
+
+def test_job_service_factory_can_select_inline_dispatcher(monkeypatch) -> None:
+    clear_caches()
+    monkeypatch.setenv("JOB_REPOSITORY_MODE", "inmemory")
+    monkeypatch.setenv("MOCK_MODE", "true")
+    monkeypatch.setenv("JOB_QUEUE_MODE", "inline")
+
+    class FakeInlineDispatcher:
+        def dispatch(self, job):
+            return None
+
+    monkeypatch.setattr(
+        job_service_module,
+        "build_dispatcher",
+        lambda repository=None: FakeInlineDispatcher(),
+    )
+
+    service = get_job_service()
+
+    assert service.dispatcher.__class__.__name__ == "FakeInlineDispatcher"
