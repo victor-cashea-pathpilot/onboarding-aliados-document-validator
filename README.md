@@ -37,7 +37,8 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - [x] Etapa 7: evals lógicos, de extracción y comprehensive en CI/CD
 - [ ] Etapa 8: profundización de reglas y semántica del resultado
 - [ ] Etapa 9: infraestructura async real en GCP
-- [ ] Etapa 10: staging, observabilidad y piloto
+- [ ] Etapa 10: despliegue de arquitectura completa
+- [ ] Etapa 11: staging, observabilidad y piloto
 
 Estado actual:
 - Etapa 7 ya cubre `unit tests`, `logic evals`, `extraction evals` y `comprehensive evals` en GitHub Actions.
@@ -97,6 +98,7 @@ Todavía falta implementar:
 
 - persistencia real en `Firestore`
 - despacho real con `Cloud Tasks`
+- cierre de arquitectura completa alineada al diagrama del cliente (`Apigee`, storage, analytics, OCR complementario si aplica)
 - ampliar los evals lógicos, de extracción y comprehensive con más fixtures y expected outputs
 - ampliar cobertura y profundidad de validación cruzada
 

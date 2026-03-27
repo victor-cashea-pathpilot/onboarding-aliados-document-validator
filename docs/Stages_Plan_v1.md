@@ -289,7 +289,32 @@ Reemplazar el modo local `inmemory + inline` por un flujo compartido y desplegab
 
 - preparada en código, no activada como path principal
 
-## Etapa 10: Staging, observabilidad y piloto
+## Etapa 10: Despliegue de arquitectura completa
+
+### Objetivo
+
+Acercar la solución al diagrama objetivo pedido por Cashea y cerrar los componentes de plataforma que hoy siguen siendo opcionales o propuestos.
+
+### Incluye
+
+- decisión final de `Cloud Tasks` vs `Pub/Sub` para la arquitectura objetivo
+- `Apigee` o gateway equivalente para auth, cuotas, versionado y analytics
+- `Cloud Storage` para staging temporal o retención controlada de documentos
+- decisión final sobre `Document AI` como OCR complementario o no
+- `BigQuery` para logs, analytics y trazabilidad de evals
+- estrategia de `Vertex AI Experiments` o equivalente para seguimiento de calidad
+- endurecimiento de seguridad y operación alineado al entorno Cashea
+
+### Resultado esperado
+
+- la solución desplegada se acerca a la arquitectura objetivo del cliente
+- quedan definidos con claridad los componentes mandatorios vs opcionales
+
+### Estado
+
+- pendiente
+
+## Etapa 11: Staging, observabilidad y piloto
 
 ### Objetivo
 
@@ -319,6 +344,7 @@ Cerrar el flujo operativo para pruebas en ambiente real y piloto controlado.
 3. Etapa 8
 4. Etapa 9
 5. Etapa 10
+6. Etapa 11
 
 ## Estado actual
 
