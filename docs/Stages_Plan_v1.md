@@ -320,6 +320,8 @@ Endurecer la arquitectura desplegable y acercarla a la propuesta objetivo del cl
 - primer slice implementado en `infra/gcp/`:
   - service accounts separadas para `api`, `worker` y `Cloud Tasks`
   - bootstrap preparado para crearlas y asignar IAM mínimo
+  - logs JSON estructurados por evento en `api` y `worker`
+  - scripts separados para métricas de logs y dashboards en `infra/gcp/`
 
 ## Etapa 11: Staging, observabilidad y piloto
 
@@ -341,7 +343,11 @@ Operar el sistema en un entorno de staging más cercano a uso real.
 
 ### Estado
 
-- pendiente
+- iniciada
+- ya existe base operativa:
+  - logging estructurado
+  - métricas basadas en logs
+  - dashboard programable en Cloud Monitoring
 
 ## Orden recomendado
 

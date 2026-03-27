@@ -28,6 +28,10 @@ require_base_env() {
   required_env WORKER_AUTH_TOKEN
   required_env IMAGE_TAG
   : "${API_ALLOW_UNAUTHENTICATED:=false}"
+  : "${OBSERVABILITY_DASHBOARD_NAME:=Onboarding Agent Overview}"
+  : "${OBSERVABILITY_JOB_METRIC_PREFIX:=onboarding_job}"
+  : "${OBSERVABILITY_LLM_METRIC_PREFIX:=onboarding_llm}"
+  : "${OBSERVABILITY_EXTRACTION_METRIC_PREFIX:=onboarding_extraction}"
 }
 
 project_number() {

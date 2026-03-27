@@ -14,6 +14,8 @@ gcloud services enable \
   artifactregistry.googleapis.com \
   cloudbuild.googleapis.com \
   firestore.googleapis.com \
+  monitoring.googleapis.com \
+  logging.googleapis.com \
   --project "$PROJECT_ID"
 
 echo "Ensuring Firestore database exists..."
@@ -66,6 +68,9 @@ grant_project_role "serviceAccount:${API_RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/
 grant_project_role "serviceAccount:${API_RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/cloudtasks.enqueuer"
 grant_project_role "serviceAccount:${WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/datastore.user"
 grant_project_role "serviceAccount:${WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/aiplatform.user"
+grant_service_account_actas \
+  "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" \
+  "serviceAccount:${API_RUNTIME_SERVICE_ACCOUNT_EMAIL}"
 grant_service_account_actas \
   "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" \
   "serviceAccount:$(cloud_tasks_service_agent)"

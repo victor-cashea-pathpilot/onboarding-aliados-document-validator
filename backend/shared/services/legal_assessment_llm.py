@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from backend.shared.clients.gemini import get_gemini_client
 from backend.shared.config import get_settings
+from backend.shared.logging import get_logger, log_event
 from backend.shared.models.canonical import CanonicalMerchantSnapshot
 from backend.shared.models.contracts import (
     CrossValidationCheck,
@@ -11,6 +12,8 @@ from backend.shared.models.contracts import (
     LLMValidationReview,
 )
 from backend.shared.validation_prompts import build_legal_assessment_prompt
+
+logger = get_logger(__name__)
 
 
 class LegalAssessmentLLMService:
@@ -37,7 +40,16 @@ class LegalAssessmentLLMService:
             )
 
         if self.mock_mode:
-            return self._mock_assessment(snapshot=snapshot, checks=checks)
+            review = self._mock_assessment(snapshot=snapshot, checks=checks)
+            log_event(
+                logger,
+                "legal_assessment.llm.completed",
+                mode="mock",
+                legal_mode=snapshot.legal_mode,
+                recommendation=review.recommendation,
+                confidence=review.confidence,
+            )
+            return review
 
         client = self.gemini_client or get_gemini_client()
         response = client.analyze_json(
@@ -45,7 +57,17 @@ class LegalAssessmentLLMService:
             prompt=build_legal_assessment_prompt(),
             payload=self._build_payload(snapshot=snapshot, checks=checks),
         )
-        return self._parse_response(response, source="llm_legal_assessment")
+        review = self._parse_response(response, source="llm_legal_assessment")
+        log_event(
+            logger,
+            "legal_assessment.llm.completed",
+            mode="vertex_ai",
+            model=self.model_name,
+            legal_mode=snapshot.legal_mode,
+            recommendation=review.recommendation,
+            confidence=review.confidence,
+        )
+        return review
 
     def _mock_assessment(
         self,

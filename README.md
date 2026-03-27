@@ -54,6 +54,10 @@ Estado actual:
   - `Cloud Tasks`
   - worker privado invocado con `OIDC`
   - scripts operativos en `infra/gcp/`
+- La observabilidad ya tiene base operativa:
+  - logs JSON estructurados en `api` y `worker`
+  - eventos por etapa del pipeline
+  - scripts dedicados en `infra/gcp/` para crear métricas de logs y dashboards
 - La etapa activa ahora es la **Etapa 10**:
   - endurecer arquitectura por ambiente
   - separar service accounts por responsabilidad
@@ -107,13 +111,17 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 - framework base de evals por capas con fixtures sanitizados para regresión en CI/CD
 - runner local para `real extraction evals`, todavía fuera del CI estándar
 - scripts operativos para bootstrap y despliegue de `Cloud Run + Firestore + Cloud Tasks`
+- scripts operativos para observabilidad:
+  - `create_log_metrics.sh`
+  - `create_dashboards.sh`
+  - `deploy_observability.sh`
 
 Todavía falta implementar:
 
 - cierre de arquitectura completa alineada al diagrama del cliente (`Apigee`, storage, analytics, OCR complementario si aplica)
 - ampliar los evals lógicos, de extracción y comprehensive con más fixtures y expected outputs
 - endurecimiento por ambiente (`dev`, `staging`, `prod`)
-- observabilidad y analytics operativos
+- observabilidad y analytics operativos completos
 
 ## Arquitectura actual vs target
 

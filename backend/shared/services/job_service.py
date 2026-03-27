@@ -3,6 +3,7 @@
 from functools import lru_cache
 
 from backend.shared.factories import build_dispatcher, build_repository
+from backend.shared.logging import get_logger, log_event
 from backend.shared.models.contracts import (
     StatusRequest,
     StatusResponseItem,
@@ -11,6 +12,8 @@ from backend.shared.models.contracts import (
 )
 from backend.shared.models.jobs import JobRecord
 from backend.shared.config import get_settings
+
+logger = get_logger(__name__)
 
 
 class JobService:
@@ -37,6 +40,14 @@ class JobService:
             updated_at=response.created_at,
         )
         self.repository.save(record)
+        log_event(
+            logger,
+            "job.persisted",
+            job_id=record.job_id,
+            merchant_id=record.merchant_id,
+            request_id=record.request_id,
+            repository=self.repository.__class__.__name__,
+        )
         self.dispatcher.dispatch(record)
         return response
 
@@ -47,8 +58,21 @@ class JobService:
         for job_id in payload.job_ids:
             record = self.repository.get(job_id)
             if record is None:
+                log_event(
+                    logger,
+                    "job.status.missing",
+                    job_id=job_id,
+                )
                 results.append(StatusResponseItem(job_id=job_id, status="PENDING"))
                 continue
+            log_event(
+                logger,
+                "job.status.loaded",
+                job_id=record.job_id,
+                merchant_id=record.merchant_id,
+                status=record.status,
+                repository=self.repository.__class__.__name__,
+            )
             results.append(self._to_status_response(record))
         return results
 
