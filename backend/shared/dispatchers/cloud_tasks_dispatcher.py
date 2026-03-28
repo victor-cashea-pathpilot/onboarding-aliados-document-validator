@@ -4,7 +4,10 @@ import json
 
 from backend.shared.clients.cloud_tasks import get_cloud_tasks_client
 from backend.shared.config import get_settings
+from backend.shared.logging import get_logger, log_event
 from backend.shared.models.jobs import JobRecord
+
+logger = get_logger(__name__)
 
 
 class CloudTasksJobDispatcher:
@@ -51,3 +54,12 @@ class CloudTasksJobDispatcher:
             task["http_request"]["headers"]["X-Worker-Token"] = settings.worker_auth_token
 
         client.create_task(parent=parent, task=task)
+        log_event(
+            logger,
+            "job.dispatched.cloud_tasks",
+            job_id=job.job_id,
+            merchant_id=job.merchant_id,
+            request_id=job.request_id,
+            queue_id=settings.cloud_tasks_queue_id,
+            worker_url=f"{settings.worker_base_url.rstrip('/')}/internal/process-job",
+        )

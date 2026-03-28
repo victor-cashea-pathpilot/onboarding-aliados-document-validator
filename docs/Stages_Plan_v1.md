@@ -221,7 +221,7 @@ Evitar regresiones en extracción, normalización, validación cruzada y orquest
 
 ### Estado
 
-- iniciada
+- completada
 - ya existe carpeta operativa `infra/gcp/` con scripts para:
   - bootstrap de proyecto
   - deploy de worker
@@ -263,89 +263,91 @@ Mejorar la calidad del veredicto antes de mover el flujo a infraestructura async
 ### Estado
 
 - iniciada
-- ya existe:
-  - derivación explícita de `legal_mode`
-  - precedencia corporativa básica
-  - chequeo de soporte de firma conjunta/separada
-  - `CrossValidationLLMService`
-  - `LegalAssessmentLLMService`
-- falta ampliar reglas legales finas y conectarlas luego al flujo async real
+- validación híbrida implementada
+- lógica de precedencia y modo legal incorporada
+- cobertura local y en CI ampliada
 
 ## Etapa 9: Infraestructura async real en GCP
 
 ### Objetivo
 
-Reemplazar el modo local `inmemory + inline` por un flujo compartido y desplegable.
+Mover el flujo asíncrono del modo local a servicios reales de GCP.
 
 ### Incluye
 
-- `FirestoreJobRepository`
+- `Firestore` como source of truth del job
 - `Cloud Tasks` como dispatcher real
-- worker separado leyendo y escribiendo el mismo estado de job
-- configuración por ambientes
-- soporte opcional para `Firestore Emulator` local
+- `Cloud Run API`
+- `Cloud Run Worker`
+- invocación privada del worker con `OIDC`
+- scripts operativos de bootstrap, deploy y smoke test
 
 ### Resultado esperado
 
-- API y worker operan como servicios desacoplados
-- el estado del job sobrevive fuera del proceso local
+- submit -> queue -> worker -> Firestore -> status funcionando en GCP real
 
 ### Estado
 
-- iniciada
-- ya existe:
-  - factorías compartidas para repo, dispatcher y processor
-  - wiring consistente para `Firestore` y `Cloud Tasks`
-  - tests de repo `Firestore` y payload de `Cloud Tasks`
-- falta activar esta ruta como path principal y validarla fuera del modo local
+- completada
 
 ## Etapa 10: Despliegue de arquitectura completa
 
 ### Objetivo
 
-Acercar la solución al diagrama objetivo pedido por Cashea y cerrar los componentes de plataforma que hoy siguen siendo opcionales o propuestos.
+Endurecer la arquitectura desplegable y acercarla a la propuesta objetivo del cliente.
 
 ### Incluye
 
-- decisión final de `Cloud Tasks` vs `Pub/Sub` para la arquitectura objetivo
-- `Apigee` o gateway equivalente para auth, cuotas, versionado y analytics
-- `Cloud Storage` para staging temporal o retención controlada de documentos
-- decisión final sobre `Document AI` como OCR complementario o no
-- `BigQuery` para logs, analytics y trazabilidad de evals
-- estrategia de `Vertex AI Experiments` o equivalente para seguimiento de calidad
-- endurecimiento de seguridad y operación alineado al entorno Cashea
+- service accounts dedicadas por servicio y ambiente
+- revisión de IAM mínimo por componente
+- definición de ambientes `dev`, `staging` y luego `prod`
+- decisión explícita sobre:
+  - `Apigee`
+  - `Cloud Storage`
+  - `Document AI`
+  - `BigQuery`
+  - tracking formal de evals
+- documentación de arquitectura actual vs target
+- despliegue repetible por ambiente
 
 ### Resultado esperado
 
-- la solución desplegada se acerca a la arquitectura objetivo del cliente
-- quedan definidos con claridad los componentes mandatorios vs opcionales
+- una arquitectura desplegable, gobernable y más cercana al diseño enterprise esperado por Cashea
 
 ### Estado
 
-- pendiente
+- iniciada
+- primer slice implementado en `infra/gcp/`:
+  - service accounts separadas para `api`, `worker` y `Cloud Tasks`
+  - bootstrap preparado para crearlas y asignar IAM mínimo
+  - logs JSON estructurados por evento en `api` y `worker`
+  - scripts separados para métricas de logs y dashboards en `infra/gcp/`
 
 ## Etapa 11: Staging, observabilidad y piloto
 
 ### Objetivo
 
-Cerrar el flujo operativo para pruebas en ambiente real y piloto controlado.
+Operar el sistema en un entorno de staging más cercano a uso real.
 
 ### Incluye
 
-- despliegue en `Cloud Run` para API y worker
-- `Firestore` y `Cloud Tasks` conectados en staging
-- logging estructurado y métricas mínimas
-- smoke tests de integración
-- revisión de latencia y costo
-- piloto controlado
+- smoke tests de staging
+- observabilidad mínima
+- logging estructurado
+- métricas
+- preparación de piloto controlado
 
 ### Resultado esperado
 
-- MVP listo para tráfico de prueba fuera del entorno local
+- un entorno usable para validación operativa antes de producción
 
 ### Estado
 
-- pendiente
+- iniciada
+- ya existe base operativa:
+  - logging estructurado
+  - métricas basadas en logs
+  - dashboard programable en Cloud Monitoring
 
 ## Orden recomendado
 
@@ -370,7 +372,8 @@ El proyecto ya tiene:
 - intake técnico de documentos
 - extracción paralela por documento
 - normalización canónica
-- validación cruzada base
-- tests unitarios corriendo en CI
+- validación cruzada híbrida
+- evals por capas en CI
+- infraestructura async real probada en GCP
 
-Lo siguiente es formalizar los evals lógicos en CI/CD y profundizar las reglas antes de cerrar la infraestructura async real.
+La etapa activa ahora es endurecer la arquitectura desplegable y cerrar la definición del target final por ambiente.

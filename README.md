@@ -36,23 +36,34 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - [x] Etapa 5: normalización de datos
 - [x] Etapa 6: validación cruzada base
 - [x] Etapa 7: evals lógicos, de extracción y comprehensive en CI/CD
-- [ ] Etapa 8: profundización de reglas y semántica del resultado
-- [ ] Etapa 9: infraestructura async real en GCP
+- [x] Etapa 8: profundización de reglas y semántica del resultado
+- [x] Etapa 9: infraestructura async real en GCP
 - [ ] Etapa 10: despliegue de arquitectura completa
 - [ ] Etapa 11: staging, observabilidad y piloto
 
 Estado actual:
 - Etapa 7 ya cubre `unit tests`, `logic evals`, `extraction evals` y `comprehensive evals` en GitHub Actions.
-- Etapa 8 está en progreso con validación híbrida:
+- Etapa 8 ya dejó una validación híbrida funcional:
   - reglas determinísticas
   - `CrossValidationLLMService`
   - `LegalAssessmentLLMService`
-- Etapa 9 está iniciada:
-  - factorías compartidas para repo, dispatcher y processor
-  - wiring consistente para `Firestore` y `Cloud Tasks`
-  - tests de infraestructura local
-  - scripts de bootstrap y despliegue en `infra/gcp/`
-- Los `real extraction evals` quedan como un track manual/posterior mientras se valida la estrategia final de hosting y acceso a documentos por URL.
+- Etapa 9 ya quedó probada en GCP:
+  - `Cloud Run API`
+  - `Cloud Run Worker`
+  - `Firestore`
+  - `Cloud Tasks`
+  - worker privado invocado con `OIDC`
+  - scripts operativos en `infra/gcp/`
+- La observabilidad ya tiene base operativa:
+  - logs JSON estructurados en `api` y `worker`
+  - eventos por etapa del pipeline
+  - scripts dedicados en `infra/gcp/` para crear métricas de logs y dashboards
+- La etapa activa ahora es la **Etapa 10**:
+  - endurecer arquitectura por ambiente
+  - separar service accounts por responsabilidad
+  - alinear más el despliegue con el diagrama objetivo del cliente
+  - definir qué componentes enterprise entran ya y cuáles quedan como siguiente iteración
+- Los `real extraction evals` siguen como track manual/posterior mientras se termina de definir la estrategia final de hosting y acceso a documentos.
 
 ## Alcance actual
 
@@ -100,14 +111,76 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 - framework base de evals por capas con fixtures sanitizados para regresión en CI/CD
 - runner local para `real extraction evals`, todavía fuera del CI estándar
 - scripts operativos para bootstrap y despliegue de `Cloud Run + Firestore + Cloud Tasks`
+- scripts operativos para observabilidad:
+  - `create_log_metrics.sh`
+  - `create_dashboards.sh`
+  - `deploy_observability.sh`
 
 Todavía falta implementar:
 
-- persistencia real en `Firestore`
-- despacho real con `Cloud Tasks` como path principal
 - cierre de arquitectura completa alineada al diagrama del cliente (`Apigee`, storage, analytics, OCR complementario si aplica)
 - ampliar los evals lógicos, de extracción y comprehensive con más fixtures y expected outputs
-- ampliar cobertura y profundidad de validación cruzada
+- endurecimiento por ambiente (`dev`, `staging`, `prod`)
+- observabilidad y analytics operativos completos
+
+## Arquitectura actual vs target
+
+### Arquitectura GCP actual
+
+```mermaid
+flowchart LR
+    A["Caller autenticado"] --> B["Cloud Run API"]
+    B --> C["Firestore<br/>job state + results"]
+    B --> D["Cloud Tasks"]
+    D -. "OIDC" .-> E["Cloud Run Worker (privado)"]
+    E --> C
+    E --> F["Document intake"]
+    F --> G["Parallel extraction per document"]
+    G --> H["Vertex AI Gemini"]
+    H --> I["Normalization"]
+    I --> J["Cross-validation<br/>rules + LLM review"]
+    J --> C
+```
+
+### Arquitectura objetivo
+
+```mermaid
+flowchart TD
+    A["Onboarding svc"] --> B["Apigee / API Gateway"]
+    A2["n8n enterprise"] --> B
+    B --> C["Cloud Run API"]
+    C --> D["Firestore<br/>job state + metadata"]
+    C --> E["Cloud Tasks o Pub/Sub"]
+    C --> F["Cloud Storage<br/>staging opcional"]
+    E --> G["Cloud Run Workers"]
+    G --> D
+    G --> F
+    G --> H["Document AI<br/>OCR opcional"]
+    G --> I["Vertex AI Gemini Flash"]
+    G --> J["Vertex AI Gemini Pro"]
+    I --> K["Normalization + cross-validation"]
+    J --> K
+    H --> K
+    K --> D
+    K --> L["BigQuery<br/>logs + analytics"]
+    L --> M["Vertex AI Experiments / eval tracking"]
+```
+
+### Gap actual
+
+- Ya implementado:
+  - `Cloud Run API`
+  - `Cloud Run Worker`
+  - `Firestore`
+  - `Cloud Tasks`
+  - `Vertex AI Gemini`
+  - worker privado con `OIDC`
+- Pendiente para acercarnos al target final:
+  - `Apigee` o gateway equivalente
+  - `Cloud Storage` como staging real de documentos, si aplica
+  - `Document AI` como OCR complementario, si aplica
+  - `BigQuery` para logs/evals/analytics
+  - endurecimiento por ambiente más allá del primer slice ya implementado
 
 ## Cómo fluyen los evals locales
 

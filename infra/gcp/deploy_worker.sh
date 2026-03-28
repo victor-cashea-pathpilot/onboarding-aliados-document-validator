@@ -15,7 +15,7 @@ gcloud run deploy "$WORKER_SERVICE_NAME" \
   --project "$PROJECT_ID" \
   --region "$REGION" \
   --platform managed \
-  --service-account "$RUNTIME_SERVICE_ACCOUNT_EMAIL" \
+  --service-account "$WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL" \
   --no-allow-unauthenticated \
   --image "$IMAGE" \
   --set-env-vars \

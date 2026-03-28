@@ -37,7 +37,7 @@ def test_job_processor_rejects_technical_document_failures(monkeypatch) -> None:
     monkeypatch.setattr(
         processor.document_intake,
         "validate_url",
-        lambda url: IntakeResult(
+        lambda url, **_: IntakeResult(
             ok=False,
             url=url,
             error_code="DOCUMENT_CONTENT_TYPE_INVALID",
@@ -70,7 +70,7 @@ def test_job_processor_adds_mock_extracted_fields_for_valid_docs(monkeypatch) ->
     monkeypatch.setattr(
         processor.document_intake,
         "validate_url",
-        lambda url: IntakeResult(
+        lambda url, **_: IntakeResult(
             ok=True,
             url=url,
             content_type="application/pdf",

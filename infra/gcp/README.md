@@ -5,11 +5,17 @@ Esta carpeta es la fuente de verdad operativa para desplegar la arquitectura en 
 ## Contenido
 
 - `env.template`: variables base para despliegue
+- `env.dev.template`: configuración ejemplo para `dev`
+- `env.staging.template`: configuración ejemplo para `staging`
+- `env.prod.template`: configuración ejemplo para `prod`
 - `common.sh`: helpers compartidos
 - `bootstrap.sh`: habilita APIs y crea recursos base
 - `deploy_worker.sh`: build y deploy del worker a Cloud Run
 - `deploy_api.sh`: build y deploy del API a Cloud Run
 - `deploy_all.sh`: secuencia completa de bootstrap + deploy
+- `create_log_metrics.sh`: crea o actualiza métricas basadas en logs estructurados
+- `create_dashboards.sh`: crea o actualiza dashboards en Cloud Monitoring
+- `deploy_observability.sh`: aplica métricas + dashboards
 - `smoke_test.sh`: prueba básica contra el API desplegado
 
 ## Prerrequisitos
@@ -27,16 +33,16 @@ Esta carpeta es la fuente de verdad operativa para desplegar la arquitectura en 
 
 ## Variables
 
-Parte de `infra/gcp/env.template` y crea un archivo local, por ejemplo:
+Parte de uno de los templates y crea un archivo local, por ejemplo:
 
 ```bash
-cp infra/gcp/env.template infra/gcp/.env.dev
+cp infra/gcp/env.staging.template infra/gcp/.env.staging
 ```
 
 Luego edítalo y cárgalo antes de ejecutar scripts:
 
 ```bash
-source infra/gcp/.env.dev
+source infra/gcp/.env.staging
 ```
 
 Variables más importantes:
@@ -48,10 +54,21 @@ Variables más importantes:
 - `CLOUD_TASKS_QUEUE_ID`
 - `API_SERVICE_NAME`
 - `WORKER_SERVICE_NAME`
-- `RUNTIME_SERVICE_ACCOUNT_EMAIL`
+- `API_RUNTIME_SERVICE_ACCOUNT_EMAIL`
+- `WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL`
 - `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
 - `WORKER_AUTH_TOKEN`
 - `IMAGE_TAG`
+- `OBSERVABILITY_DASHBOARD_NAME`
+- `OBSERVABILITY_JOB_METRIC_PREFIX`
+- `OBSERVABILITY_LLM_METRIC_PREFIX`
+- `OBSERVABILITY_EXTRACTION_METRIC_PREFIX`
+
+Templates recomendados:
+
+- `env.dev.template`: para pruebas internas rápidas o sandboxes
+- `env.staging.template`: para validación operativa pre-piloto
+- `env.prod.template`: base para producción, con `MOCK_MODE=false`
 
 ## Orden recomendado
 
@@ -68,7 +85,8 @@ Esto:
 - crea Firestore si no existe
 - crea Artifact Registry si no existe
 - crea la cola de Cloud Tasks si no existe
-- aplica IAM mínimo para Firestore, Cloud Tasks y worker privado
+- crea service accounts dedicadas si no existen
+- aplica IAM mínimo para Firestore, Vertex AI, Cloud Tasks y worker privado
 
 ### 2. Deploy del worker
 
@@ -90,6 +108,19 @@ bash infra/gcp/deploy_api.sh
 source infra/gcp/.env.dev
 bash infra/gcp/smoke_test.sh
 ```
+
+### 5. Observabilidad
+
+```bash
+source infra/gcp/.env.dev
+bash infra/gcp/deploy_observability.sh
+```
+
+Esto:
+
+- crea métricas basadas en logs para jobs, extracción y llamadas LLM
+- crea o actualiza un dashboard de Cloud Monitoring
+- deja visible el flujo operativo del pipeline sin tocar el código de despliegue
 
 ## Atajo
 
@@ -117,6 +148,9 @@ flowchart LR
 - Los builds se publican en `linux/amd64` para compatibilidad con Cloud Run.
 - El worker se despliega privado.
 - Cloud Tasks invoca al worker con `OIDC` usando `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`.
+- El `api` runtime service account necesita `roles/iam.serviceAccountUser` sobre `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL` para poder encolar tareas con `oidc_token`.
+- `api`, `worker` y `Cloud Tasks` ya no dependen de la compute default service account.
+- Los logs de API y worker salen en JSON estructurado y se pueden consultar por `jsonPayload.event`.
 - La aplicación todavía puede correrse localmente con:
   - `JOB_REPOSITORY_MODE=inmemory`
   - `JOB_QUEUE_MODE=inline`
@@ -133,3 +167,21 @@ Ya se probó exitosamente en GCP:
 - Cloud Run API
 - Cloud Run worker privado
 - submit -> queue -> worker -> Firestore -> status
+
+## Eventos estructurados principales
+
+Los dashboards y métricas dependen de estos eventos:
+
+- `api.validation.submit.accepted`
+- `job.dispatched.cloud_tasks`
+- `worker.job.received`
+- `job.stage.updated`
+- `document.intake.validated`
+- `document.extraction.started`
+- `document.extraction.completed`
+- `document.extraction.failed`
+- `llm.request.started`
+- `llm.request.completed`
+- `llm.request.failed`
+- `job.completed`
+- `job.failed`

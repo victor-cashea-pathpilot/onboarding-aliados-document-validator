@@ -1,10 +1,14 @@
 """Gemini client for Vertex AI extraction via Google Gen AI SDK."""
 
 import json
+import time
 from functools import lru_cache
 from typing import Any
 
 from backend.shared.config import get_settings
+from backend.shared.logging import get_logger, log_event
+
+logger = get_logger(__name__)
 
 
 class GeminiExtractionClient:
@@ -66,15 +70,43 @@ class GeminiExtractionClient:
     def generate_json(self, *, model: str, contents: list[Any]) -> dict:
         """Generate structured JSON from generic multimodal contents."""
 
-        response = self._client.models.generate_content(
+        started_at = time.perf_counter()
+        log_event(
+            logger,
+            "llm.request.started",
             model=model,
-            contents=contents,
-            config=self._types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0,
-            ),
+            content_parts=len(contents),
         )
-        return self._parse_json_response(response.text)
+        try:
+            response = self._client.models.generate_content(
+                model=model,
+                contents=contents,
+                config=self._types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0,
+                ),
+            )
+            duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
+            log_event(
+                logger,
+                "llm.request.completed",
+                model=model,
+                duration_ms=duration_ms,
+            )
+            return self._parse_json_response(response.text)
+        except Exception as exc:  # noqa: BLE001
+            duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
+            log_event(
+                logger,
+                "llm.request.failed",
+                level=40,
+                message="LLM request failed.",
+                model=model,
+                duration_ms=duration_ms,
+                error=str(exc),
+                exc_info=exc,
+            )
+            raise
 
     def _parse_json_response(self, text: str) -> dict:
         cleaned = text.strip()

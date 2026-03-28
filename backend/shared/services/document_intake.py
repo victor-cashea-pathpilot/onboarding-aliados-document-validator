@@ -2,10 +2,12 @@
 
 from dataclasses import dataclass
 from urllib.parse import urlparse
+from typing import Any
 
 import httpx
 
 from backend.shared.config import get_settings
+from backend.shared.logging import get_logger, log_event, sanitize_url
 
 ALLOWED_MIME_TYPES = {
     "application/pdf",
@@ -13,6 +15,8 @@ ALLOWED_MIME_TYPES = {
     "image/png",
     "image/webp",
 }
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -35,16 +39,20 @@ class DocumentIntakeService:
         self.timeout = settings.download_timeout_seconds
         self.max_size = settings.max_document_size_bytes
 
-    def validate_url(self, url: str) -> IntakeResult:
+    def validate_url(self, url: str, *, context: dict | None = None) -> IntakeResult:
         """Validate one document URL."""
 
+        context = context or {}
+        safe_url = sanitize_url(url)
         if not self._is_supported_scheme(url):
-            return IntakeResult(
+            result = IntakeResult(
                 ok=False,
                 url=url,
                 error_code="DOCUMENT_URL_INVALID",
                 message="Only http and https URLs are supported.",
             )
+            self._log_result(result, safe_url=safe_url, **context)
+            return result
 
         try:
             with httpx.stream(
@@ -54,12 +62,14 @@ class DocumentIntakeService:
                 timeout=self.timeout,
             ) as response:
                 if response.status_code >= 400:
-                    return IntakeResult(
+                    result = IntakeResult(
                         ok=False,
                         url=url,
                         error_code="DOCUMENT_URL_UNREACHABLE",
                         message=f"Document URL returned HTTP {response.status_code}.",
                     )
+                    self._log_result(result, safe_url=safe_url, **context)
+                    return result
 
                 content_type = self._normalize_content_type(
                     response.headers.get("content-type")
@@ -69,7 +79,7 @@ class DocumentIntakeService:
                 )
 
                 if content_length is not None and content_length > self.max_size:
-                    return IntakeResult(
+                    result = IntakeResult(
                         ok=False,
                         url=url,
                         content_type=content_type,
@@ -79,9 +89,11 @@ class DocumentIntakeService:
                             f"Document exceeds max size of {self.max_size} bytes."
                         ),
                     )
+                    self._log_result(result, safe_url=safe_url, **context)
+                    return result
 
                 if content_type not in ALLOWED_MIME_TYPES:
-                    return IntakeResult(
+                    result = IntakeResult(
                         ok=False,
                         url=url,
                         content_type=content_type,
@@ -92,27 +104,35 @@ class DocumentIntakeService:
                             f"Received: {content_type or 'unknown'}."
                         ),
                     )
+                    self._log_result(result, safe_url=safe_url, **context)
+                    return result
 
-                return IntakeResult(
+                result = IntakeResult(
                     ok=True,
                     url=url,
                     content_type=content_type,
                     content_length=content_length,
                 )
+                self._log_result(result, safe_url=safe_url, **context)
+                return result
         except httpx.TimeoutException:
-            return IntakeResult(
+            result = IntakeResult(
                 ok=False,
                 url=url,
                 error_code="DOCUMENT_DOWNLOAD_TIMEOUT",
                 message="Timed out while downloading the document.",
             )
+            self._log_result(result, safe_url=safe_url, **context)
+            return result
         except httpx.HTTPError as exc:
-            return IntakeResult(
+            result = IntakeResult(
                 ok=False,
                 url=url,
                 error_code="DOCUMENT_DOWNLOAD_FAILED",
                 message=f"Failed to download the document: {exc}.",
             )
+            self._log_result(result, safe_url=safe_url, **context)
+            return result
 
     def _is_supported_scheme(self, url: str) -> bool:
         parsed = urlparse(url)
@@ -130,3 +150,24 @@ class DocumentIntakeService:
             return int(raw)
         except ValueError:
             return None
+
+    def _log_result(
+        self,
+        result: IntakeResult,
+        *,
+        safe_url: str | None,
+        **context: Any,
+    ) -> None:
+        event = "document.intake.validated" if result.ok else "document.intake.failed"
+        level = 20 if result.ok else 30
+        log_event(
+            logger,
+            event,
+            level=level,
+            source_url=safe_url,
+            intake_ok=result.ok,
+            content_type=result.content_type,
+            content_length=result.content_length,
+            error_code=result.error_code,
+            **context,
+        )

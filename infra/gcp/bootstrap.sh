@@ -14,6 +14,8 @@ gcloud services enable \
   artifactregistry.googleapis.com \
   cloudbuild.googleapis.com \
   firestore.googleapis.com \
+  monitoring.googleapis.com \
+  logging.googleapis.com \
   --project "$PROJECT_ID"
 
 echo "Ensuring Firestore database exists..."
@@ -50,9 +52,25 @@ else
   echo "Cloud Tasks queue already exists."
 fi
 
+echo "Ensuring dedicated service accounts exist..."
+create_service_account_if_missing \
+  "$API_RUNTIME_SERVICE_ACCOUNT_EMAIL" \
+  "Onboarding API Runtime"
+create_service_account_if_missing \
+  "$WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL" \
+  "Onboarding Worker Runtime"
+create_service_account_if_missing \
+  "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" \
+  "Onboarding Cloud Tasks Invoker"
+
 echo "Applying IAM bindings..."
-grant_project_role "serviceAccount:${RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/datastore.user"
-grant_project_role "serviceAccount:${RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/cloudtasks.enqueuer"
+grant_project_role "serviceAccount:${API_RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/datastore.user"
+grant_project_role "serviceAccount:${API_RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/cloudtasks.enqueuer"
+grant_project_role "serviceAccount:${WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/datastore.user"
+grant_project_role "serviceAccount:${WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/aiplatform.user"
+grant_service_account_actas \
+  "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" \
+  "serviceAccount:${API_RUNTIME_SERVICE_ACCOUNT_EMAIL}"
 grant_service_account_actas \
   "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" \
   "serviceAccount:$(cloud_tasks_service_agent)"

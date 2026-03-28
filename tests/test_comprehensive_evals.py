@@ -59,7 +59,7 @@ def test_comprehensive_eval_fixture(fixture_path: Path, monkeypatch) -> None:
     processor = JobProcessor(repository=repository, mock_mode=True)
     processor.document_extraction.registry = FixtureRegistry(fixture["mock_extraction"])
 
-    def fake_validate_url(url: str) -> IntakeResult:
+    def fake_validate_url(url: str, *, context=None) -> IntakeResult:
         data = fixture["intake"][url]
         if "error_code" in data:
             return IntakeResult(

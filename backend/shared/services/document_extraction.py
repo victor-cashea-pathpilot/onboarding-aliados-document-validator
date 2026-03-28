@@ -1,13 +1,17 @@
 """Parallel document extraction orchestration."""
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 import httpx
 
 from backend.shared.clients.gemini import get_gemini_client
 from backend.shared.config import get_settings
 from backend.shared.extraction.registry import ExtractorRegistry
+from backend.shared.logging import get_logger, log_event, sanitize_url
 from backend.shared.models.contracts import DocumentError, DocumentsResult
+
+logger = get_logger(__name__)
 
 
 class DocumentExtractionService:
@@ -22,7 +26,14 @@ class DocumentExtractionService:
         self.max_size = self.settings.max_document_size_bytes
         self.max_workers = max(1, self.settings.max_extraction_concurrency)
 
-    def extract_documents(self, documents: DocumentsResult) -> DocumentsResult:
+    def extract_documents(
+        self,
+        documents: DocumentsResult,
+        *,
+        job_id: str | None = None,
+        merchant_id: str | None = None,
+        request_id: str | None = None,
+    ) -> DocumentsResult:
         """Run extraction for all approved documents."""
 
         tasks = []
@@ -42,9 +53,27 @@ class DocumentExtractionService:
             return documents
 
         max_workers = min(self.max_workers, len(tasks))
+        log_event(
+            logger,
+            "document.extraction.batch.started",
+            job_id=job_id,
+            merchant_id=merchant_id,
+            request_id=request_id,
+            task_count=len(tasks),
+            max_workers=max_workers,
+        )
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
-                executor.submit(self._extract_single, document_type, item): (
+                executor.submit(
+                    self._extract_single,
+                    document_type,
+                    item,
+                    {
+                        "job_id": job_id,
+                        "merchant_id": merchant_id,
+                        "request_id": request_id,
+                    },
+                ): (
                     bucket_name,
                     index,
                 )
@@ -55,12 +84,30 @@ class DocumentExtractionService:
                 updated_item = future.result()
                 getattr(documents, bucket_name)[index] = updated_item
 
+        log_event(
+            logger,
+            "document.extraction.batch.completed",
+            job_id=job_id,
+            merchant_id=merchant_id,
+            request_id=request_id,
+            task_count=len(tasks),
+        )
         return documents
 
-    def _extract_single(self, document_type: str, item):
+    def _extract_single(self, document_type: str, item, context: dict[str, str | None]):
         extractor = self.registry.get(document_type)
         source_url = item.extracted_data.get("source_url")
         mime_type = item.extracted_data.get("content_type") or "application/pdf"
+        started_at = time.perf_counter()
+        log_event(
+            logger,
+            "document.extraction.started",
+            document_type=document_type,
+            document_id=item.document_id,
+            model=getattr(extractor, "model_name", None),
+            source_url=sanitize_url(source_url),
+            **context,
+        )
 
         try:
             if self.mock_mode:
@@ -83,6 +130,16 @@ class DocumentExtractionService:
                 "extracted_fields": extracted,
             }
             item.confidence = 90 if self.mock_mode else item.confidence
+            log_event(
+                logger,
+                "document.extraction.completed",
+                document_type=document_type,
+                document_id=item.document_id,
+                model=getattr(extractor, "model_name", None),
+                duration_ms=round((time.perf_counter() - started_at) * 1000, 2),
+                source_url=sanitize_url(source_url),
+                **context,
+            )
             return item
         except NotImplementedError as exc:
             item.status = "REQUIRES_REVIEW"
@@ -92,6 +149,17 @@ class DocumentExtractionService:
                     message=str(exc),
                 )
             )
+            log_event(
+                logger,
+                "document.extraction.not_implemented",
+                level=30,
+                document_type=document_type,
+                document_id=item.document_id,
+                duration_ms=round((time.perf_counter() - started_at) * 1000, 2),
+                error=str(exc),
+                source_url=sanitize_url(source_url),
+                **context,
+            )
             return item
         except Exception as exc:  # noqa: BLE001
             item.status = "REQUIRES_REVIEW"
@@ -100,6 +168,19 @@ class DocumentExtractionService:
                     error_code="EXTRACTION_FAILED",
                     message=f"Extraction failed: {exc}",
                 )
+            )
+            log_event(
+                logger,
+                "document.extraction.failed",
+                level=40,
+                document_type=document_type,
+                document_id=item.document_id,
+                model=getattr(extractor, "model_name", None),
+                duration_ms=round((time.perf_counter() - started_at) * 1000, 2),
+                error=str(exc),
+                source_url=sanitize_url(source_url),
+                **context,
+                exc_info=exc,
             )
             return item
 

@@ -22,11 +22,16 @@ require_base_env() {
   required_env CLOUD_TASKS_QUEUE_ID
   required_env API_SERVICE_NAME
   required_env WORKER_SERVICE_NAME
-  required_env RUNTIME_SERVICE_ACCOUNT_EMAIL
+  required_env API_RUNTIME_SERVICE_ACCOUNT_EMAIL
+  required_env WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL
   required_env WORKER_AUTH_TOKEN
   required_env IMAGE_TAG
   : "${API_ALLOW_UNAUTHENTICATED:=false}"
+  : "${OBSERVABILITY_DASHBOARD_NAME:=Onboarding Agent Overview}"
+  : "${OBSERVABILITY_JOB_METRIC_PREFIX:=onboarding_job}"
+  : "${OBSERVABILITY_LLM_METRIC_PREFIX:=onboarding_llm}"
+  : "${OBSERVABILITY_EXTRACTION_METRIC_PREFIX:=onboarding_extraction}"
 }
 
 project_number() {
@@ -107,6 +112,18 @@ grant_service_account_actas() {
     --member="$member" \
     --role='roles/iam.serviceAccountUser' \
     --quiet >/dev/null
+}
+
+create_service_account_if_missing() {
+  local email="$1"
+  local display_name="$2"
+  local account_id="${email%@*}"
+
+  if ! gcloud iam service-accounts describe "$email" --project "$PROJECT_ID" >/dev/null 2>&1; then
+    gcloud iam service-accounts create "$account_id" \
+      --project "$PROJECT_ID" \
+      --display-name "$display_name" >/dev/null
+  fi
 }
 
 gcloud_auth_healthcheck() {
