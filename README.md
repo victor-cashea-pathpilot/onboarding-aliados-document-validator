@@ -40,6 +40,7 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - [x] Etapa 9: infraestructura async real en GCP
 - [ ] Etapa 10: despliegue de arquitectura completa
 - [ ] Etapa 11: staging, observabilidad y piloto
+- [ ] Etapa 12: case explorer y trazabilidad por job
 
 Estado actual:
 - Etapa 7 ya cubre `unit tests`, `logic evals`, `extraction evals` y `comprehensive evals` en GitHub Actions.
@@ -67,10 +68,15 @@ Estado actual:
   - separar service accounts por responsabilidad
   - alinear más el despliegue con el diagrama objetivo del cliente
   - definir qué componentes enterprise entran ya y cuáles quedan como siguiente iteración
-  - investigar por qué los jobs se comportaron como serializados en GCP aun con `Cloud Tasks` y `Cloud Run` configurados para alta concurrencia:
+  - el cuello de botella principal de concurrencia en GCP ya fue investigado y corregido:
     - issue de tracking: [#9 Investigate serialized job execution in GCP](https://github.com/victor-cashea-pathpilot/onboarding-aliados-document-validator/issues/9)
     - hallazgo actual: el worker estaba bloqueando el handler async y forzando una ejecución efectivamente secuencial por instancia
     - fix validado en esta rama: al mover `/internal/process-job` a un handler síncrono, los 3 jobs arrancaron en paralelo y la cola bajó de ~98.5s promedio a ~3s por job
+    - optimización adicional validada: al paralelizar `CrossValidationLLMService` y `LegalAssessmentLLMService`, el tiempo total E2E de los 3 casos reales bajó a un rango aproximado de `27s - 42s` por job, con promedio de `~33.4s`
+- La siguiente etapa activa es la **Etapa 12**:
+  - `Case Explorer` interno por `job_id`
+  - vista saneada de input y output por caso
+  - snapshot normalizado y validaciones en una sola respuesta para debugging y operación
 - Los `real extraction evals` siguen como track manual/posterior mientras se termina de definir la estrategia final de hosting y acceso a documentos.
 
 ## Alcance actual
@@ -112,6 +118,7 @@ Excluido del MVP:
 Actualmente este repositorio ya contiene una base funcional del MVP:
 
 - API pública para crear jobs y consultar estado
+- endpoint interno de detalle por caso: `GET /internal/jobs/{job_id}`
 - worker con flujo de intake técnico y extracción
 - extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
 - normalización canónica y validación cruzada híbrida
@@ -131,7 +138,7 @@ Todavía falta implementar:
 - ampliar los evals lógicos, de extracción y comprehensive con más fixtures y expected outputs
 - endurecimiento por ambiente (`dev`, `staging`, `prod`)
 - observabilidad y analytics operativos completos
-- resolver el cuello de botella observado en GCP donde varios jobs encolados se ejecutaron de forma efectivamente secuencial
+- visibilidad operacional por caso con un `Case Explorer` interno
 
 ## Arquitectura actual vs target
 

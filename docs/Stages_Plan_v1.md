@@ -349,6 +349,29 @@ Operar el sistema en un entorno de staging más cercano a uso real.
   - métricas basadas en logs
   - dashboard programable en Cloud Monitoring
 
+## Etapa 12: Case Explorer y trazabilidad por job
+
+### Objetivo
+
+Dar una vista operacional por expediente para inspeccionar un `job_id` completo sin reconstruir el caso manualmente desde logs y Firestore.
+
+### Incluye
+
+- endpoint interno por `job_id`
+- request saneado sin query params ni signed URLs completas
+- documentos procesados y resultado por documento
+- snapshot normalizado
+- validaciones cruzadas y veredicto final
+- base para una UI operativa o explorer posterior
+
+### Resultado esperado
+
+- un operador o desarrollador puede entender rápidamente qué entró, qué se extrajo y por qué el caso terminó en `APPROVED`, `REJECTED` o `REQUIRES_REVIEW`
+
+### Estado
+
+- iniciada
+
 ## Orden recomendado
 
 1. Etapas 1 a 6 ya cerradas a nivel base

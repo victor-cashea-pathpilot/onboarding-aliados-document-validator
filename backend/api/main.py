@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 
 from backend.api.routes.health import router as health_router
+from backend.api.routes.internal_jobs import router as internal_jobs_router
 from backend.api.routes.validation import router as validation_router
 from backend.shared.config import get_settings
 from backend.shared.logging import configure_logging
@@ -18,3 +19,4 @@ app = FastAPI(
 
 app.include_router(health_router)
 app.include_router(validation_router)
+app.include_router(internal_jobs_router)
