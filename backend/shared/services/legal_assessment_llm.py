@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from backend.shared.clients.gemini import get_gemini_client
 from backend.shared.config import get_settings
 from backend.shared.logging import get_logger, log_event
@@ -31,6 +33,7 @@ class LegalAssessmentLLMService:
         snapshot: CanonicalMerchantSnapshot,
         checks: list[CrossValidationCheck],
     ) -> LLMValidationReview:
+        started_at = time.perf_counter()
         if not self.settings.enable_llm_legal_assessment:
             return LLMValidationReview(
                 recommendation="APPROVED",
@@ -45,6 +48,7 @@ class LegalAssessmentLLMService:
                 logger,
                 "legal_assessment.llm.completed",
                 mode="mock",
+                duration_ms=round((time.perf_counter() - started_at) * 1000, 2),
                 legal_mode=snapshot.legal_mode,
                 recommendation=review.recommendation,
                 confidence=review.confidence,
@@ -63,6 +67,7 @@ class LegalAssessmentLLMService:
             "legal_assessment.llm.completed",
             mode="vertex_ai",
             model=self.model_name,
+            duration_ms=round((time.perf_counter() - started_at) * 1000, 2),
             legal_mode=snapshot.legal_mode,
             recommendation=review.recommendation,
             confidence=review.confidence,

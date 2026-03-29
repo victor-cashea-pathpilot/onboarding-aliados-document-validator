@@ -47,6 +47,15 @@ class JobProcessor:
             raise ValueError(f"Job {job_id} not found.")
 
         started_at = time.perf_counter()
+        intake_started_at = started_at
+        extraction_started_at: float | None = None
+        extraction_completed_at: float | None = None
+        normalization_started_at: float | None = None
+        normalization_completed_at: float | None = None
+        cross_validation_started_at: float | None = None
+        rules_completed_at: float | None = None
+        llm_cross_validation_completed_at: float | None = None
+        legal_assessment_completed_at: float | None = None
         log_event(
             logger,
             "job.started",
@@ -68,7 +77,9 @@ class JobProcessor:
             self.repository.update(record)
 
             documents = self._build_documents_result(record.request, record)
+            intake_completed_at = time.perf_counter()
             if self._count_extractable_documents(documents) > 0:
+                extraction_started_at = time.perf_counter()
                 self._set_progress(
                     record,
                     stage="document_extraction",
@@ -82,7 +93,12 @@ class JobProcessor:
                     merchant_id=record.merchant_id,
                     request_id=record.request_id,
                 )
+                extraction_completed_at = time.perf_counter()
+            else:
+                extraction_started_at = intake_completed_at
+                extraction_completed_at = intake_completed_at
 
+            normalization_started_at = time.perf_counter()
             self._set_progress(
                 record,
                 stage="document_normalization",
@@ -102,7 +118,9 @@ class JobProcessor:
                 request_id=record.request_id,
                 legal_mode=normalized_snapshot.legal_mode,
             )
+            normalization_completed_at = time.perf_counter()
 
+            cross_validation_started_at = time.perf_counter()
             self._set_progress(
                 record,
                 stage="cross_validation",
@@ -111,14 +129,17 @@ class JobProcessor:
             )
             self.repository.update(record)
             checks = self.cross_validation.validate(normalized_snapshot)
+            rules_completed_at = time.perf_counter()
             llm_cross_validation = self.cross_validation_llm.review(
                 snapshot=normalized_snapshot,
                 checks=checks,
             )
+            llm_cross_validation_completed_at = time.perf_counter()
             llm_legal_assessment = self.legal_assessment_llm.assess(
                 snapshot=normalized_snapshot,
                 checks=checks,
             )
+            legal_assessment_completed_at = time.perf_counter()
 
             failed_checks = [check for check in checks if check.status == "FAILED"]
             technical_failures = self._count_technical_failures(documents)
@@ -177,6 +198,27 @@ class JobProcessor:
                 legal_mode=normalized_snapshot.legal_mode,
                 overall_status=overall_result.status,
                 duration_ms=round((time.perf_counter() - started_at) * 1000, 2),
+                intake_duration_ms=round((intake_completed_at - intake_started_at) * 1000, 2),
+                extraction_duration_ms=self._duration_ms(
+                    extraction_started_at,
+                    extraction_completed_at,
+                ),
+                normalization_duration_ms=self._duration_ms(
+                    normalization_started_at,
+                    normalization_completed_at,
+                ),
+                deterministic_cross_validation_duration_ms=self._duration_ms(
+                    cross_validation_started_at,
+                    rules_completed_at,
+                ),
+                cross_validation_llm_duration_ms=self._duration_ms(
+                    rules_completed_at,
+                    llm_cross_validation_completed_at,
+                ),
+                legal_assessment_llm_duration_ms=self._duration_ms(
+                    llm_cross_validation_completed_at,
+                    legal_assessment_completed_at,
+                ),
                 technical_failures=technical_failures,
                 extraction_failures=extraction_failures,
                 error_codes=overall_result.error_codes,
@@ -204,6 +246,13 @@ class JobProcessor:
                 exc_info=exc,
             )
             raise
+
+    def _duration_ms(self, started_at: float | None, ended_at: float | None) -> float | None:
+        """Return a stage duration in milliseconds when both bounds exist."""
+
+        if started_at is None or ended_at is None:
+            return None
+        return round((ended_at - started_at) * 1000, 2)
 
     def _compose_cross_validation_result(
         self,

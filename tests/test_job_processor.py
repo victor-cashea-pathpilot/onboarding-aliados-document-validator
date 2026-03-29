@@ -1,10 +1,13 @@
 """Tests for job processor technical validation behavior."""
 
+from datetime import timedelta
+
 from backend.shared.models.contracts import SubmitValidationRequest
 from backend.shared.models.jobs import JobRecord
 from backend.shared.repositories.in_memory_job_repository import InMemoryJobRepository
 from backend.shared.services.document_intake import IntakeResult
 from backend.shared.services.job_processor import JobProcessor
+from backend.worker.routes.jobs import _build_worker_received_fields
 
 
 def build_request(url: str) -> SubmitValidationRequest:
@@ -91,3 +94,28 @@ def test_job_processor_adds_mock_extracted_fields_for_valid_docs(monkeypatch) ->
     assert rif_result.status == "APPROVED"
     assert rif_result.extracted_data["extraction_status"] == "completed"
     assert "rif_number" in rif_result.extracted_data["extracted_fields"]
+
+
+def test_job_processor_duration_helper_returns_milliseconds() -> None:
+    processor = JobProcessor(repository=InMemoryJobRepository(), mock_mode=True)
+
+    assert processor._duration_ms(1.0, 1.25) == 250.0
+    assert processor._duration_ms(None, 1.25) is None
+    assert processor._duration_ms(1.0, None) is None
+
+
+def test_build_worker_received_fields_includes_queue_wait() -> None:
+    request = build_request("https://example.com/good.pdf")
+    record = JobRecord(
+        job_id="val_test_3",
+        merchant_id=request.merchant_id,
+        request=request,
+    )
+    record.created_at = record.created_at - timedelta(seconds=5)
+    record.status = "PENDING"
+
+    fields = _build_worker_received_fields(record)
+
+    assert fields["merchant_id"] == request.merchant_id
+    assert fields["job_status"] == "PENDING"
+    assert fields["queue_wait_ms"] >= 5000
