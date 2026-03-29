@@ -5,6 +5,7 @@ set -euo pipefail
 source "$(dirname "$0")/common.sh"
 
 require_base_env
+gcloud_auth_healthcheck
 
 IMAGE="$(worker_image)"
 echo "Building worker image: $IMAGE"
@@ -16,6 +17,12 @@ gcloud run deploy "$WORKER_SERVICE_NAME" \
   --region "$REGION" \
   --platform managed \
   --service-account "$WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL" \
+  --cpu "$WORKER_CPU" \
+  --memory "$WORKER_MEMORY" \
+  --timeout "$WORKER_TIMEOUT" \
+  --concurrency "$WORKER_CONCURRENCY" \
+  --min-instances "$WORKER_MIN_INSTANCES" \
+  --max-instances "$WORKER_MAX_INSTANCES" \
   --no-allow-unauthenticated \
   --image "$IMAGE" \
   --set-env-vars \
