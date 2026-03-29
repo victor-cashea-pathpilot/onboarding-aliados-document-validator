@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import time
 
@@ -130,16 +131,18 @@ class JobProcessor:
             self.repository.update(record)
             checks = self.cross_validation.validate(normalized_snapshot)
             rules_completed_at = time.perf_counter()
-            llm_cross_validation = self.cross_validation_llm.review(
+            (
+                llm_cross_validation,
+                llm_legal_assessment,
+                llm_cross_validation_duration_ms,
+                legal_assessment_llm_duration_ms,
+                llm_reviews_completed_at,
+            ) = self._run_llm_reviews(
                 snapshot=normalized_snapshot,
                 checks=checks,
             )
-            llm_cross_validation_completed_at = time.perf_counter()
-            llm_legal_assessment = self.legal_assessment_llm.assess(
-                snapshot=normalized_snapshot,
-                checks=checks,
-            )
-            legal_assessment_completed_at = time.perf_counter()
+            llm_cross_validation_completed_at = llm_reviews_completed_at
+            legal_assessment_completed_at = llm_reviews_completed_at
 
             failed_checks = [check for check in checks if check.status == "FAILED"]
             technical_failures = self._count_technical_failures(documents)
@@ -211,14 +214,12 @@ class JobProcessor:
                     cross_validation_started_at,
                     rules_completed_at,
                 ),
-                cross_validation_llm_duration_ms=self._duration_ms(
+                llm_validation_duration_ms=self._duration_ms(
                     rules_completed_at,
-                    llm_cross_validation_completed_at,
+                    llm_reviews_completed_at,
                 ),
-                legal_assessment_llm_duration_ms=self._duration_ms(
-                    llm_cross_validation_completed_at,
-                    legal_assessment_completed_at,
-                ),
+                cross_validation_llm_duration_ms=llm_cross_validation_duration_ms,
+                legal_assessment_llm_duration_ms=legal_assessment_llm_duration_ms,
                 technical_failures=technical_failures,
                 extraction_failures=extraction_failures,
                 error_codes=overall_result.error_codes,
@@ -253,6 +254,41 @@ class JobProcessor:
         if started_at is None or ended_at is None:
             return None
         return round((ended_at - started_at) * 1000, 2)
+
+    def _run_llm_reviews(
+        self,
+        *,
+        snapshot,
+        checks,
+    ):
+        """Run both LLM validation layers concurrently and return durations."""
+
+        def timed_call(fn):
+            started_at = time.perf_counter()
+            result = fn(snapshot=snapshot, checks=checks)
+            return result, round((time.perf_counter() - started_at) * 1000, 2)
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_to_name = {
+                executor.submit(timed_call, self.cross_validation_llm.review): "cross_validation",
+                executor.submit(timed_call, self.legal_assessment_llm.assess): "legal_assessment",
+            }
+            results = {}
+            completed_at = time.perf_counter()
+            for future in as_completed(future_to_name):
+                name = future_to_name[future]
+                results[name] = future.result()
+                completed_at = time.perf_counter()
+
+        cross_validation_review, cross_validation_duration_ms = results["cross_validation"]
+        legal_assessment_review, legal_assessment_duration_ms = results["legal_assessment"]
+        return (
+            cross_validation_review,
+            legal_assessment_review,
+            cross_validation_duration_ms,
+            legal_assessment_duration_ms,
+            completed_at,
+        )
 
     def _compose_cross_validation_result(
         self,
