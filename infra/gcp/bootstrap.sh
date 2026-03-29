@@ -73,6 +73,11 @@ create_service_account_if_missing \
 create_service_account_if_missing \
   "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" \
   "Onboarding Cloud Tasks Invoker"
+if [[ -n "${CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL:-}" ]]; then
+  create_service_account_if_missing \
+    "$CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL" \
+    "Onboarding Case Explorer Runtime"
+fi
 
 echo "Applying IAM bindings..."
 grant_project_role "serviceAccount:${API_RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/datastore.user"

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ settings.app_title }}</title>
+    <style>
+      :root {
+        --bg: #f3f0e8;
+        --paper: #fffdf9;
+        --ink: #221d16;
+        --muted: #72695d;
+        --accent: #205849;
+        --line: #d9d1c4;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Georgia, serif;
+        background: linear-gradient(180deg, #eee7da 0%, var(--bg) 100%);
+        color: var(--ink);
+      }
+      .page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px 20px;
+      }
+      .hero, .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 24px;
+        box-shadow: 0 8px 30px rgba(34, 29, 22, 0.05);
+      }
+      .hero { margin-bottom: 20px; }
+      .eyebrow {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      h1 { margin: 10px 0 12px; font-size: 36px; line-height: 1.1; }
+      p { line-height: 1.6; }
+      form { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+      input {
+        flex: 1 1 320px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        font-size: 15px;
+      }
+      button {
+        padding: 14px 18px;
+        border-radius: 14px;
+        border: 0;
+        background: var(--accent);
+        color: white;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .muted { color: var(--muted); }
+      .userbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #e3efe9;
+        color: var(--accent);
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .error { color: #a53f2b; font-weight: 700; }
+    </style>
+    {% if auth_mode == "google" and oauth_ready %}
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    {% endif %}
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="eyebrow">Internal Web App</div>
+        <h1>{{ settings.app_title }}</h1>
+        <p>
+          Busca un expediente por <code>job_id</code> y visualiza el request saneado,
+          los resultados por documento, el snapshot normalizado y la validación cruzada.
+        </p>
+
+        {% if auth_mode == "google" %}
+          {% if user %}
+            <div class="userbar">
+              <div class="pill">{{ user.name }} · {{ user.email }}</div>
+              <form method="post" action="/auth/logout">
+                <button type="submit">Sign out</button>
+              </form>
+            </div>
+          {% elif oauth_ready %}
+            <p class="muted">Inicia sesión con Google para continuar.</p>
+            <div
+              id="g_id_onload"
+              data-client_id="{{ settings.google_oauth_client_id }}"
+              data-context="signin"
+              data-ux_mode="popup"
+              data-callback="handleCredentialResponse"
+              data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" data-type="standard"></div>
+            <p id="auth-error" class="error"></p>
+          {% else %}
+            <p class="error">
+              Google auth está habilitado, pero falta configurar <code>GOOGLE_OAUTH_CLIENT_ID</code>.
+            </p>
+          {% endif %}
+        {% else %}
+          <p class="pill">Auth mode: disabled</p>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <div class="eyebrow">Case Lookup</div>
+        <form id="job-form">
+          <input id="job-id" type="text" name="job_id" placeholder="val_a8ccbea709" required />
+          <button type="submit">Open Case</button>
+        </form>
+      </section>
+    </main>
+
+    <script>
+      document.getElementById("job-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        const jobId = document.getElementById("job-id").value.trim();
+        if (!jobId) return;
+        window.location.href = `/jobs/${encodeURIComponent(jobId)}`;
+      });
+
+      async function handleCredentialResponse(response) {
+        const authError = document.getElementById("auth-error");
+        if (authError) authError.textContent = "";
+        const result = await fetch("/auth/google", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ credential: response.credential }),
+        });
+        if (!result.ok) {
+          const payload = await result.json().catch(() => ({ detail: "Authentication failed." }));
+          if (authError) authError.textContent = payload.detail || "Authentication failed.";
+          return;
+        }
+        window.location.reload();
+      }
+      window.handleCredentialResponse = handleCredentialResponse;
+    </script>
+  </body>
+</html>

@@ -12,6 +12,7 @@ Esta carpeta es la fuente de verdad operativa para desplegar la arquitectura en 
 - `bootstrap.sh`: habilita APIs y crea recursos base
 - `deploy_worker.sh`: build y deploy del worker a Cloud Run
 - `deploy_api.sh`: build y deploy del API a Cloud Run
+- `deploy_case_explorer.sh`: build y deploy de la webapp interna de exploración de casos
 - `deploy_all.sh`: secuencia completa de bootstrap + deploy
 - `create_log_metrics.sh`: crea o actualiza métricas basadas en logs estructurados
 - `create_dashboards.sh`: crea o actualiza dashboards en Cloud Monitoring
@@ -57,10 +58,18 @@ Variables más importantes:
 - `API_RUNTIME_SERVICE_ACCOUNT_EMAIL`
 - `WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL`
 - `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
+- `CASE_EXPLORER_SERVICE_NAME`
+- `CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL`
 - `WORKER_AUTH_TOKEN`
+- `WEBAPP_SESSION_SECRET`
+- `CASE_EXPLORER_AUTH_MODE`
+- `GOOGLE_OAUTH_CLIENT_ID`
+- `ALLOWED_GOOGLE_DOMAINS`
+- `ALLOWED_GOOGLE_EMAILS`
 - `IMAGE_TAG`
 - `API_CPU`, `API_MEMORY`, `API_TIMEOUT`, `API_CONCURRENCY`, `API_MIN_INSTANCES`, `API_MAX_INSTANCES`
 - `WORKER_CPU`, `WORKER_MEMORY`, `WORKER_TIMEOUT`, `WORKER_CONCURRENCY`, `WORKER_MIN_INSTANCES`, `WORKER_MAX_INSTANCES`
+- `CASE_EXPLORER_CPU`, `CASE_EXPLORER_MEMORY`, `CASE_EXPLORER_TIMEOUT`, `CASE_EXPLORER_CONCURRENCY`, `CASE_EXPLORER_MIN_INSTANCES`, `CASE_EXPLORER_MAX_INSTANCES`
 - `CLOUD_TASKS_MAX_DISPATCHES_PER_SECOND`
 - `CLOUD_TASKS_MAX_CONCURRENT_DISPATCHES`
 - `CLOUD_TASKS_MAX_ATTEMPTS`
@@ -116,7 +125,20 @@ source infra/gcp/.env.dev
 bash infra/gcp/smoke_test.sh
 ```
 
-### 5. Observabilidad
+### 5. Deploy de la webapp interna
+
+```bash
+source infra/gcp/.env.dev
+bash infra/gcp/deploy_case_explorer.sh
+```
+
+Notas:
+
+- en `CASE_EXPLORER_AUTH_MODE=disabled`, la webapp queda usable de inmediato para entornos internos de prueba
+- en `CASE_EXPLORER_AUTH_MODE=google`, necesitas configurar `GOOGLE_OAUTH_CLIENT_ID`
+- la webapp llama al `onboarding-api` internamente usando la service account de Cloud Run
+
+### 6. Observabilidad
 
 ```bash
 source infra/gcp/.env.dev
@@ -154,7 +176,9 @@ flowchart LR
 
 - Los builds se publican en `linux/amd64` para compatibilidad con Cloud Run.
 - El worker se despliega privado.
+- La webapp interna puede desplegarse pública con auth en aplicación (`CASE_EXPLORER_AUTH_MODE=google`) o en modo temporal `disabled` para ambientes controlados.
 - Cloud Tasks invoca al worker con `OIDC` usando `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`.
+- La webapp usa su propia runtime service account y obtiene un ID token server-side para llamar al `onboarding-api`.
 - Los scripts de deploy ya parametrizan `cpu`, `memory`, `timeout`, `concurrency`, `min-instances` y `max-instances` por servicio.
 - La cola de Cloud Tasks también queda parametrizada por ambiente para facilitar movernos de PathPilot a Cashea sin editar código.
 - El `api` runtime service account necesita `roles/iam.serviceAccountUser` sobre `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL` para poder encolar tareas con `oidc_token`.

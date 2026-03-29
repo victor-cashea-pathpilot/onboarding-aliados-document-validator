@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Case Explorer · {{ summary.job_id }}</title>
+    <style>
+      :root {
+        --bg: #f3f0e8;
+        --paper: #fffdf9;
+        --ink: #221d16;
+        --muted: #72695d;
+        --accent: #205849;
+        --line: #d9d1c4;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Georgia, serif;
+        background: linear-gradient(180deg, #eee7da 0%, var(--bg) 100%);
+        color: var(--ink);
+      }
+      .page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+      .hero, .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 24px;
+        box-shadow: 0 8px 30px rgba(34, 29, 22, 0.05);
+      }
+      .hero { margin-bottom: 20px; }
+      .eyebrow {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      h1 { margin: 10px 0 12px; font-size: 34px; line-height: 1.1; }
+      .status {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #e3efe9;
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .summary {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      .summary th, .summary td {
+        border-top: 1px solid var(--line);
+        padding: 12px 0;
+        text-align: left;
+        vertical-align: top;
+      }
+      .summary th {
+        width: 180px;
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: "SFMono-Regular", Menlo, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      a { color: var(--accent); text-decoration: none; font-weight: 700; }
+      .nav { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="eyebrow">Internal Case Explorer</div>
+        <h1>{{ summary.merchant_id }}</h1>
+        <div class="status">{{ summary.status }}</div>
+        <table class="summary">
+          <tbody>
+            <tr><th>Job ID</th><td>{{ summary.job_id }}</td></tr>
+            <tr><th>Request ID</th><td>{{ summary.request_id or "-" }}</td></tr>
+            <tr><th>Overall Result</th><td>{{ summary.overall_status or "-" }}</td></tr>
+            <tr><th>Summary</th><td>{{ summary.overall_summary or "-" }}</td></tr>
+            <tr><th>Legal Mode</th><td>{{ summary.legal_mode or "-" }}</td></tr>
+            <tr><th>Updated At</th><td>{{ summary.updated_at or "-" }}</td></tr>
+          </tbody>
+        </table>
+        <div class="nav">
+          <a href="/">Back</a>
+          <a href="/jobs/{{ job_id }}/json">Raw JSON</a>
+        </div>
+      </section>
+
+      <section class="grid">
+        <section class="card">
+          <div class="eyebrow">Sanitized Request</div>
+          <pre>{{ case_payload.request | tojson(indent=2) }}</pre>
+        </section>
+        <section class="card">
+          <div class="eyebrow">Documents Result</div>
+          <pre>{{ case_payload.documents | tojson(indent=2) }}</pre>
+        </section>
+        <section class="card">
+          <div class="eyebrow">Normalized Snapshot</div>
+          <pre>{{ case_payload.normalized_snapshot | tojson(indent=2) }}</pre>
+        </section>
+        <section class="card">
+          <div class="eyebrow">Cross Validation</div>
+          <pre>{{ case_payload.cross_validation | tojson(indent=2) }}</pre>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

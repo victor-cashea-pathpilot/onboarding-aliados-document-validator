@@ -66,6 +66,10 @@ api_image() {
   echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api:${IMAGE_TAG}"
 }
 
+case_explorer_image() {
+  echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-case-explorer:${IMAGE_TAG}"
+}
+
 worker_url() {
   gcloud run services describe "$WORKER_SERVICE_NAME" \
     --project "$PROJECT_ID" \
@@ -78,6 +82,31 @@ api_url() {
     --project "$PROJECT_ID" \
     --region "$REGION" \
     --format='value(status.url)'
+}
+
+case_explorer_url() {
+  gcloud run services describe "$CASE_EXPLORER_SERVICE_NAME" \
+    --project "$PROJECT_ID" \
+    --region "$REGION" \
+    --format='value(status.url)'
+}
+
+require_case_explorer_env() {
+  required_env CASE_EXPLORER_SERVICE_NAME
+  required_env CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL
+  required_env WEBAPP_SESSION_SECRET
+  : "${CASE_EXPLORER_AUTH_MODE:=disabled}"
+  : "${CASE_EXPLORER_API_URL:=}"
+  : "${CASE_EXPLORER_API_AUDIENCE:=}"
+  : "${GOOGLE_OAUTH_CLIENT_ID:=}"
+  : "${ALLOWED_GOOGLE_DOMAINS:=}"
+  : "${ALLOWED_GOOGLE_EMAILS:=}"
+  : "${CASE_EXPLORER_CPU:=1}"
+  : "${CASE_EXPLORER_MEMORY:=1Gi}"
+  : "${CASE_EXPLORER_TIMEOUT:=300}"
+  : "${CASE_EXPLORER_CONCURRENCY:=40}"
+  : "${CASE_EXPLORER_MIN_INSTANCES:=0}"
+  : "${CASE_EXPLORER_MAX_INSTANCES:=5}"
 }
 
 configure_docker_auth() {
