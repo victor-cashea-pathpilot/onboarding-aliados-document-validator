@@ -119,6 +119,7 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 
 - API pública para crear jobs y consultar estado
 - endpoint interno de detalle por caso: `GET /internal/jobs/{job_id}`
+- vista HTML simple del expediente: `GET /internal/jobs/{job_id}/view`
 - worker con flujo de intake técnico y extracción
 - extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
 - normalización canónica y validación cruzada híbrida

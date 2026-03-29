@@ -117,12 +117,38 @@ def test_case_explorer_endpoint_returns_sanitized_job_detail(monkeypatch) -> Non
     assert payload["normalized_snapshot"]["legal_mode"] == "sociedad_mercantil"
 
 
+def test_case_explorer_html_view_renders_case(monkeypatch) -> None:
+    service = build_service_with_record()
+    monkeypatch.setattr(internal_jobs, "get_job_service", lambda: service)
+    client = TestClient(app)
+
+    response = client.get("/internal/jobs/val_case123/view")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "Case Explorer" in response.text
+    assert "merchant-123" in response.text
+    assert "https://storage.googleapis.com/bucket/rif.pdf" in response.text
+    assert "Raw JSON" in response.text
+
+
 def test_case_explorer_endpoint_returns_404_when_missing(monkeypatch) -> None:
     service = build_service_with_record()
     monkeypatch.setattr(internal_jobs, "get_job_service", lambda: service)
     client = TestClient(app)
 
     response = client.get("/internal/jobs/missing-job")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Job not found."
+
+
+def test_case_explorer_html_view_returns_404_when_missing(monkeypatch) -> None:
+    service = build_service_with_record()
+    monkeypatch.setattr(internal_jobs, "get_job_service", lambda: service)
+    client = TestClient(app)
+
+    response = client.get("/internal/jobs/missing-job/view")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Job not found."
