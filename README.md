@@ -69,6 +69,8 @@ Estado actual:
   - definir qué componentes enterprise entran ya y cuáles quedan como siguiente iteración
   - investigar por qué los jobs se comportaron como serializados en GCP aun con `Cloud Tasks` y `Cloud Run` configurados para alta concurrencia:
     - issue de tracking: [#9 Investigate serialized job execution in GCP](https://github.com/victor-cashea-pathpilot/onboarding-aliados-document-validator/issues/9)
+    - hallazgo actual: el worker estaba bloqueando el handler async y forzando una ejecución efectivamente secuencial por instancia
+    - fix validado en esta rama: al mover `/internal/process-job` a un handler síncrono, los 3 jobs arrancaron en paralelo y la cola bajó de ~98.5s promedio a ~3s por job
 - Los `real extraction evals` siguen como track manual/posterior mientras se termina de definir la estrategia final de hosting y acceso a documentos.
 
 ## Alcance actual

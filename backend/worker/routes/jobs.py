@@ -41,7 +41,7 @@ def _build_worker_received_fields(record) -> dict[str, object]:
 
 
 @router.post("/process-job")
-async def process_job(
+def process_job(
     payload: ProcessJobRequest,
     x_worker_token: str | None = Header(default=None),
 ) -> dict[str, str]:
