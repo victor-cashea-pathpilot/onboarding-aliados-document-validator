@@ -54,6 +54,10 @@ Estado actual:
   - `Cloud Tasks`
   - worker privado invocado con `OIDC`
   - scripts operativos en `infra/gcp/`
+  - 3 casos reales ejecutados end-to-end en GCP con polling de status:
+    - `sociedad_mercantil`
+    - `emprendimiento`
+    - `firma_personal`
 - La observabilidad ya tiene base operativa:
   - logs JSON estructurados en `api` y `worker`
   - eventos por etapa del pipeline
@@ -63,6 +67,10 @@ Estado actual:
   - separar service accounts por responsabilidad
   - alinear más el despliegue con el diagrama objetivo del cliente
   - definir qué componentes enterprise entran ya y cuáles quedan como siguiente iteración
+  - investigar por qué los jobs se comportaron como serializados en GCP aun con `Cloud Tasks` y `Cloud Run` configurados para alta concurrencia:
+    - issue de tracking: [#9 Investigate serialized job execution in GCP](https://github.com/victor-cashea-pathpilot/onboarding-aliados-document-validator/issues/9)
+    - hallazgo actual: el worker estaba bloqueando el handler async y forzando una ejecución efectivamente secuencial por instancia
+    - fix validado en esta rama: al mover `/internal/process-job` a un handler síncrono, los 3 jobs arrancaron en paralelo y la cola bajó de ~98.5s promedio a ~3s por job
 - Los `real extraction evals` siguen como track manual/posterior mientras se termina de definir la estrategia final de hosting y acceso a documentos.
 
 ## Alcance actual
@@ -115,6 +123,7 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
   - `create_log_metrics.sh`
   - `create_dashboards.sh`
   - `deploy_observability.sh`
+- visibilidad E2E en GCP con logs y dashboard para seguir el lifecycle de jobs reales
 
 Todavía falta implementar:
 
@@ -122,6 +131,7 @@ Todavía falta implementar:
 - ampliar los evals lógicos, de extracción y comprehensive con más fixtures y expected outputs
 - endurecimiento por ambiente (`dev`, `staging`, `prod`)
 - observabilidad y analytics operativos completos
+- resolver el cuello de botella observado en GCP donde varios jobs encolados se ejecutaron de forma efectivamente secuencial
 
 ## Arquitectura actual vs target
 
