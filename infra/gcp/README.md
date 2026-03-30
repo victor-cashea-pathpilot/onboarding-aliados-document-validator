@@ -59,6 +59,12 @@ Variables más importantes:
 - `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
 - `WORKER_AUTH_TOKEN`
 - `IMAGE_TAG`
+- `API_CPU`, `API_MEMORY`, `API_TIMEOUT`, `API_CONCURRENCY`, `API_MIN_INSTANCES`, `API_MAX_INSTANCES`
+- `WORKER_CPU`, `WORKER_MEMORY`, `WORKER_TIMEOUT`, `WORKER_CONCURRENCY`, `WORKER_MIN_INSTANCES`, `WORKER_MAX_INSTANCES`
+- `CLOUD_TASKS_MAX_DISPATCHES_PER_SECOND`
+- `CLOUD_TASKS_MAX_CONCURRENT_DISPATCHES`
+- `CLOUD_TASKS_MAX_ATTEMPTS`
+- `CLOUD_TASKS_MAX_RETRY_SECONDS`
 - `OBSERVABILITY_DASHBOARD_NAME`
 - `OBSERVABILITY_JOB_METRIC_PREFIX`
 - `OBSERVABILITY_LLM_METRIC_PREFIX`
@@ -87,6 +93,7 @@ Esto:
 - crea la cola de Cloud Tasks si no existe
 - crea service accounts dedicadas si no existen
 - aplica IAM mínimo para Firestore, Vertex AI, Cloud Tasks y worker privado
+- configura la cola de Cloud Tasks con límites explícitos de dispatch y retry
 
 ### 2. Deploy del worker
 
@@ -148,6 +155,8 @@ flowchart LR
 - Los builds se publican en `linux/amd64` para compatibilidad con Cloud Run.
 - El worker se despliega privado.
 - Cloud Tasks invoca al worker con `OIDC` usando `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`.
+- Los scripts de deploy ya parametrizan `cpu`, `memory`, `timeout`, `concurrency`, `min-instances` y `max-instances` por servicio.
+- La cola de Cloud Tasks también queda parametrizada por ambiente para facilitar movernos de PathPilot a Cashea sin editar código.
 - El `api` runtime service account necesita `roles/iam.serviceAccountUser` sobre `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL` para poder encolar tareas con `oidc_token`.
 - `api`, `worker` y `Cloud Tasks` ya no dependen de la compute default service account.
 - Los logs de API y worker salen en JSON estructurado y se pueden consultar por `jsonPayload.event`.
@@ -167,6 +176,17 @@ Ya se probó exitosamente en GCP:
 - Cloud Run API
 - Cloud Run worker privado
 - submit -> queue -> worker -> Firestore -> status
+
+## Checklist para movernos a otro proyecto GCP
+
+1. copiar el template adecuado a un archivo local fuera de git
+2. cambiar `PROJECT_ID`, nombres de servicios, nombres de service accounts y `FIRESTORE_COLLECTION`
+3. ajustar `WORKER_AUTH_TOKEN`
+4. revisar `MOCK_MODE` y modelos Gemini del ambiente destino
+5. correr `bootstrap.sh`
+6. correr `deploy_worker.sh` y `deploy_api.sh`
+7. correr `deploy_observability.sh`
+8. validar con `smoke_test.sh`
 
 ## Eventos estructurados principales
 

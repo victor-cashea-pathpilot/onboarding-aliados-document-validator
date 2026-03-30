@@ -67,10 +67,11 @@ Estado actual:
   - separar service accounts por responsabilidad
   - alinear más el despliegue con el diagrama objetivo del cliente
   - definir qué componentes enterprise entran ya y cuáles quedan como siguiente iteración
-  - investigar por qué los jobs se comportaron como serializados en GCP aun con `Cloud Tasks` y `Cloud Run` configurados para alta concurrencia:
+  - ya se investigó y corrigió el cuello de botella principal de concurrencia en GCP:
     - issue de tracking: [#9 Investigate serialized job execution in GCP](https://github.com/victor-cashea-pathpilot/onboarding-aliados-document-validator/issues/9)
     - hallazgo actual: el worker estaba bloqueando el handler async y forzando una ejecución efectivamente secuencial por instancia
     - fix validado en esta rama: al mover `/internal/process-job` a un handler síncrono, los 3 jobs arrancaron en paralelo y la cola bajó de ~98.5s promedio a ~3s por job
+    - optimización adicional validada en esta rama: al paralelizar `CrossValidationLLMService` y `LegalAssessmentLLMService`, el tiempo total E2E de los 3 casos reales bajó a un rango aproximado de `27s - 42s` por job, con promedio de `~33.4s`
 - Los `real extraction evals` siguen como track manual/posterior mientras se termina de definir la estrategia final de hosting y acceso a documentos.
 
 ## Alcance actual
@@ -131,7 +132,7 @@ Todavía falta implementar:
 - ampliar los evals lógicos, de extracción y comprehensive con más fixtures y expected outputs
 - endurecimiento por ambiente (`dev`, `staging`, `prod`)
 - observabilidad y analytics operativos completos
-- resolver el cuello de botella observado en GCP donde varios jobs encolados se ejecutaron de forma efectivamente secuencial
+- seguir optimizando el runtime del worker y la semántica final de las validaciones LLM
 
 ## Arquitectura actual vs target
 

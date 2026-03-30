@@ -47,9 +47,20 @@ if ! gcloud tasks queues describe "$CLOUD_TASKS_QUEUE_ID" \
   --project "$PROJECT_ID" >/dev/null 2>&1; then
   gcloud tasks queues create "$CLOUD_TASKS_QUEUE_ID" \
     --location="$REGION" \
-    --project "$PROJECT_ID"
+    --project "$PROJECT_ID" \
+    --max-dispatches-per-second="$CLOUD_TASKS_MAX_DISPATCHES_PER_SECOND" \
+    --max-concurrent-dispatches="$CLOUD_TASKS_MAX_CONCURRENT_DISPATCHES" \
+    --max-attempts="$CLOUD_TASKS_MAX_ATTEMPTS" \
+    --max-retry-duration="${CLOUD_TASKS_MAX_RETRY_SECONDS}s"
 else
   echo "Cloud Tasks queue already exists."
+  gcloud tasks queues update "$CLOUD_TASKS_QUEUE_ID" \
+    --location="$REGION" \
+    --project "$PROJECT_ID" \
+    --max-dispatches-per-second="$CLOUD_TASKS_MAX_DISPATCHES_PER_SECOND" \
+    --max-concurrent-dispatches="$CLOUD_TASKS_MAX_CONCURRENT_DISPATCHES" \
+    --max-attempts="$CLOUD_TASKS_MAX_ATTEMPTS" \
+    --max-retry-duration="${CLOUD_TASKS_MAX_RETRY_SECONDS}s" >/dev/null
 fi
 
 echo "Ensuring dedicated service accounts exist..."

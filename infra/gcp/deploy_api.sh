@@ -5,6 +5,7 @@ set -euo pipefail
 source "$(dirname "$0")/common.sh"
 
 require_base_env
+gcloud_auth_healthcheck
 
 WORKER_URL="$(worker_url)"
 IMAGE="$(api_image)"
@@ -22,6 +23,12 @@ gcloud run deploy "$API_SERVICE_NAME" \
   --region "$REGION" \
   --platform managed \
   --service-account "$API_RUNTIME_SERVICE_ACCOUNT_EMAIL" \
+  --cpu "$API_CPU" \
+  --memory "$API_MEMORY" \
+  --timeout "$API_TIMEOUT" \
+  --concurrency "$API_CONCURRENCY" \
+  --min-instances "$API_MIN_INSTANCES" \
+  --max-instances "$API_MAX_INSTANCES" \
   $ALLOW_FLAG \
   --image "$IMAGE" \
   --set-env-vars \
