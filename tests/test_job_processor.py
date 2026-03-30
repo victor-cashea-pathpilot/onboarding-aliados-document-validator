@@ -1,12 +1,15 @@
 """Tests for job processor technical validation behavior."""
 
 from datetime import timedelta
+import threading
+import time
 
 from backend.shared.models.contracts import SubmitValidationRequest
 from backend.shared.models.jobs import JobRecord
 from backend.shared.repositories.in_memory_job_repository import InMemoryJobRepository
 from backend.shared.services.document_intake import IntakeResult
 from backend.shared.services.job_processor import JobProcessor
+from tests.test_llm_validation_services import build_snapshot
 from backend.worker.routes.jobs import _build_worker_received_fields
 
 
@@ -119,3 +122,42 @@ def test_build_worker_received_fields_includes_queue_wait() -> None:
     assert fields["merchant_id"] == request.merchant_id
     assert fields["job_status"] == "PENDING"
     assert fields["queue_wait_ms"] >= 5000
+
+
+def test_job_processor_runs_llm_reviews_in_parallel() -> None:
+    processor = JobProcessor(repository=InMemoryJobRepository(), mock_mode=True)
+    snapshot = build_snapshot()
+    checks = []
+    started = {"cross": False, "legal": False}
+    overlap_observed = threading.Event()
+    lock = threading.Lock()
+
+    def cross_review(*, snapshot, checks):
+        with lock:
+            started["cross"] = True
+            if started["legal"]:
+                overlap_observed.set()
+        time.sleep(0.05)
+        return processor.cross_validation_llm._mock_review(snapshot=snapshot, checks=checks)
+
+    def legal_assess(*, snapshot, checks):
+        with lock:
+            started["legal"] = True
+            if started["cross"]:
+                overlap_observed.set()
+        time.sleep(0.05)
+        return processor.legal_assessment_llm._mock_assessment(snapshot=snapshot, checks=checks)
+
+    processor.cross_validation_llm.review = cross_review
+    processor.legal_assessment_llm.assess = legal_assess
+
+    review, assessment, review_ms, assessment_ms, _ = processor._run_llm_reviews(
+        snapshot=snapshot,
+        checks=checks,
+    )
+
+    assert overlap_observed.is_set()
+    assert review.recommendation == "APPROVED"
+    assert assessment.recommendation == "APPROVED"
+    assert review_ms >= 50
+    assert assessment_ms >= 50
