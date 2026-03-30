@@ -63,6 +63,8 @@ Variables más importantes:
 - `WORKER_AUTH_TOKEN`
 - `WEBAPP_SESSION_SECRET`
 - `CASE_EXPLORER_AUTH_MODE`
+- `CASE_EXPLORER_ENABLE_IAP`
+- `CASE_EXPLORER_IAP_MEMBERS`
 - `GOOGLE_OAUTH_CLIENT_ID`
 - `ALLOWED_GOOGLE_DOMAINS`
 - `ALLOWED_GOOGLE_EMAILS`
@@ -134,8 +136,12 @@ bash infra/gcp/deploy_case_explorer.sh
 
 Notas:
 
-- en `CASE_EXPLORER_AUTH_MODE=disabled`, la webapp queda usable de inmediato para entornos internos de prueba
-- en `CASE_EXPLORER_AUTH_MODE=google`, necesitas configurar `GOOGLE_OAUTH_CLIENT_ID`
+- en `CASE_EXPLORER_ENABLE_IAP=true`, la `run.app` URL queda protegida con login de Google vía IAP
+- los usuarios o grupos permitidos se definen en `CASE_EXPLORER_IAP_MEMBERS`, por ejemplo:
+  - `user:victor@getpathpilot.com`
+  - `group:onboarding-agent-internal@cashea.app`
+- en `CASE_EXPLORER_AUTH_MODE=disabled`, la app delega el login al perímetro de Cloud Run/IAP
+- en `CASE_EXPLORER_AUTH_MODE=google`, necesitas configurar `GOOGLE_OAUTH_CLIENT_ID` y usar la auth propia de la app
 - la webapp llama al `onboarding-api` internamente usando la service account de Cloud Run
 
 ### 6. Observabilidad
@@ -177,6 +183,7 @@ flowchart LR
 - Los builds se publican en `linux/amd64` para compatibilidad con Cloud Run.
 - El worker se despliega privado.
 - La webapp interna puede desplegarse pública con auth en aplicación (`CASE_EXPLORER_AUTH_MODE=google`) o en modo temporal `disabled` para ambientes controlados.
+- Para acceso browser corporativo, la opción recomendada es `CASE_EXPLORER_ENABLE_IAP=true`.
 - Cloud Tasks invoca al worker con `OIDC` usando `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`.
 - La webapp usa su propia runtime service account y obtiene un ID token server-side para llamar al `onboarding-api`.
 - Los scripts de deploy ya parametrizan `cpu`, `memory`, `timeout`, `concurrency`, `min-instances` y `max-instances` por servicio.

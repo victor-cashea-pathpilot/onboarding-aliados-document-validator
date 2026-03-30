@@ -121,7 +121,7 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 - API pública para crear jobs y consultar estado
 - endpoint interno de detalle por caso: `GET /internal/jobs/{job_id}`
 - vista HTML simple del expediente: `GET /internal/jobs/{job_id}/view`
-- webapp interna en `webapp/` para explorar casos en browser
+- webapp interna en `webapp/` para explorar casos en browser, protegible con Google login vía IAP
 - worker con flujo de intake técnico y extracción
 - extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
 - normalización canónica y validación cruzada híbrida
@@ -134,6 +134,7 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
   - `create_dashboards.sh`
   - `deploy_observability.sh`
 - visibilidad E2E en GCP con logs y dashboard para seguir el lifecycle de jobs reales
+- `case explorer` desplegado en Cloud Run con IAP directo para login de Google sobre la `run.app` URL
 - webapp interna desplegable a Cloud Run para explorar expedientes en browser
 
 Todavía falta implementar:

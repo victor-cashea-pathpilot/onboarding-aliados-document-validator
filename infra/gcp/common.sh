@@ -58,6 +58,10 @@ cloud_tasks_service_agent() {
   echo "service-$(project_number)@gcp-sa-cloudtasks.iam.gserviceaccount.com"
 }
 
+iap_service_agent() {
+  echo "service-$(project_number)@gcp-sa-iap.iam.gserviceaccount.com"
+}
+
 worker_image() {
   echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-worker:${IMAGE_TAG}"
 }
@@ -96,6 +100,8 @@ require_case_explorer_env() {
   required_env CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env WEBAPP_SESSION_SECRET
   : "${CASE_EXPLORER_AUTH_MODE:=disabled}"
+  : "${CASE_EXPLORER_ENABLE_IAP:=false}"
+  : "${CASE_EXPLORER_IAP_MEMBERS:=}"
   : "${CASE_EXPLORER_API_URL:=}"
   : "${CASE_EXPLORER_API_AUDIENCE:=}"
   : "${GOOGLE_OAUTH_CLIENT_ID:=}"
