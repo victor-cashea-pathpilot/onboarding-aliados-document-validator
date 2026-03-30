@@ -54,6 +54,32 @@ class SubmitValidationRequest(BaseModel):
     metadata: dict[str, str] = Field(default_factory=dict)
 
 
+class SanitizedDocumentReference(BaseModel):
+    """Document reference with secrets stripped from the URL."""
+
+    url: str
+    document_id: str | None = None
+
+
+class SanitizedDocumentsPayload(BaseModel):
+    """Sanitized typed document collections for case inspection."""
+
+    rif: list[SanitizedDocumentReference] = Field(default_factory=list)
+    cedula: list[SanitizedDocumentReference] = Field(default_factory=list)
+    certificado_emprendimiento: list[SanitizedDocumentReference] = Field(default_factory=list)
+    acta_constitutiva: list[SanitizedDocumentReference] = Field(default_factory=list)
+    acta_mercantil: list[SanitizedDocumentReference] = Field(default_factory=list)
+
+
+class CaseExplorerRequestView(BaseModel):
+    """Sanitized request projection for internal case exploration."""
+
+    merchant_id: str
+    request_id: str | None = None
+    metadata: dict[str, str] = Field(default_factory=dict)
+    documents: SanitizedDocumentsPayload
+
+
 class SubmitValidationResponse(BaseModel):
     """Submit response returned immediately after job creation."""
 
@@ -163,6 +189,23 @@ class StatusResponseItem(BaseModel):
     progress: ProgressInfo | None = None
     overall_result: OverallResult | None = None
     documents: DocumentsResult | None = None
+    cross_validation: CrossValidationResult | None = None
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+
+class CaseExplorerResponse(BaseModel):
+    """Expanded job detail contract for internal case exploration."""
+
+    job_id: str
+    merchant_id: str
+    request_id: str | None = None
+    status: Literal["PENDING", "PROCESSING", "COMPLETED", "FAILED"]
+    request: CaseExplorerRequestView
+    progress: ProgressInfo | None = None
+    overall_result: OverallResult | None = None
+    documents: DocumentsResult | None = None
+    normalized_snapshot: dict[str, Any] | None = None
     cross_validation: CrossValidationResult | None = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)

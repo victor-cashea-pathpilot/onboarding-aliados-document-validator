@@ -10,6 +10,7 @@ gcloud_auth_healthcheck
 echo "Enabling required APIs..."
 gcloud services enable \
   run.googleapis.com \
+  iap.googleapis.com \
   cloudtasks.googleapis.com \
   artifactregistry.googleapis.com \
   cloudbuild.googleapis.com \
@@ -73,6 +74,11 @@ create_service_account_if_missing \
 create_service_account_if_missing \
   "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" \
   "Onboarding Cloud Tasks Invoker"
+if [[ -n "${CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL:-}" ]]; then
+  create_service_account_if_missing \
+    "$CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL" \
+    "Onboarding Case Explorer Runtime"
+fi
 
 echo "Applying IAM bindings..."
 grant_project_role "serviceAccount:${API_RUNTIME_SERVICE_ACCOUNT_EMAIL}" "roles/datastore.user"
@@ -85,5 +91,11 @@ grant_service_account_actas \
 grant_service_account_actas \
   "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" \
   "serviceAccount:$(cloud_tasks_service_agent)"
+
+if [[ "${CASE_EXPLORER_ENABLE_IAP:-false}" == "true" ]]; then
+  gcloud beta services identity create \
+    --service=iap.googleapis.com \
+    --project="$PROJECT_ID" >/dev/null 2>&1 || true
+fi
 
 echo "Bootstrap complete."

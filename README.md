@@ -40,6 +40,7 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - [x] Etapa 9: infraestructura async real en GCP
 - [ ] Etapa 10: despliegue de arquitectura completa
 - [ ] Etapa 11: staging, observabilidad y piloto
+- [ ] Etapa 12: case explorer y trazabilidad por job
 
 Estado actual:
 - Etapa 7 ya cubre `unit tests`, `logic evals`, `extraction evals` y `comprehensive evals` en GitHub Actions.
@@ -72,6 +73,11 @@ Estado actual:
     - hallazgo actual: el worker estaba bloqueando el handler async y forzando una ejecución efectivamente secuencial por instancia
     - fix validado en esta rama: al mover `/internal/process-job` a un handler síncrono, los 3 jobs arrancaron en paralelo y la cola bajó de ~98.5s promedio a ~3s por job
     - optimización adicional validada en esta rama: al paralelizar `CrossValidationLLMService` y `LegalAssessmentLLMService`, el tiempo total E2E de los 3 casos reales bajó a un rango aproximado de `27s - 42s` por job, con promedio de `~33.4s`
+- La siguiente etapa activa es la **Etapa 12**:
+  - `Case Explorer` interno por `job_id`
+  - webapp interna en `webapp/` para explorar casos desde browser
+  - vista saneada de input y output por caso
+  - snapshot normalizado y validaciones en una sola respuesta para debugging y operación
 - Los `real extraction evals` siguen como track manual/posterior mientras se termina de definir la estrategia final de hosting y acceso a documentos.
 
 ## Alcance actual
@@ -113,6 +119,9 @@ Excluido del MVP:
 Actualmente este repositorio ya contiene una base funcional del MVP:
 
 - API pública para crear jobs y consultar estado
+- endpoint interno de detalle por caso: `GET /internal/jobs/{job_id}`
+- vista HTML simple del expediente: `GET /internal/jobs/{job_id}/view`
+- webapp interna en `webapp/` para explorar casos en browser, protegible con Google login vía IAP
 - worker con flujo de intake técnico y extracción
 - extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
 - normalización canónica y validación cruzada híbrida
@@ -125,6 +134,8 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
   - `create_dashboards.sh`
   - `deploy_observability.sh`
 - visibilidad E2E en GCP con logs y dashboard para seguir el lifecycle de jobs reales
+- `case explorer` desplegado en Cloud Run con IAP directo para login de Google sobre la `run.app` URL
+- webapp interna desplegable a Cloud Run para explorar expedientes en browser
 
 Todavía falta implementar:
 
@@ -132,6 +143,7 @@ Todavía falta implementar:
 - ampliar los evals lógicos, de extracción y comprehensive con más fixtures y expected outputs
 - endurecimiento por ambiente (`dev`, `staging`, `prod`)
 - observabilidad y analytics operativos completos
+- visibilidad operacional por caso con un `Case Explorer` interno
 - seguir optimizando el runtime del worker y la semántica final de las validaciones LLM
 
 ## Arquitectura actual vs target
