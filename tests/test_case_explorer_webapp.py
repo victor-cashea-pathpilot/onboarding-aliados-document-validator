@@ -27,6 +27,7 @@ def test_home_page_renders_lookup_form() -> None:
     assert "Recent Jobs" in response.text
     assert "Active Jobs" in response.text
     assert 'http-equiv="refresh"' in response.text
+    assert "Live activity" in response.text
 
 
 def test_home_page_renders_job_list(monkeypatch) -> None:
@@ -47,6 +48,8 @@ def test_home_page_renders_job_list(monkeypatch) -> None:
                     "overall_summary": None,
                     "legal_mode": "sociedad_mercantil",
                     "stage": "document_extraction",
+                    "progress_percentage": 42,
+                    "progress_message": "Extracting documents",
                     "document_count": 4,
                     "updated_at": "2026-03-30T00:00:05Z",
                 },
@@ -59,6 +62,8 @@ def test_home_page_renders_job_list(monkeypatch) -> None:
                     "overall_summary": "Manual review required.",
                     "legal_mode": "sociedad_mercantil",
                     "stage": "cross_validation",
+                    "progress_percentage": 100,
+                    "progress_message": "Completed",
                     "document_count": 3,
                     "updated_at": "2026-03-30T00:00:00Z",
                 }
@@ -76,6 +81,8 @@ def test_home_page_renders_job_list(monkeypatch) -> None:
     assert "Next" in response.text
     assert "jobs en progreso" in response.text
     assert "status-processing" in response.text
+    assert "42%" in response.text
+    assert "Extracting documents" in response.text
 
 
 def test_case_detail_renders_with_mocked_case(monkeypatch) -> None:
@@ -92,6 +99,11 @@ def test_case_detail_renders_with_mocked_case(monkeypatch) -> None:
                 "summary": "Manual review required.",
             },
             "cross_validation": {"legal_mode": "sociedad_mercantil"},
+            "progress": {
+                "stage": "cross_validation",
+                "percentage": 100,
+                "message": "Completed",
+            },
             "request": {"documents": {"rif": [{"url": "https://example.com/rif.pdf"}]}},
             "documents": {"rif": []},
             "normalized_snapshot": {"rif_number": "J123456789"},
@@ -105,6 +117,8 @@ def test_case_detail_renders_with_mocked_case(monkeypatch) -> None:
     assert "merchant-123" in response.text
     assert "Manual review required." in response.text
     assert "Raw JSON" in response.text
+    assert "Current progress" in response.text
+    assert "100%" in response.text
 
 
 def test_case_detail_json_returns_payload(monkeypatch) -> None:

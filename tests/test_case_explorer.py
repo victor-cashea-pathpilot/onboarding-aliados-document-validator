@@ -126,6 +126,8 @@ def test_case_explorer_service_lists_paginated_jobs() -> None:
     assert len(response.items) == 2
     assert response.items[0].job_id == "val_case122"
     assert response.items[0].document_count == 2
+    assert response.items[0].progress_percentage == 100
+    assert response.items[0].progress_message == "Completed"
 
 
 def test_case_explorer_endpoint_returns_sanitized_job_detail(monkeypatch) -> None:

@@ -317,6 +317,7 @@ Endurecer la arquitectura desplegable y acercarla a la propuesta objetivo del cl
 ### Estado
 
 - iniciada
+- definida como siguiente paso **post-MVP probado**
 - primer slice implementado en `infra/gcp/`:
   - service accounts separadas para `api`, `worker` y `Cloud Tasks`
   - bootstrap preparado para crearlas y asignar IAM mínimo
@@ -343,7 +344,9 @@ Operar el sistema en un entorno de staging más cercano a uso real.
 
 ### Estado
 
-- iniciada
+- iniciada y ya usable
+- webapp interna desplegada en Cloud Run con acceso controlado por Google login vía `IAP`
+- home con jobs recientes paginados y jobs activos con progreso visible
 - ya existe base operativa:
   - logging estructurado
   - métricas basadas en logs

@@ -225,6 +225,8 @@ class CaseExplorerListItem(BaseModel):
         | None
     ) = None
     stage: str | None = None
+    progress_percentage: int | None = None
+    progress_message: str | None = None
     document_count: int = 0
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)

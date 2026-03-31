@@ -22,6 +22,7 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - Plan por etapas: [docs/Stages_Plan_v1.md](docs/Stages_Plan_v1.md)
 - Especificación de API: [docs/API_Spec_v2.md](docs/API_Spec_v2.md)
 - Arquitectura MVP: [docs/Architecture_v2.md](docs/Architecture_v2.md)
+- Arquitectura actual vs target Cashea: [docs/Architecture_Current_vs_Target.md](docs/Architecture_Current_vs_Target.md)
 - Casos reales de prueba y política de uso: [docs/Real_Test_Cases_v1.md](docs/Real_Test_Cases_v1.md)
 - Estrategia de evals: [docs/Evals_Strategy_v1.md](docs/Evals_Strategy_v1.md)
 - Real extraction evals locales: [docs/Real_Extraction_Evals_v1.md](docs/Real_Extraction_Evals_v1.md)
@@ -38,9 +39,9 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - [x] Etapa 7: evals lógicos, de extracción y comprehensive en CI/CD
 - [x] Etapa 8: profundización de reglas y semántica del resultado
 - [x] Etapa 9: infraestructura async real en GCP
-- [ ] Etapa 10: despliegue de arquitectura completa
+- [ ] Etapa 10: arquitectura completa Cashea post-MVP
 - [ ] Etapa 11: staging, observabilidad y piloto
-- [ ] Etapa 12: case explorer y trazabilidad por job
+- [x] Etapa 12: case explorer y trazabilidad por job
 
 Estado actual:
 - Etapa 7 ya cubre `unit tests`, `logic evals`, `extraction evals` y `comprehensive evals` en GitHub Actions.
@@ -63,20 +64,21 @@ Estado actual:
   - logs JSON estructurados en `api` y `worker`
   - eventos por etapa del pipeline
   - scripts dedicados en `infra/gcp/` para crear métricas de logs y dashboards
-- La etapa activa ahora es la **Etapa 10**:
-  - endurecer arquitectura por ambiente
-  - separar service accounts por responsabilidad
-  - alinear más el despliegue con el diagrama objetivo del cliente
-  - definir qué componentes enterprise entran ya y cuáles quedan como siguiente iteración
+- La siguiente etapa de arquitectura es la **Etapa 10**:
+  - mover el stack al GCP de Cashea
+  - decidir qué piezas del diagrama objetivo se activan post-MVP
+  - endurecer la topología enterprise por ambiente
+  - agregar componentes enterprise como siguiente paso, no como bloqueo del MVP probado
   - ya se investigó y corrigió el cuello de botella principal de concurrencia en GCP:
     - issue de tracking: [#9 Investigate serialized job execution in GCP](https://github.com/victor-cashea-pathpilot/onboarding-aliados-document-validator/issues/9)
     - hallazgo actual: el worker estaba bloqueando el handler async y forzando una ejecución efectivamente secuencial por instancia
     - fix validado en esta rama: al mover `/internal/process-job` a un handler síncrono, los 3 jobs arrancaron en paralelo y la cola bajó de ~98.5s promedio a ~3s por job
     - optimización adicional validada en esta rama: al paralelizar `CrossValidationLLMService` y `LegalAssessmentLLMService`, el tiempo total E2E de los 3 casos reales bajó a un rango aproximado de `27s - 42s` por job, con promedio de `~33.4s`
-- La siguiente etapa activa es la **Etapa 12**:
+- La **Etapa 12** ya está activa y operativa:
   - `Case Explorer` interno por `job_id`
   - webapp interna en `webapp/` para explorar casos desde browser
   - home paginada con jobs recientes y metadata operacional relevante
+  - sección de jobs activos con auto-refresh
   - vista saneada de input y output por caso
   - snapshot normalizado y validaciones en una sola respuesta para debugging y operación
 - Los `real extraction evals` siguen como track manual/posterior mientras se termina de definir la estrategia final de hosting y acceso a documentos.
@@ -207,6 +209,8 @@ flowchart TD
   - `Document AI` como OCR complementario, si aplica
   - `BigQuery` para logs/evals/analytics
   - endurecimiento por ambiente más allá del primer slice ya implementado
+
+La diferencia completa y el rationale post-MVP están detallados en [docs/Architecture_Current_vs_Target.md](docs/Architecture_Current_vs_Target.md).
 
 ## Cómo fluyen los evals locales
 

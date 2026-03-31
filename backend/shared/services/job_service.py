@@ -172,6 +172,12 @@ class JobService:
                 else None
             ),
             stage=record.progress.stage if record.progress is not None else None,
+            progress_percentage=(
+                record.progress.percentage if record.progress is not None else None
+            ),
+            progress_message=(
+                record.progress.message if record.progress is not None else None
+            ),
             document_count=record.request.documents.total_documents(),
             created_at=record.created_at,
             updated_at=record.updated_at,

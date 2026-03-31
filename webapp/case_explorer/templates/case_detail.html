@@ -6,68 +6,145 @@
     <title>Case Explorer · {{ summary.job_id }}</title>
     <style>
       :root {
-        --bg: #f3f0e8;
-        --paper: #fffdf9;
-        --ink: #221d16;
-        --muted: #72695d;
-        --accent: #205849;
-        --line: #d9d1c4;
+        --bg: #ffffff;
+        --panel: #ffffff;
+        --panel-alt: #f8fafc;
+        --ink: #0f172a;
+        --muted: #475569;
+        --line: #e2e8f0;
+        --accent: #0f766e;
+        --completed-bg: #dcfce7;
+        --completed-ink: #166534;
+        --pending-bg: #fef3c7;
+        --pending-ink: #92400e;
+        --processing-bg: #dbeafe;
+        --processing-ink: #1d4ed8;
+        --failed-bg: #fee2e2;
+        --failed-ink: #b91c1c;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: Georgia, serif;
-        background: linear-gradient(180deg, #eee7da 0%, var(--bg) 100%);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
         color: var(--ink);
       }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 700;
+      }
       .page {
-        max-width: 1280px;
+        max-width: 1360px;
         margin: 0 auto;
         padding: 32px 20px 48px;
       }
       .hero, .card {
-        background: var(--paper);
+        background: var(--panel);
         border: 1px solid var(--line);
-        border-radius: 22px;
+        border-radius: 24px;
         padding: 24px;
-        box-shadow: 0 8px 30px rgba(34, 29, 22, 0.05);
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.05);
       }
-      .hero { margin-bottom: 20px; }
+      .hero {
+        margin-bottom: 20px;
+        background: radial-gradient(circle at top right, #ccfbf1 0%, #ffffff 34%, #ffffff 100%);
+      }
       .eyebrow {
         font-size: 12px;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
         color: var(--muted);
+        font-weight: 700;
       }
-      h1 { margin: 10px 0 12px; font-size: 34px; line-height: 1.1; }
+      h1 {
+        margin: 10px 0 14px;
+        font-size: 38px;
+        line-height: 1.05;
+      }
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
       .status {
         display: inline-block;
         padding: 8px 12px;
         border-radius: 999px;
-        background: #e3efe9;
-        color: var(--accent);
+        background: var(--completed-bg);
+        color: var(--completed-ink);
         font-weight: 700;
         font-size: 13px;
       }
-      .summary {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
+      .status-pending { background: var(--pending-bg); color: var(--pending-ink); }
+      .status-processing { background: var(--processing-bg); color: var(--processing-ink); }
+      .status-failed { background: var(--failed-bg); color: var(--failed-ink); }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-top: 18px;
       }
-      .summary th, .summary td {
-        border-top: 1px solid var(--line);
-        padding: 12px 0;
-        text-align: left;
-        vertical-align: top;
+      .summary-card {
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 14px 16px;
       }
-      .summary th {
-        width: 180px;
+      .summary-card strong {
+        display: block;
+        font-size: 22px;
+        line-height: 1.1;
+      }
+      .summary-card span {
+        display: block;
         color: var(--muted);
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .progress-wrap {
+        margin-top: 18px;
+      }
+      .progress-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      .progress-track {
+        height: 10px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #14b8a6 0%, #0f766e 100%);
+      }
+      .progress-message {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .nav {
+        display: flex;
+        gap: 12px;
+        margin-top: 18px;
+        flex-wrap: wrap;
       }
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         gap: 20px;
+      }
+      .card h2 {
+        margin: 8px 0 12px;
+        font-size: 20px;
       }
       pre {
         margin: 0;
@@ -75,28 +152,65 @@
         word-break: break-word;
         font-family: "SFMono-Regular", Menlo, monospace;
         font-size: 12px;
-        line-height: 1.5;
+        line-height: 1.55;
+        color: #1e293b;
       }
-      a { color: var(--accent); text-decoration: none; font-weight: 700; }
-      .nav { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+      .json-shell {
+        background: var(--panel-alt);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+      }
     </style>
   </head>
   <body>
     <main class="page">
       <section class="hero">
-        <div class="eyebrow">Internal Case Explorer</div>
-        <h1>{{ summary.merchant_id }}</h1>
-        <div class="status">{{ summary.status }}</div>
-        <table class="summary">
-          <tbody>
-            <tr><th>Job ID</th><td>{{ summary.job_id }}</td></tr>
-            <tr><th>Request ID</th><td>{{ summary.request_id or "-" }}</td></tr>
-            <tr><th>Overall Result</th><td>{{ summary.overall_status or "-" }}</td></tr>
-            <tr><th>Summary</th><td>{{ summary.overall_summary or "-" }}</td></tr>
-            <tr><th>Legal Mode</th><td>{{ summary.legal_mode or "-" }}</td></tr>
-            <tr><th>Updated At</th><td>{{ summary.updated_at or "-" }}</td></tr>
-          </tbody>
-        </table>
+        <div class="hero-top">
+          <div>
+            <div class="eyebrow">Internal Case Explorer</div>
+            <h1>{{ summary.merchant_id }}</h1>
+            <div class="muted">{{ summary.job_id }}</div>
+          </div>
+          <div class="status {% if summary.status == 'PENDING' %}status-pending{% elif summary.status == 'PROCESSING' %}status-processing{% elif summary.status == 'FAILED' %}status-failed{% endif %}">
+            {{ summary.status }}
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <strong>{{ summary.overall_status or "-" }}</strong>
+            <span>Overall result</span>
+          </article>
+          <article class="summary-card">
+            <strong>{{ summary.legal_mode or "-" }}</strong>
+            <span>Legal mode</span>
+          </article>
+          <article class="summary-card">
+            <strong>{{ case_payload.progress.percentage if case_payload.progress else 0 }}%</strong>
+            <span>Current progress</span>
+          </article>
+          <article class="summary-card">
+            <strong>{{ case_payload.progress.stage if case_payload.progress else "-" }}</strong>
+            <span>Current stage</span>
+          </article>
+        </div>
+
+        <div class="progress-message" style="margin-top: 14px;">
+          {{ summary.overall_summary or "No overall summary available yet." }}
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-head">
+            <span>{{ case_payload.progress.stage if case_payload.progress else "queued" }}</span>
+            <strong>{{ case_payload.progress.percentage if case_payload.progress else 0 }}%</strong>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: {{ case_payload.progress.percentage if case_payload.progress else 0 }}%;"></div>
+          </div>
+          <div class="progress-message">{{ case_payload.progress.message if case_payload.progress else "No progress metadata available." }}</div>
+        </div>
+
         <div class="nav">
           <a href="/">Back</a>
           <a href="/jobs/{{ job_id }}/json">Raw JSON</a>
@@ -106,19 +220,31 @@
       <section class="grid">
         <section class="card">
           <div class="eyebrow">Sanitized Request</div>
-          <pre>{{ case_payload.request | tojson(indent=2) }}</pre>
+          <h2>Input submitted to the API</h2>
+          <div class="json-shell">
+            <pre>{{ case_payload.request | tojson(indent=2) }}</pre>
+          </div>
         </section>
         <section class="card">
           <div class="eyebrow">Documents Result</div>
-          <pre>{{ case_payload.documents | tojson(indent=2) }}</pre>
+          <h2>Per-document outcome</h2>
+          <div class="json-shell">
+            <pre>{{ case_payload.documents | tojson(indent=2) }}</pre>
+          </div>
         </section>
         <section class="card">
           <div class="eyebrow">Normalized Snapshot</div>
-          <pre>{{ case_payload.normalized_snapshot | tojson(indent=2) }}</pre>
+          <h2>Canonical internal view</h2>
+          <div class="json-shell">
+            <pre>{{ case_payload.normalized_snapshot | tojson(indent=2) }}</pre>
+          </div>
         </section>
         <section class="card">
           <div class="eyebrow">Cross Validation</div>
-          <pre>{{ case_payload.cross_validation | tojson(indent=2) }}</pre>
+          <h2>Checks, findings and LLM review</h2>
+          <div class="json-shell">
+            <pre>{{ case_payload.cross_validation | tojson(indent=2) }}</pre>
+          </div>
         </section>
       </section>
     </main>
