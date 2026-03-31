@@ -366,6 +366,7 @@ Dar una vista operacional por expediente para inspeccionar un `job_id` completo 
 - snapshot normalizado
 - validaciones cruzadas y veredicto final
 - base para una UI operativa o explorer posterior
+- home con jobs recientes paginados y jobs activos con progreso visible
 
 ### Resultado esperado
 
@@ -373,7 +374,77 @@ Dar una vista operacional por expediente para inspeccionar un `job_id` completo 
 
 ### Estado
 
-- iniciada
+- iniciada y definida como foco principal de las siguientes iteraciones
+
+## Subetapas activas dentro de Etapa 12
+
+### 12A. Timeline operacional del caso
+
+Objetivo:
+
+- ver claramente cómo avanza un caso por etapas
+
+Incluye:
+
+- `status`
+- `stage`
+- `percentage`
+- `message`
+- timestamps relevantes
+
+### 12B. Trazabilidad por workflow step
+
+Objetivo:
+
+- ver input y output por etapa del pipeline
+
+Incluye:
+
+- intake técnico
+- extracción
+- normalización
+- validación cruzada
+- composición de veredicto
+
+### 12C. Trazabilidad por nodo LLM
+
+Objetivo:
+
+- inspeccionar qué vio y qué respondió cada modelo
+
+Incluye:
+
+- archivos usados por cada nodo
+- prompt exacto o prompt renderizado
+- output estructurado del nodo
+- modelo usado
+- timestamps y duración
+
+### 12D. Explorer orientado a validación de prompts
+
+Objetivo:
+
+- usar el `Case Explorer` como herramienta principal para mejorar prompts y lógica
+
+Incluye:
+
+- comparar extracción esperada vs salida real
+- revisar análisis final del caso
+- entender fallas por documento y por etapa
+
+### 12E. UX operativa del explorer
+
+Objetivo:
+
+- que la UI sirva para debugging y revisión diaria
+
+Incluye:
+
+- filtros por estado
+- búsqueda por `job_id`, `merchant_id` y `request_id`
+- badges claros
+- layout limpio con foco en lectura
+- navegación simple entre lista y detalle
 
 ## Orden recomendado
 
@@ -381,8 +452,9 @@ Dar una vista operacional por expediente para inspeccionar un `job_id` completo 
 2. Etapa 7
 3. Etapa 8
 4. Etapa 9
-5. Etapa 10
-6. Etapa 11
+5. Etapa 12 como foco principal
+6. Etapa 10
+7. Etapa 11
 
 ## Estado actual
 
