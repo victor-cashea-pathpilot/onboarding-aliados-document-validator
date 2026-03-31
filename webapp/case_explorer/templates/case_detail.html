@@ -218,6 +218,34 @@
         gap: 10px;
         flex-wrap: wrap;
       }
+      .column-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .copy-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .copy-button:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .copy-feedback {
+        color: var(--muted);
+        font-size: 12px;
+        min-width: 54px;
+        text-align: right;
+      }
       pre {
         margin: 0;
         white-space: pre-wrap;
@@ -347,7 +375,13 @@
               <div class="eyebrow">Node Input</div>
               <h2 id="input-title">Input</h2>
             </div>
-            <span id="input-status" class="status">-</span>
+            <div class="column-actions">
+              <button type="button" class="copy-button" data-copy-target="input-json" data-copy-label="input">
+                ⧉ Copy
+              </button>
+              <span id="input-copy-feedback" class="copy-feedback"></span>
+              <span id="input-status" class="status">-</span>
+            </div>
           </div>
           <div id="file-list" class="file-list"></div>
           <div class="json-shell" style="margin-top: 14px;">
@@ -361,7 +395,13 @@
               <div class="eyebrow">LLM Prompt</div>
               <h2 id="prompt-title">Prompt</h2>
             </div>
-            <span id="prompt-model" class="node-kind">-</span>
+            <div class="column-actions">
+              <button type="button" class="copy-button" data-copy-target="prompt-text" data-copy-label="prompt">
+                ⧉ Copy
+              </button>
+              <span id="prompt-copy-feedback" class="copy-feedback"></span>
+              <span id="prompt-model" class="node-kind">-</span>
+            </div>
           </div>
           <div class="json-shell">
             <pre id="prompt-text" class="empty"></pre>
@@ -374,7 +414,13 @@
               <div class="eyebrow">Node Output</div>
               <h2 id="output-title">Output</h2>
             </div>
-            <span id="output-stage" class="node-kind">-</span>
+            <div class="column-actions">
+              <button type="button" class="copy-button" data-copy-target="output-json" data-copy-label="output">
+                ⧉ Copy
+              </button>
+              <span id="output-copy-feedback" class="copy-feedback"></span>
+              <span id="output-stage" class="node-kind">-</span>
+            </div>
           </div>
           <div class="json-shell">
             <pre id="output-json"></pre>
@@ -433,8 +479,28 @@
         document.getElementById("output-json").textContent = formatJson(node.output_payload);
       }
 
+      async function copyBlock(targetId, label) {
+        const element = document.getElementById(targetId);
+        if (!element) return;
+        const feedbackId = `${targetId.split("-")[0]}-copy-feedback`;
+        const feedback = document.getElementById(feedbackId);
+        try {
+          await navigator.clipboard.writeText(element.textContent || "");
+          if (feedback) feedback.textContent = "Copied";
+        } catch (error) {
+          if (feedback) feedback.textContent = "Failed";
+        }
+        window.setTimeout(() => {
+          if (feedback) feedback.textContent = "";
+        }, 1200);
+      }
+
       for (const button of document.querySelectorAll(".node-button")) {
         button.addEventListener("click", () => selectNode(button.dataset.nodeId));
+      }
+
+      for (const button of document.querySelectorAll(".copy-button")) {
+        button.addEventListener("click", () => copyBlock(button.dataset.copyTarget, button.dataset.copyLabel));
       }
 
       if (nodes.length > 0) {
