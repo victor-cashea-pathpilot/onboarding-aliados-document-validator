@@ -28,6 +28,12 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - Real extraction evals locales: [docs/Real_Extraction_Evals_v1.md](docs/Real_Extraction_Evals_v1.md)
 - Despliegue GCP: [infra/gcp/README.md](infra/gcp/README.md)
 
+## Workflow de ramas
+
+- Los branches de trabajo pueden salir de `develop` salvo que se necesite otra base por una razón puntual.
+- Los pull requests de este repositorio deben abrirse contra `develop` por defecto.
+- Solo se debe usar otra base de PR si se acuerda explícitamente para una entrega particular.
+
 ## Estado del plan
 
 - [x] Etapa 1: base desplegable
