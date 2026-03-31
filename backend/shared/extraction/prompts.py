@@ -8,8 +8,10 @@ def _today_ddmmyyyy() -> str:
 
 
 def build_rif_prompt() -> str:
-    return """
+    return f"""
 Extrae la siguiente información del RIF (Registro de Información Fiscal):
+
+Fecha actual de referencia: {_today_ddmmyyyy()}.
 
 1. Número de RIF: formato completo con prefijo (J-, V-, G-, E-) y dígitos.
 2. Razón Social: nombre completo de la empresa tal como aparece en el RIF.
@@ -17,12 +19,12 @@ Extrae la siguiente información del RIF (Registro de Información Fiscal):
 4. Fecha de Vencimiento: fecha de vencimiento del RIF en formato DD/MM/AAAA.
 
 Responde SOLO con un JSON válido en este formato exacto:
-{
+{{
   "rif_number": "",
   "company_name": "",
   "fiscal_address": "",
   "expiration_date": ""
-}
+}}
 
 Si algún dato no está disponible, deja el campo como cadena vacía.
 No incluyas bloques de código markdown.
@@ -30,19 +32,21 @@ No incluyas bloques de código markdown.
 
 
 def build_cedula_prompt() -> str:
-    return """
+    return f"""
 Extrae la siguiente información de esta Cédula de Identidad venezolana:
+
+Fecha actual de referencia: {_today_ddmmyyyy()}.
 
 1. Número de Cédula: incluye el prefijo (V-, E-, P-) seguido del número completo.
 2. Nombres: nombres completos de la persona.
 3. Apellidos: apellidos completos de la persona.
 
 Responde SOLO con un JSON válido en este formato exacto:
-{
+{{
   "id_number": "",
   "first_name": "",
   "last_name": ""
-}
+}}
 
 Si algún dato no es legible o no está presente, usa una cadena vacía para ese campo.
 No incluyas bloques de código markdown.

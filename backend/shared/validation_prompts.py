@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
+
+def _today_ddmmyyyy() -> str:
+    return datetime.now(timezone.utc).strftime("%d/%m/%Y")
+
 
 def _normalize_legal_mode(legal_mode: str | None) -> str:
     if legal_mode in {"sociedad_mercantil", "firma_personal", "emprendimiento"}:
@@ -37,6 +43,8 @@ def build_cross_validation_llm_prompt(legal_mode: str | None = None) -> str:
 ROL: Actúa como un Auditor Senior de Cumplimiento Legal para Cashea, especializado
 en expedientes de emprendimiento bajo la Ley de Fomento al Emprendimiento.
 
+FECHA ACTUAL DE REFERENCIA: {_today_ddmmyyyy()}.
+
 OBJETIVO:
 - revisar la consistencia documental del snapshot canónico ya normalizado
 - validar que el RIF, la cédula y el certificado de emprendimiento se soporten materialmente
@@ -59,6 +67,8 @@ Usa los checks determinísticos como señales, no como única fuente.
         return f"""
 ROL: Actúa como un Auditor Senior de Cumplimiento Legal para Cashea, especializado
 en expedientes de firma personal en Venezuela.
+
+FECHA ACTUAL DE REFERENCIA: {_today_ddmmyyyy()}.
 
 OBJETIVO:
 - revisar la consistencia documental del snapshot canónico ya normalizado
@@ -84,6 +94,8 @@ Usa los checks determinísticos como señales, no como única fuente.
 ROL: Actúa como un Auditor Senior de Cumplimiento Legal para Cashea, especializado
 en expedientes de sociedades mercantiles venezolanas.
 
+FECHA ACTUAL DE REFERENCIA: {_today_ddmmyyyy()}.
+
 OBJETIVO:
 - revisar la consistencia documental entre RIF, cédula y documentos corporativos
 - validar si la representación vigente surge del documento societario correcto y más reciente
@@ -105,6 +117,8 @@ Usa los checks determinísticos como señales, no como única fuente.
     return f"""
 ROL: Actúa como un analista legal senior que revisa consistencia documental entre RIF,
 cédula y documentos constitutivos venezolanos.
+
+FECHA ACTUAL DE REFERENCIA: {_today_ddmmyyyy()}.
 
 OBJETIVO:
 - revisar la consistencia del snapshot canónico ya normalizado
@@ -133,6 +147,8 @@ def build_legal_assessment_prompt(legal_mode: str | None = None) -> str:
 ROL: Actúa como un Auditor Senior de Cumplimiento Legal para Cashea, especializado
 en expedientes de emprendimiento.
 
+FECHA ACTUAL DE REFERENCIA: {_today_ddmmyyyy()}.
+
 OBJETIVO:
 - emitir una recomendación operativa final sobre la suficiencia legal del expediente
 - diferenciar entre APPROVED, REQUIRES_REVIEW y REJECTED
@@ -154,6 +170,8 @@ Usa el snapshot normalizado y los checks determinísticos.
         return f"""
 ROL: Actúa como un Auditor Senior de Cumplimiento Legal para Cashea, especializado
 en expedientes de firma personal.
+
+FECHA ACTUAL DE REFERENCIA: {_today_ddmmyyyy()}.
 
 OBJETIVO:
 - emitir una recomendación operativa final sobre la suficiencia legal del expediente
@@ -177,6 +195,8 @@ Usa el snapshot normalizado y los checks determinísticos.
 ROL: Actúa como un Auditor Senior de Cumplimiento Legal para Cashea, especializado
 en sociedades mercantiles venezolanas.
 
+FECHA ACTUAL DE REFERENCIA: {_today_ddmmyyyy()}.
+
 OBJETIVO:
 - emitir una recomendación operativa final sobre la suficiencia legal del expediente
 - diferenciar entre APPROVED, REQUIRES_REVIEW y REJECTED
@@ -196,6 +216,8 @@ Usa el snapshot normalizado y los checks determinísticos.
 
     return f"""
 ROL: Actúa como un auditor legal senior de onboarding para aliados.
+
+FECHA ACTUAL DE REFERENCIA: {_today_ddmmyyyy()}.
 
 OBJETIVO:
 - emitir una recomendación operativa final sobre la suficiencia legal del expediente

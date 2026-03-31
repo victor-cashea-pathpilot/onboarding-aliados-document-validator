@@ -10,6 +10,7 @@ def test_cross_validation_prompt_contains_review_contract() -> None:
     prompt = build_cross_validation_llm_prompt("sociedad_mercantil").lower()
 
     assert "consistencia documental" in prompt
+    assert "fecha actual de referencia" in prompt
     assert "sociedades mercantiles venezolanas" in prompt
     assert "junta directiva" in prompt
     assert "recommendation" in prompt
@@ -21,6 +22,7 @@ def test_legal_assessment_prompt_contains_operational_decision_contract() -> Non
     prompt = build_legal_assessment_prompt("firma_personal").lower()
 
     assert "auditor senior de cumplimiento legal" in prompt
+    assert "fecha actual de referencia" in prompt
     assert "firma personal" in prompt
     assert "approved" in prompt
     assert "requires_review" in prompt
@@ -34,4 +36,6 @@ def test_emprendimiento_prompts_are_specialized() -> None:
 
     assert "ley de fomento al emprendimiento" in cross_prompt
     assert "certificado de emprendimiento" in cross_prompt
+    assert "fecha actual de referencia" in cross_prompt
     assert "junta directiva como no aplicable" in legal_prompt
+    assert "fecha actual de referencia" in legal_prompt
