@@ -225,9 +225,31 @@ class CaseExplorerListItem(BaseModel):
         | None
     ) = None
     stage: str | None = None
+    progress_percentage: int | None = None
+    progress_message: str | None = None
     document_count: int = 0
+    duration_seconds: float | None = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+
+
+class CaseExplorerOutcomeCounts(BaseModel):
+    """Outcome distribution for recent jobs."""
+
+    approved: int = 0
+    rejected: int = 0
+    requires_review: int = 0
+
+
+class CaseExplorerListStats(BaseModel):
+    """Aggregated metrics for the case explorer home view."""
+
+    cases_last_24h: int = 0
+    p50_duration_seconds: float | None = None
+    p90_duration_seconds: float | None = None
+    outcome_counts: CaseExplorerOutcomeCounts = Field(
+        default_factory=CaseExplorerOutcomeCounts
+    )
 
 
 class CaseExplorerListResponse(BaseModel):
@@ -236,4 +258,7 @@ class CaseExplorerListResponse(BaseModel):
     page: int
     page_size: int
     has_next: bool
+    query: str | None = None
+    total_items: int = 0
+    stats: CaseExplorerListStats = Field(default_factory=CaseExplorerListStats)
     items: list[CaseExplorerListItem] = Field(default_factory=list)

@@ -7,6 +7,7 @@ COPY webapp/requirements.txt /app/webapp/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r /app/webapp/requirements.txt
 
+COPY backend /app/backend
 COPY webapp /app/webapp
 
 ENV PYTHONUNBUFFERED=1

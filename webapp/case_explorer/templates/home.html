@@ -9,178 +9,297 @@
     {% endif %}
     <style>
       :root {
-        --bg: #f3f0e8;
-        --paper: #fffdf9;
-        --ink: #221d16;
-        --muted: #72695d;
-        --accent: #205849;
-        --line: #d9d1c4;
-        --pending-bg: #efe6c7;
-        --pending-ink: #8c5d00;
-        --processing-bg: #d8e7f6;
-        --processing-ink: #245386;
-        --completed-bg: #e3efe9;
-        --completed-ink: #205849;
+        --bg: #f8fafc;
+        --panel: #ffffff;
+        --panel-alt: #f8fafc;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --accent: #0f766e;
+        --accent-soft: #ccfbf1;
+        --approved: #16a34a;
+        --rejected: #dc2626;
+        --review: #d97706;
+        --pending-bg: #fef3c7;
+        --pending-ink: #92400e;
+        --processing-bg: #dbeafe;
+        --processing-ink: #1d4ed8;
+        --completed-bg: #dcfce7;
+        --completed-ink: #166534;
+        --failed-bg: #fee2e2;
+        --failed-ink: #b91c1c;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: Georgia, serif;
-        background: linear-gradient(180deg, #eee7da 0%, var(--bg) 100%);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
         color: var(--ink);
       }
+      a { color: var(--accent); text-decoration: none; }
       .page {
-        max-width: 1200px;
+        max-width: 1440px;
         margin: 0 auto;
-        padding: 40px 20px;
+        padding: 28px 20px 48px;
       }
       .hero, .card {
-        background: var(--paper);
+        background: var(--panel);
         border: 1px solid var(--line);
-        border-radius: 22px;
+        border-radius: 24px;
+        box-shadow: 0 14px 38px rgba(15, 23, 42, 0.05);
+      }
+      .hero {
         padding: 24px;
-        box-shadow: 0 8px 30px rgba(34, 29, 22, 0.05);
+        margin-bottom: 18px;
       }
-      .hero { margin-bottom: 20px; }
-      .eyebrow {
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--muted);
-      }
-      h1 { margin: 10px 0 12px; font-size: 36px; line-height: 1.1; }
-      p { line-height: 1.6; }
-      form { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
-      input {
-        flex: 1 1 320px;
-        padding: 14px 16px;
-        border-radius: 14px;
-        border: 1px solid var(--line);
-        font-size: 15px;
-      }
-      button {
-        padding: 14px 18px;
-        border-radius: 14px;
-        border: 0;
-        background: var(--accent);
-        color: white;
-        font-size: 15px;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .muted { color: var(--muted); }
-      .stack { display: grid; gap: 20px; }
-      .userbar {
+      .hero-top {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        margin-top: 18px;
+        align-items: flex-start;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .eyebrow {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 700;
+      }
+      h1 {
+        margin: 8px 0 10px;
+        font-size: 36px;
+        line-height: 1.05;
+      }
+      .hero-copy {
+        margin: 0;
+        max-width: 780px;
+        color: var(--muted);
+        line-height: 1.6;
       }
       .pill {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: #e3efe9;
+        background: var(--accent-soft);
         color: var(--accent);
         border-radius: 999px;
         padding: 8px 12px;
         font-size: 13px;
         font-weight: 700;
       }
-      .error { color: #a53f2b; font-weight: 700; }
+      .userbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+      form.inline { margin: 0; }
+      button, .ghost-button {
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--ink);
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .error { color: var(--rejected); font-weight: 700; }
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 18px;
+        margin-top: 22px;
+      }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .stat-card {
+        background: var(--panel-alt);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+      }
+      .stat-card strong {
+        display: block;
+        font-size: 28px;
+        line-height: 1.05;
+      }
+      .stat-card span {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .chart-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 16px;
+        align-items: center;
+        background: var(--panel-alt);
+      }
+      .pie {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: {{ chart_style }};
+        position: relative;
+        margin: 0 auto;
+      }
+      .pie::after {
+        content: "";
+        position: absolute;
+        inset: 24px;
+        border-radius: 50%;
+        background: white;
+        border: 1px solid var(--line);
+      }
+      .legend {
+        display: grid;
+        gap: 10px;
+      }
+      .legend-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        font-size: 14px;
+      }
+      .legend-key {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+      }
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin: 18px 0 12px;
+      }
+      .toolbar h2 {
+        margin: 0;
+        font-size: 24px;
+      }
+      .table-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .search-form {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .search-form input {
+        width: 280px;
+        max-width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font-size: 14px;
+      }
+      .card { padding: 0; overflow: hidden; }
+      .table-wrap { overflow-x: auto; }
       .jobs-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 18px;
       }
       .jobs-table th, .jobs-table td {
         border-top: 1px solid var(--line);
-        padding: 12px 8px;
+        padding: 14px 12px;
         text-align: left;
         vertical-align: top;
         font-size: 14px;
       }
-      .jobs-table th {
+      .jobs-table thead th {
+        border-top: 0;
         color: var(--muted);
         font-size: 12px;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.08em;
+        background: #fbfcfe;
+        position: sticky;
+        top: 0;
+        z-index: 1;
       }
-      .jobs-table a {
-        color: var(--accent);
-        text-decoration: none;
+      .jobs-table tbody tr {
+        cursor: pointer;
+        transition: background 120ms ease;
+      }
+      .jobs-table tbody tr:hover {
+        background: #f8fffd;
+      }
+      .jobs-table tbody tr.is-active {
+        background: #f8fffd;
+      }
+      .job-title {
         font-weight: 700;
+      }
+      .subtle {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .summary-copy {
+        max-width: 340px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
       }
       .status-pill {
         display: inline-block;
-        padding: 6px 10px;
+        padding: 7px 11px;
         border-radius: 999px;
-        background: var(--completed-bg);
-        color: var(--completed-ink);
-        font-weight: 700;
         font-size: 12px;
+        font-weight: 700;
       }
-      .status-pending {
-        background: var(--pending-bg);
-        color: var(--pending-ink);
+      .status-pending { background: var(--pending-bg); color: var(--pending-ink); }
+      .status-processing { background: var(--processing-bg); color: var(--processing-ink); }
+      .status-completed { background: var(--completed-bg); color: var(--completed-ink); }
+      .status-failed { background: var(--failed-bg); color: var(--failed-ink); }
+      .progress-track {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 8px;
       }
-      .status-processing {
-        background: var(--processing-bg);
-        color: var(--processing-ink);
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #14b8a6 0%, #0f766e 100%);
       }
-      .active-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-        margin-top: 18px;
-      }
-      .active-item {
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 16px;
-        background: #faf7f1;
-      }
-      .active-item h3 {
-        margin: 0 0 8px;
-        font-size: 18px;
-        line-height: 1.2;
-      }
-      .active-item p {
-        margin: 6px 0;
-        font-size: 14px;
-      }
-      .helper-row {
-        margin-top: 12px;
+      .pager {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 12px;
         flex-wrap: wrap;
+        padding: 18px 22px 22px;
+        border-top: 1px solid var(--line);
       }
-      .helper-row a {
-        color: var(--accent);
-        text-decoration: none;
-        font-weight: 700;
-      }
-      .nav-links {
+      .pager-links {
         display: flex;
-        justify-content: space-between;
+        gap: 10px;
         align-items: center;
-        margin-top: 18px;
-        gap: 12px;
-        flex-wrap: wrap;
       }
-      .nav-links a {
-        color: var(--accent);
-        text-decoration: none;
-        font-weight: 700;
-      }
-      @media (max-width: 900px) {
-        .jobs-table {
-          display: block;
-          overflow-x: auto;
-        }
+      @media (max-width: 1080px) {
+        .metrics-grid { grid-template-columns: 1fr; }
+        .stats-grid { grid-template-columns: 1fr; }
+        .chart-card { grid-template-columns: 1fr; }
       }
     </style>
     {% if auth_mode == "google" and oauth_ready %}
@@ -190,23 +309,28 @@
   <body>
     <main class="page">
       <section class="hero">
-        <div class="eyebrow">Internal Web App</div>
-        <h1>{{ settings.app_title }}</h1>
-        <p>
-          Busca un expediente por <code>job_id</code> y visualiza el request saneado,
-          los resultados por documento, el snapshot normalizado y la validación cruzada.
-        </p>
+        <div class="hero-top">
+          <div>
+            <div class="eyebrow">Internal Operations</div>
+            <h1>{{ settings.app_title }}</h1>
+            <p class="hero-copy">
+              Explora casos persistidos en Firestore y revisa el workflow paso a paso, con foco en
+              prompts y outputs de los nodos LLM.
+            </p>
+          </div>
+          <div class="pill">{{ "Auto refresh ON" if auto_refresh else "Auto refresh OFF" }}</div>
+        </div>
 
         {% if auth_mode == "google" %}
           {% if user %}
             <div class="userbar">
               <div class="pill">{{ user.name }} · {{ user.email }}</div>
-              <form method="post" action="/auth/logout">
+              <form class="inline" method="post" action="/auth/logout">
                 <button type="submit">Sign out</button>
               </form>
             </div>
           {% elif oauth_ready %}
-            <p class="muted">Inicia sesión con Google para continuar.</p>
+            <p class="subtle">Inicia sesión con Google para continuar.</p>
             <div
               id="g_id_onload"
               data-client_id="{{ settings.google_oauth_client_id }}"
@@ -218,140 +342,141 @@
             <div class="g_id_signin" data-type="standard"></div>
             <p id="auth-error" class="error"></p>
           {% else %}
-            <p class="error">
-              Google auth está habilitado, pero falta configurar <code>GOOGLE_OAUTH_CLIENT_ID</code>.
-            </p>
+            <p class="error">Google auth está habilitado, pero falta configurar <code>GOOGLE_OAUTH_CLIENT_ID</code>.</p>
           {% endif %}
-        {% else %}
-          <p class="pill">Auth mode: disabled</p>
         {% endif %}
+
+        <div class="metrics-grid">
+          <div class="stats-grid">
+            <article class="stat-card">
+              <strong>{{ stats.cases_last_24h or 0 }}</strong>
+              <span>Casos en las últimas 24 horas</span>
+            </article>
+            <article class="stat-card">
+              <strong>{{ p50_duration_label }}</strong>
+              <span>p50 de duración por job</span>
+            </article>
+            <article class="stat-card">
+              <strong>{{ p90_duration_label }}</strong>
+              <span>p90 de duración por job</span>
+            </article>
+          </div>
+          <article class="chart-card">
+            <div class="pie" aria-label="Outcome distribution pie chart"></div>
+            <div class="legend">
+              <div class="legend-row">
+                <span class="legend-key"><span class="swatch" style="background: var(--approved);"></span>Aprobados</span>
+                <strong>{{ stats.outcome_counts.approved }}</strong>
+              </div>
+              <div class="legend-row">
+                <span class="legend-key"><span class="swatch" style="background: var(--rejected);"></span>Rechazados</span>
+                <strong>{{ stats.outcome_counts.rejected }}</strong>
+              </div>
+              <div class="legend-row">
+                <span class="legend-key"><span class="swatch" style="background: var(--review);"></span>Revisión manual</span>
+                <strong>{{ stats.outcome_counts.requires_review }}</strong>
+              </div>
+            </div>
+          </article>
+        </div>
       </section>
 
-      <section class="stack">
-        <section class="card">
-          <div class="eyebrow">Case Lookup</div>
-          <form id="job-form">
-            <input id="job-id" type="text" name="job_id" placeholder="val_a8ccbea709" required />
-            <button type="submit">Open Case</button>
+      <div class="toolbar">
+        <div>
+          <div class="eyebrow">Case Explorer</div>
+          <h2>Jobs recientes y en progreso</h2>
+        </div>
+        <div class="table-tools">
+          <form class="search-form" method="get" action="/">
+            <input
+              type="text"
+              name="q"
+              value="{{ query }}"
+              placeholder="Search job, merchant, request or mode" />
+            <input type="hidden" name="page" value="1" />
+            <input type="hidden" name="page_size" value="{{ page_size }}" />
+            <input type="hidden" name="auto_refresh" value="{{ 1 if auto_refresh else 0 }}" />
+            <button type="submit">Search</button>
           </form>
-        </section>
+          {% if query %}
+            <a class="ghost-button" href="/?page=1&page_size={{ page_size }}&auto_refresh={{ 1 if auto_refresh else 0 }}">Clear</a>
+          {% endif %}
+          {% if auto_refresh %}
+            <a class="ghost-button" href="/?page={{ page }}&page_size={{ page_size }}&q={{ query }}&auto_refresh=0">Pause refresh</a>
+          {% else %}
+            <a class="ghost-button" href="/?page={{ page }}&page_size={{ page_size }}&q={{ query }}&auto_refresh=1">Resume refresh</a>
+          {% endif %}
+        </div>
+      </div>
 
-        <section class="card">
-          <div class="eyebrow">Active Jobs</div>
-          <div class="helper-row">
-            <div class="muted">
-              {% if active_jobs %}
-                {{ active_jobs | length }} jobs en progreso. Esta página se refresca cada 5 segundos.
-              {% else %}
-                No hay jobs activos en esta página. La página se refresca cada 5 segundos para detectar nuevos.
-              {% endif %}
-            </div>
-            {% if auto_refresh %}
-              <a href="/?page={{ page }}&page_size={{ page_size }}&auto_refresh=0">Pause refresh</a>
-            {% else %}
-              <a href="/?page={{ page }}&page_size={{ page_size }}&auto_refresh=1">Resume refresh</a>
-            {% endif %}
-          </div>
-          <div class="active-grid">
-            {% for item in active_jobs %}
-            <article class="active-item">
-              <div class="eyebrow">{{ item.legal_mode or "unknown mode" }}</div>
-              <h3><a href="/jobs/{{ item.job_id }}">{{ item.job_id }}</a></h3>
-              <p><strong>Merchant:</strong> {{ item.merchant_id }}</p>
-              <p><strong>Stage:</strong> {{ item.stage or "-" }}</p>
-              <p><strong>Docs:</strong> {{ item.document_count }}</p>
-              <p><span class="status-pill {% if item.status == 'PENDING' %}status-pending{% elif item.status == 'PROCESSING' %}status-processing{% endif %}">{{ item.status }}</span></p>
-            </article>
-            {% else %}
-            <article class="active-item">
-              <div class="eyebrow">No active jobs</div>
-              <p class="muted">Dispara un nuevo caso y debería aparecer aquí mientras pasa por `PENDING` y `PROCESSING`.</p>
-            </article>
-            {% endfor %}
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="eyebrow">Recent Jobs</div>
+      <section class="card">
+        <div class="table-wrap">
           <table class="jobs-table">
             <thead>
               <tr>
                 <th>Job</th>
-                <th>Merchant</th>
                 <th>Status</th>
+                <th>Progress / Step</th>
+                <th>Merchant</th>
                 <th>Overall</th>
                 <th>Legal Mode</th>
-                <th>Stage</th>
                 <th>Docs</th>
+                <th>Duration</th>
                 <th>Updated</th>
               </tr>
             </thead>
             <tbody>
-              {% for item in jobs %}
-              <tr>
-                <td><a href="/jobs/{{ item.job_id }}">{{ item.job_id }}</a></td>
-                <td>
-                  <strong>{{ item.merchant_id }}</strong><br />
-                  <span class="muted">{{ item.request_id or "-" }}</span>
-                </td>
-                <td><span class="status-pill {% if item.status == 'PENDING' %}status-pending{% elif item.status == 'PROCESSING' %}status-processing{% endif %}">{{ item.status }}</span></td>
-                <td>
-                  <strong>{{ item.overall_status or "-" }}</strong><br />
-                  <span class="muted">{{ item.overall_summary or "-" }}</span>
-                </td>
-                <td>{{ item.legal_mode or "-" }}</td>
-                <td>{{ item.stage or "-" }}</td>
-                <td>{{ item.document_count }}</td>
-                <td>{{ item.updated_at }}</td>
-              </tr>
+              {% for item in table_rows %}
+                <tr class="{% if item.status in ['PENDING', 'PROCESSING'] %}is-active{% endif %}" onclick="window.location.href='/jobs/{{ item.job_id }}'">
+                  <td>
+                    <div class="job-title">{{ item.job_id }}</div>
+                    <div class="subtle">{{ item.request_id or "-" }}</div>
+                  </td>
+                  <td>
+                    <span class="status-pill {% if item.status == 'PENDING' %}status-pending{% elif item.status == 'PROCESSING' %}status-processing{% elif item.status == 'FAILED' %}status-failed{% else %}status-completed{% endif %}">
+                      {{ item.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <div><strong>{{ item.progress_percentage if item.progress_percentage is not none else "-" }}</strong>{% if item.progress_percentage is not none %}%{% endif %}</div>
+                    <div class="subtle">{{ item.stage or "-" }}</div>
+                    {% if item.status in ['PENDING', 'PROCESSING'] %}
+                      <div class="progress-track">
+                        <div class="progress-fill" style="width: {{ item.progress_percentage or 0 }}%;"></div>
+                      </div>
+                    {% endif %}
+                    <div class="summary-copy">{{ item.progress_message or "-" }}</div>
+                  </td>
+                  <td>{{ item.merchant_id }}</td>
+                  <td>
+                    <strong>{{ item.overall_status or "-" }}</strong>
+                    <div class="summary-copy">{{ item.overall_summary or "-" }}</div>
+                  </td>
+                  <td>{{ item.legal_mode or "-" }}</td>
+                  <td>{{ item.document_count }}</td>
+                  <td>{{ item.duration_seconds | round(1) if item.duration_seconds is not none else "-" }}{% if item.duration_seconds is not none %}s{% endif %}</td>
+                  <td>{{ item.updated_at }}</td>
+                </tr>
               {% else %}
-              <tr>
-                <td colspan="8" class="muted">No jobs found.</td>
-              </tr>
+                <tr>
+                  <td colspan="9" class="subtle">No jobs found.</td>
+                </tr>
               {% endfor %}
             </tbody>
           </table>
-
-          <div class="nav-links">
-            <div class="muted">Page {{ page }} · {{ jobs | length }} items</div>
-            <div>
-              {% if prev_page %}
-                <a href="/?page={{ prev_page }}&page_size={{ page_size }}">Previous</a>
-              {% endif %}
-              {% if prev_page and next_page %}&nbsp;·&nbsp;{% endif %}
-              {% if next_page %}
-                <a href="/?page={{ next_page }}&page_size={{ page_size }}">Next</a>
-              {% endif %}
-            </div>
+        </div>
+        <div class="pager">
+          <div class="subtle">{{ jobs_payload.total_items }} matching jobs · page {{ page }}</div>
+          <div class="pager-links">
+            {% if prev_page %}
+              <a href="/?page={{ prev_page }}&page_size={{ page_size }}&q={{ query }}&auto_refresh={{ 1 if auto_refresh else 0 }}">Previous</a>
+            {% endif %}
+            {% if next_page %}
+              <a href="/?page={{ next_page }}&page_size={{ page_size }}&q={{ query }}&auto_refresh={{ 1 if auto_refresh else 0 }}">Next</a>
+            {% endif %}
           </div>
-        </section>
+        </div>
       </section>
     </main>
-
-    <script>
-      document.getElementById("job-form").addEventListener("submit", function (event) {
-        event.preventDefault();
-        const jobId = document.getElementById("job-id").value.trim();
-        if (!jobId) return;
-        window.location.href = `/jobs/${encodeURIComponent(jobId)}`;
-      });
-
-      async function handleCredentialResponse(response) {
-        const authError = document.getElementById("auth-error");
-        if (authError) authError.textContent = "";
-        const result = await fetch("/auth/google", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ credential: response.credential }),
-        });
-        if (!result.ok) {
-          const payload = await result.json().catch(() => ({ detail: "Authentication failed." }));
-          if (authError) authError.textContent = payload.detail || "Authentication failed.";
-          return;
-        }
-        window.location.reload();
-      }
-      window.handleCredentialResponse = handleCredentialResponse;
-    </script>
   </body>
 </html>

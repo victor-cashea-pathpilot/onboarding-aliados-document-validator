@@ -6,68 +6,245 @@
     <title>Case Explorer · {{ summary.job_id }}</title>
     <style>
       :root {
-        --bg: #f3f0e8;
-        --paper: #fffdf9;
-        --ink: #221d16;
-        --muted: #72695d;
-        --accent: #205849;
-        --line: #d9d1c4;
+        --bg: #ffffff;
+        --panel: #ffffff;
+        --panel-alt: #f8fafc;
+        --ink: #0f172a;
+        --muted: #475569;
+        --line: #e2e8f0;
+        --accent: #0f766e;
+        --accent-soft: #ccfbf1;
+        --pending-bg: #fef3c7;
+        --pending-ink: #92400e;
+        --processing-bg: #dbeafe;
+        --processing-ink: #1d4ed8;
+        --completed-bg: #dcfce7;
+        --completed-ink: #166534;
+        --failed-bg: #fee2e2;
+        --failed-ink: #b91c1c;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: Georgia, serif;
-        background: linear-gradient(180deg, #eee7da 0%, var(--bg) 100%);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
         color: var(--ink);
       }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 700;
+      }
       .page {
-        max-width: 1280px;
+        max-width: 1440px;
         margin: 0 auto;
         padding: 32px 20px 48px;
       }
       .hero, .card {
-        background: var(--paper);
+        background: var(--panel);
         border: 1px solid var(--line);
-        border-radius: 22px;
+        border-radius: 24px;
         padding: 24px;
-        box-shadow: 0 8px 30px rgba(34, 29, 22, 0.05);
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.05);
       }
-      .hero { margin-bottom: 20px; }
+      .hero {
+        margin-bottom: 20px;
+        background: radial-gradient(circle at top right, #ccfbf1 0%, #ffffff 34%, #ffffff 100%);
+      }
       .eyebrow {
         font-size: 12px;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
         color: var(--muted);
+        font-weight: 700;
       }
-      h1 { margin: 10px 0 12px; font-size: 34px; line-height: 1.1; }
+      h1 {
+        margin: 10px 0 14px;
+        font-size: 38px;
+        line-height: 1.05;
+      }
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
       .status {
         display: inline-block;
         padding: 8px 12px;
         border-radius: 999px;
-        background: #e3efe9;
-        color: var(--accent);
+        background: var(--completed-bg);
+        color: var(--completed-ink);
         font-weight: 700;
         font-size: 13px;
       }
-      .summary {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-      }
-      .summary th, .summary td {
-        border-top: 1px solid var(--line);
-        padding: 12px 0;
-        text-align: left;
-        vertical-align: top;
-      }
-      .summary th {
-        width: 180px;
-        color: var(--muted);
-      }
-      .grid {
+      .status-pending { background: var(--pending-bg); color: var(--pending-ink); }
+      .status-active { background: var(--processing-bg); color: var(--processing-ink); }
+      .status-processing { background: var(--processing-bg); color: var(--processing-ink); }
+      .status-failed { background: var(--failed-bg); color: var(--failed-ink); }
+      .summary-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .summary-card {
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 14px 16px;
+      }
+      .summary-card strong {
+        display: block;
+        font-size: 22px;
+        line-height: 1.1;
+      }
+      .summary-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .progress-wrap {
+        margin-top: 18px;
+      }
+      .progress-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      .progress-track {
+        height: 10px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #14b8a6 0%, #0f766e 100%);
+      }
+      .progress-message {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .nav {
+        display: flex;
+        gap: 12px;
+        margin-top: 18px;
+        flex-wrap: wrap;
+      }
+      .workflow-card {
+        margin-bottom: 20px;
+      }
+      .workflow-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .workflow-head h2 {
+        margin: 8px 0 0;
+        font-size: 26px;
+      }
+      .node-rail {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(220px, 260px);
+        gap: 14px;
+        overflow-x: auto;
+        padding: 18px 4px 4px;
+      }
+      .node-button {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--panel-alt);
+        padding: 16px;
+        text-align: left;
+        cursor: pointer;
+        min-height: 180px;
+      }
+      .node-button.active {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.14);
+      }
+      .node-button h3 {
+        margin: 10px 0 8px;
+        font-size: 18px;
+        line-height: 1.25;
+      }
+      .node-copy {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .node-meta {
+        display: grid;
+        gap: 6px;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .node-kind {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 20px;
+      }
+      .card h2 {
+        margin: 8px 0 12px;
+        font-size: 20px;
+      }
+      .column-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .column-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .copy-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .copy-button:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .copy-feedback {
+        color: var(--muted);
+        font-size: 12px;
+        min-width: 54px;
+        text-align: right;
       }
       pre {
         margin: 0;
@@ -75,52 +252,260 @@
         word-break: break-word;
         font-family: "SFMono-Regular", Menlo, monospace;
         font-size: 12px;
-        line-height: 1.5;
+        line-height: 1.55;
+        color: #1e293b;
       }
-      a { color: var(--accent); text-decoration: none; font-weight: 700; }
-      .nav { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+      .json-shell {
+        background: var(--panel-alt);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+        max-height: 640px;
+        overflow: auto;
+      }
+      .file-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .file-item {
+        border: 1px solid var(--line);
+        background: var(--panel-alt);
+        border-radius: 14px;
+        padding: 12px;
+      }
+      .file-item strong {
+        display: block;
+      }
+      .empty {
+        color: var(--muted);
+      }
+      @media (max-width: 1100px) {
+        .columns {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
     <main class="page">
       <section class="hero">
-        <div class="eyebrow">Internal Case Explorer</div>
-        <h1>{{ summary.merchant_id }}</h1>
-        <div class="status">{{ summary.status }}</div>
-        <table class="summary">
-          <tbody>
-            <tr><th>Job ID</th><td>{{ summary.job_id }}</td></tr>
-            <tr><th>Request ID</th><td>{{ summary.request_id or "-" }}</td></tr>
-            <tr><th>Overall Result</th><td>{{ summary.overall_status or "-" }}</td></tr>
-            <tr><th>Summary</th><td>{{ summary.overall_summary or "-" }}</td></tr>
-            <tr><th>Legal Mode</th><td>{{ summary.legal_mode or "-" }}</td></tr>
-            <tr><th>Updated At</th><td>{{ summary.updated_at or "-" }}</td></tr>
-          </tbody>
-        </table>
+        <div class="hero-top">
+          <div>
+            <div class="eyebrow">Internal Case Explorer</div>
+            <h1>{{ summary.merchant_id }}</h1>
+            <div class="progress-message">{{ summary.job_id }}</div>
+          </div>
+          <div class="status {% if summary.status == 'PENDING' %}status-pending{% elif summary.status in ['PROCESSING', 'active'] %}status-processing{% elif summary.status == 'FAILED' %}status-failed{% endif %}">
+            {{ summary.status }}
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <strong>{{ summary.overall_status or "-" }}</strong>
+            <span>Overall result</span>
+          </article>
+          <article class="summary-card">
+            <strong>{{ summary.legal_mode or "-" }}</strong>
+            <span>Legal mode</span>
+          </article>
+          <article class="summary-card">
+            <strong>{{ case_payload.progress.percentage if case_payload.progress else 0 }}%</strong>
+            <span>Current progress</span>
+          </article>
+          <article class="summary-card">
+            <strong>{{ case_payload.progress.stage if case_payload.progress else "-" }}</strong>
+            <span>Current stage</span>
+          </article>
+        </div>
+
+        <div class="progress-message" style="margin-top: 14px;">
+          {{ summary.overall_summary or "No overall summary available yet." }}
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-head">
+            <span>{{ case_payload.progress.stage if case_payload.progress else "queued" }}</span>
+            <strong>{{ case_payload.progress.percentage if case_payload.progress else 0 }}%</strong>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: {{ case_payload.progress.percentage if case_payload.progress else 0 }}%;"></div>
+          </div>
+          <div class="progress-message">{{ case_payload.progress.message if case_payload.progress else "No progress metadata available." }}</div>
+        </div>
+
         <div class="nav">
-          <a href="/">Back</a>
+          <a href="/">Back to cases</a>
           <a href="/jobs/{{ job_id }}/json">Raw JSON</a>
         </div>
       </section>
 
-      <section class="grid">
+      <section class="card workflow-card">
+        <div class="workflow-head">
+          <div>
+            <div class="eyebrow">Workflow Nodes</div>
+            <h2>Step-by-step case execution</h2>
+          </div>
+          <div class="progress-message">Selecciona un nodo para ver el input, el prompt y el output.</div>
+        </div>
+        <div class="node-rail">
+          {% for node in workflow_nodes %}
+          <button class="node-button {% if loop.first %}active{% endif %}" type="button" data-node-id="{{ node.id }}">
+            <span class="node-kind">{{ node.kind }}</span>
+            <h3>{{ node.title }}</h3>
+            <div class="status {% if node.status == 'pending' %}status-pending{% elif node.status in ['active', 'processing'] %}status-processing{% elif node.status == 'failed' %}status-failed{% endif %}">
+              {{ node.status }}
+            </div>
+            <div class="node-copy">{{ node.subtitle }}</div>
+            <div class="node-meta">
+              <span><strong>Stage:</strong> {{ node.stage }}</span>
+              <span><strong>Model:</strong> {{ node.model or "-" }}</span>
+              <span><strong>Files:</strong> {{ node.files | length }}</span>
+            </div>
+          </button>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="columns">
         <section class="card">
-          <div class="eyebrow">Sanitized Request</div>
-          <pre>{{ case_payload.request | tojson(indent=2) }}</pre>
+          <div class="column-top">
+            <div>
+              <div class="eyebrow">Node Input</div>
+              <h2 id="input-title">Input</h2>
+            </div>
+            <div class="column-actions">
+              <button type="button" class="copy-button" data-copy-target="input-json" data-copy-label="input">
+                ⧉ Copy
+              </button>
+              <span id="input-copy-feedback" class="copy-feedback"></span>
+              <span id="input-status" class="status">-</span>
+            </div>
+          </div>
+          <div id="file-list" class="file-list"></div>
+          <div class="json-shell" style="margin-top: 14px;">
+            <pre id="input-json"></pre>
+          </div>
         </section>
+
         <section class="card">
-          <div class="eyebrow">Documents Result</div>
-          <pre>{{ case_payload.documents | tojson(indent=2) }}</pre>
+          <div class="column-top">
+            <div>
+              <div class="eyebrow">LLM Prompt</div>
+              <h2 id="prompt-title">Prompt</h2>
+            </div>
+            <div class="column-actions">
+              <button type="button" class="copy-button" data-copy-target="prompt-text" data-copy-label="prompt">
+                ⧉ Copy
+              </button>
+              <span id="prompt-copy-feedback" class="copy-feedback"></span>
+              <span id="prompt-model" class="node-kind">-</span>
+            </div>
+          </div>
+          <div class="json-shell">
+            <pre id="prompt-text" class="empty"></pre>
+          </div>
         </section>
+
         <section class="card">
-          <div class="eyebrow">Normalized Snapshot</div>
-          <pre>{{ case_payload.normalized_snapshot | tojson(indent=2) }}</pre>
-        </section>
-        <section class="card">
-          <div class="eyebrow">Cross Validation</div>
-          <pre>{{ case_payload.cross_validation | tojson(indent=2) }}</pre>
+          <div class="column-top">
+            <div>
+              <div class="eyebrow">Node Output</div>
+              <h2 id="output-title">Output</h2>
+            </div>
+            <div class="column-actions">
+              <button type="button" class="copy-button" data-copy-target="output-json" data-copy-label="output">
+                ⧉ Copy
+              </button>
+              <span id="output-copy-feedback" class="copy-feedback"></span>
+              <span id="output-stage" class="node-kind">-</span>
+            </div>
+          </div>
+          <div class="json-shell">
+            <pre id="output-json"></pre>
+          </div>
         </section>
       </section>
     </main>
+
+    <script>
+      const nodes = {{ workflow_nodes_json | safe }};
+
+      function formatJson(value) {
+        return JSON.stringify(value ?? {}, null, 2);
+      }
+
+      function statusClass(status) {
+        if (status === "pending") return "status status-pending";
+        if (status === "active" || status === "processing") return "status status-processing";
+        if (status === "failed") return "status status-failed";
+        return "status";
+      }
+
+      function renderFiles(files) {
+        if (!files || files.length === 0) {
+          return '<div class="file-item empty">No files attached to this node.</div>';
+        }
+        return files.map((file) => `
+          <article class="file-item">
+            <strong>${file.document_type || "document"}</strong>
+            <div>${file.document_id || "-"}</div>
+            <div class="progress-message">${file.url || "-"}</div>
+          </article>
+        `).join("");
+      }
+
+      function selectNode(nodeId) {
+        const node = nodes.find((item) => item.id === nodeId) || nodes[0];
+        if (!node) return;
+
+        for (const button of document.querySelectorAll(".node-button")) {
+          button.classList.toggle("active", button.dataset.nodeId === node.id);
+        }
+
+        document.getElementById("input-title").textContent = node.title;
+        document.getElementById("input-status").textContent = node.status;
+        document.getElementById("input-status").className = statusClass(node.status);
+        document.getElementById("input-json").textContent = formatJson(node.input_payload);
+        document.getElementById("file-list").innerHTML = renderFiles(node.files);
+
+        document.getElementById("prompt-title").textContent = node.title;
+        document.getElementById("prompt-model").textContent = node.model || "No model";
+        document.getElementById("prompt-text").textContent = node.prompt || "This node does not use an LLM prompt.";
+
+        document.getElementById("output-title").textContent = node.title;
+        document.getElementById("output-stage").textContent = node.stage || "-";
+        document.getElementById("output-json").textContent = formatJson(node.output_payload);
+      }
+
+      async function copyBlock(targetId, label) {
+        const element = document.getElementById(targetId);
+        if (!element) return;
+        const feedbackId = `${targetId.split("-")[0]}-copy-feedback`;
+        const feedback = document.getElementById(feedbackId);
+        try {
+          await navigator.clipboard.writeText(element.textContent || "");
+          if (feedback) feedback.textContent = "Copied";
+        } catch (error) {
+          if (feedback) feedback.textContent = "Failed";
+        }
+        window.setTimeout(() => {
+          if (feedback) feedback.textContent = "";
+        }, 1200);
+      }
+
+      for (const button of document.querySelectorAll(".node-button")) {
+        button.addEventListener("click", () => selectNode(button.dataset.nodeId));
+      }
+
+      for (const button of document.querySelectorAll(".copy-button")) {
+        button.addEventListener("click", () => copyBlock(button.dataset.copyTarget, button.dataset.copyLabel));
+      }
+
+      if (nodes.length > 0) {
+        selectNode(nodes[0].id);
+      }
+    </script>
   </body>
 </html>
