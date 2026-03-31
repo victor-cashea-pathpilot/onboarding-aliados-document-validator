@@ -5,11 +5,11 @@ from __future__ import annotations
 import html
 import json
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 
 from backend.shared.logging import get_logger, log_event
-from backend.shared.models.contracts import CaseExplorerResponse
+from backend.shared.models.contracts import CaseExplorerListResponse, CaseExplorerResponse
 from backend.shared.services.job_service import get_job_service
 
 router = APIRouter(prefix="/internal/jobs", tags=["internal"])
@@ -252,6 +252,25 @@ async def get_job_detail(job_id: str) -> CaseExplorerResponse:
         job_id=response.job_id,
         merchant_id=response.merchant_id,
         status=response.status,
+    )
+    return response
+
+
+@router.get("", response_model=CaseExplorerListResponse)
+async def list_jobs(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+) -> CaseExplorerListResponse:
+    """Return a paginated list of jobs for internal browsing."""
+
+    response = get_job_service().list_cases(page=page, page_size=page_size)
+    log_event(
+        logger,
+        "api.internal.job_list.returned",
+        page=page,
+        page_size=page_size,
+        count=len(response.items),
+        has_next=response.has_next,
     )
     return response
 

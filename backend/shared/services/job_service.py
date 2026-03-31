@@ -5,6 +5,8 @@ from functools import lru_cache
 from backend.shared.factories import build_dispatcher, build_repository
 from backend.shared.logging import get_logger, log_event
 from backend.shared.models.contracts import (
+    CaseExplorerListItem,
+    CaseExplorerListResponse,
     CaseExplorerRequestView,
     CaseExplorerResponse,
     SanitizedDocumentReference,
@@ -102,6 +104,17 @@ class JobService:
         )
         return self._to_case_explorer_response(record)
 
+    def list_cases(self, page: int = 1, page_size: int = 20) -> CaseExplorerListResponse:
+        """Return a paginated list of jobs for the internal explorer."""
+
+        records, has_next = self.repository.list_page(page=page, page_size=page_size)
+        return CaseExplorerListResponse(
+            page=page,
+            page_size=page_size,
+            has_next=has_next,
+            items=[self._to_case_list_item(record) for record in records],
+        )
+
     def _to_status_response(self, record: JobRecord) -> StatusResponseItem:
         """Map an internal record to the public status contract."""
 
@@ -135,6 +148,31 @@ class JobService:
                 else None
             ),
             cross_validation=record.cross_validation,
+            created_at=record.created_at,
+            updated_at=record.updated_at,
+        )
+
+    def _to_case_list_item(self, record: JobRecord) -> CaseExplorerListItem:
+        """Map an internal record to a compact case explorer list item."""
+
+        return CaseExplorerListItem(
+            job_id=record.job_id,
+            merchant_id=record.merchant_id,
+            request_id=record.request_id,
+            status=record.status,
+            overall_status=(
+                record.overall_result.status if record.overall_result is not None else None
+            ),
+            overall_summary=(
+                record.overall_result.summary if record.overall_result is not None else None
+            ),
+            legal_mode=(
+                record.cross_validation.legal_mode
+                if record.cross_validation is not None
+                else None
+            ),
+            stage=record.progress.stage if record.progress is not None else None,
+            document_count=record.request.documents.total_documents(),
             created_at=record.created_at,
             updated_at=record.updated_at,
         )
