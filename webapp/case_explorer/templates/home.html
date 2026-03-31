@@ -21,7 +21,7 @@
         color: var(--ink);
       }
       .page {
-        max-width: 900px;
+        max-width: 1200px;
         margin: 0 auto;
         padding: 40px 20px;
       }
@@ -60,6 +60,7 @@
         cursor: pointer;
       }
       .muted { color: var(--muted); }
+      .stack { display: grid; gap: 20px; }
       .userbar {
         display: flex;
         justify-content: space-between;
@@ -79,6 +80,57 @@
         font-weight: 700;
       }
       .error { color: #a53f2b; font-weight: 700; }
+      .jobs-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 18px;
+      }
+      .jobs-table th, .jobs-table td {
+        border-top: 1px solid var(--line);
+        padding: 12px 8px;
+        text-align: left;
+        vertical-align: top;
+        font-size: 14px;
+      }
+      .jobs-table th {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .jobs-table a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .status-pill {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #e3efe9;
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .nav-links {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 18px;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .nav-links a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 700;
+      }
+      @media (max-width: 900px) {
+        .jobs-table {
+          display: block;
+          overflow-x: auto;
+        }
+      }
     </style>
     {% if auth_mode == "google" and oauth_ready %}
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -124,12 +176,69 @@
         {% endif %}
       </section>
 
-      <section class="card">
-        <div class="eyebrow">Case Lookup</div>
-        <form id="job-form">
-          <input id="job-id" type="text" name="job_id" placeholder="val_a8ccbea709" required />
-          <button type="submit">Open Case</button>
-        </form>
+      <section class="stack">
+        <section class="card">
+          <div class="eyebrow">Case Lookup</div>
+          <form id="job-form">
+            <input id="job-id" type="text" name="job_id" placeholder="val_a8ccbea709" required />
+            <button type="submit">Open Case</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="eyebrow">Recent Jobs</div>
+          <table class="jobs-table">
+            <thead>
+              <tr>
+                <th>Job</th>
+                <th>Merchant</th>
+                <th>Status</th>
+                <th>Overall</th>
+                <th>Legal Mode</th>
+                <th>Stage</th>
+                <th>Docs</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in jobs %}
+              <tr>
+                <td><a href="/jobs/{{ item.job_id }}">{{ item.job_id }}</a></td>
+                <td>
+                  <strong>{{ item.merchant_id }}</strong><br />
+                  <span class="muted">{{ item.request_id or "-" }}</span>
+                </td>
+                <td><span class="status-pill">{{ item.status }}</span></td>
+                <td>
+                  <strong>{{ item.overall_status or "-" }}</strong><br />
+                  <span class="muted">{{ item.overall_summary or "-" }}</span>
+                </td>
+                <td>{{ item.legal_mode or "-" }}</td>
+                <td>{{ item.stage or "-" }}</td>
+                <td>{{ item.document_count }}</td>
+                <td>{{ item.updated_at }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="8" class="muted">No jobs found.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <div class="nav-links">
+            <div class="muted">Page {{ page }} · {{ jobs | length }} items</div>
+            <div>
+              {% if prev_page %}
+                <a href="/?page={{ prev_page }}&page_size={{ page_size }}">Previous</a>
+              {% endif %}
+              {% if prev_page and next_page %}&nbsp;·&nbsp;{% endif %}
+              {% if next_page %}
+                <a href="/?page={{ next_page }}&page_size={{ page_size }}">Next</a>
+              {% endif %}
+            </div>
+          </div>
+        </section>
       </section>
     </main>
 

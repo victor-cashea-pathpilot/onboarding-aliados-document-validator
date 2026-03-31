@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 
+from google.cloud import firestore
+
 from backend.shared.clients.firestore import get_firestore_client
 from backend.shared.models.jobs import JobRecord
 from backend.shared.config import get_settings
@@ -29,6 +31,17 @@ class FirestoreJobRepository:
     def update(self, job: JobRecord) -> JobRecord:
         self._collection.document(job.job_id).set(self._serialize(job))
         return job
+
+    def list_page(self, page: int, page_size: int) -> tuple[list[JobRecord], bool]:
+        offset = max(page - 1, 0) * page_size
+        query = (
+            self._collection.order_by("updated_at", direction=firestore.Query.DESCENDING)
+            .offset(offset)
+            .limit(page_size + 1)
+        )
+        records = [self._deserialize(snapshot.to_dict() or {}) for snapshot in query.stream()]
+        has_next = len(records) > page_size
+        return records[:page_size], has_next
 
     def _serialize(self, job: JobRecord) -> dict:
         data = job.model_dump(mode="json")

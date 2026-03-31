@@ -16,3 +16,6 @@ class JobRepository(Protocol):
 
     def update(self, job: JobRecord) -> JobRecord:
         """Persist a job mutation."""
+
+    def list_page(self, page: int, page_size: int) -> tuple[list[JobRecord], bool]:
+        """Return a page of jobs ordered by recency and whether another page exists."""

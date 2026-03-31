@@ -76,6 +76,7 @@ Estado actual:
 - La siguiente etapa activa es la **Etapa 12**:
   - `Case Explorer` interno por `job_id`
   - webapp interna en `webapp/` para explorar casos desde browser
+  - home paginada con jobs recientes y metadata operacional relevante
   - vista saneada de input y output por caso
   - snapshot normalizado y validaciones en una sola respuesta para debugging y operación
 - Los `real extraction evals` siguen como track manual/posterior mientras se termina de definir la estrategia final de hosting y acceso a documentos.
@@ -120,8 +121,10 @@ Actualmente este repositorio ya contiene una base funcional del MVP:
 
 - API pública para crear jobs y consultar estado
 - endpoint interno de detalle por caso: `GET /internal/jobs/{job_id}`
+- endpoint interno paginado de casos: `GET /internal/jobs?page=1&page_size=20`
 - vista HTML simple del expediente: `GET /internal/jobs/{job_id}/view`
 - webapp interna en `webapp/` para explorar casos en browser, protegible con Google login vía IAP
+- home de la webapp con tabla paginada de jobs recientes enlazando al detalle por caso
 - worker con flujo de intake técnico y extracción
 - extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
 - normalización canónica y validación cruzada híbrida

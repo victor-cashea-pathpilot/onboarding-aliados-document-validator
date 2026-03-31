@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from webapp.case_explorer.auth import verify_google_credential
-from webapp.case_explorer.client import fetch_case
+from webapp.case_explorer.client import fetch_case, fetch_cases
 from webapp.case_explorer.config import get_settings
 
 settings = get_settings()
@@ -83,12 +83,24 @@ async def health() -> dict[str, str]:
 async def home(request: Request) -> HTMLResponse:
     """Render the landing page with login or job lookup."""
 
+    page = int(request.query_params.get("page", "1") or "1")
+    page_size = int(request.query_params.get("page_size", "20") or "20")
+    page = max(page, 1)
+    page_size = min(max(page_size, 1), 100)
+    jobs_payload = fetch_cases(page=page, page_size=page_size)
+
     return templates.TemplateResponse(
         request,
         "home.html",
         {
             **_base_context(request),
             "oauth_ready": bool(settings.google_oauth_client_id),
+            "jobs_payload": jobs_payload,
+            "jobs": jobs_payload.get("items", []),
+            "page": page,
+            "page_size": page_size,
+            "prev_page": page - 1 if page > 1 else None,
+            "next_page": page + 1 if jobs_payload.get("has_next") else None,
         },
     )
 

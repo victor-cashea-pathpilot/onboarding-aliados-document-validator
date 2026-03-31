@@ -209,3 +209,31 @@ class CaseExplorerResponse(BaseModel):
     cross_validation: CrossValidationResult | None = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+
+
+class CaseExplorerListItem(BaseModel):
+    """Compact job summary for the case explorer index."""
+
+    job_id: str
+    merchant_id: str
+    request_id: str | None = None
+    status: Literal["PENDING", "PROCESSING", "COMPLETED", "FAILED"]
+    overall_status: Literal["APPROVED", "REJECTED", "REQUIRES_REVIEW"] | None = None
+    overall_summary: str | None = None
+    legal_mode: (
+        Literal["sociedad_mercantil", "firma_personal", "emprendimiento", "unknown"]
+        | None
+    ) = None
+    stage: str | None = None
+    document_count: int = 0
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+
+class CaseExplorerListResponse(BaseModel):
+    """Paginated job index for the case explorer."""
+
+    page: int
+    page_size: int
+    has_next: bool
+    items: list[CaseExplorerListItem] = Field(default_factory=list)
