@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ settings.app_title }}</title>
+    {% if auto_refresh %}
+    <meta http-equiv="refresh" content="5" />
+    {% endif %}
     <style>
       :root {
         --bg: #f3f0e8;
@@ -12,6 +15,12 @@
         --muted: #72695d;
         --accent: #205849;
         --line: #d9d1c4;
+        --pending-bg: #efe6c7;
+        --pending-ink: #8c5d00;
+        --processing-bg: #d8e7f6;
+        --processing-ink: #245386;
+        --completed-bg: #e3efe9;
+        --completed-ink: #205849;
       }
       * { box-sizing: border-box; }
       body {
@@ -107,10 +116,52 @@
         display: inline-block;
         padding: 6px 10px;
         border-radius: 999px;
-        background: #e3efe9;
-        color: var(--accent);
+        background: var(--completed-bg);
+        color: var(--completed-ink);
         font-weight: 700;
         font-size: 12px;
+      }
+      .status-pending {
+        background: var(--pending-bg);
+        color: var(--pending-ink);
+      }
+      .status-processing {
+        background: var(--processing-bg);
+        color: var(--processing-ink);
+      }
+      .active-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+      }
+      .active-item {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+        background: #faf7f1;
+      }
+      .active-item h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        line-height: 1.2;
+      }
+      .active-item p {
+        margin: 6px 0;
+        font-size: 14px;
+      }
+      .helper-row {
+        margin-top: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .helper-row a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 700;
       }
       .nav-links {
         display: flex;
@@ -186,6 +237,41 @@
         </section>
 
         <section class="card">
+          <div class="eyebrow">Active Jobs</div>
+          <div class="helper-row">
+            <div class="muted">
+              {% if active_jobs %}
+                {{ active_jobs | length }} jobs en progreso. Esta página se refresca cada 5 segundos.
+              {% else %}
+                No hay jobs activos en esta página. La página se refresca cada 5 segundos para detectar nuevos.
+              {% endif %}
+            </div>
+            {% if auto_refresh %}
+              <a href="/?page={{ page }}&page_size={{ page_size }}&auto_refresh=0">Pause refresh</a>
+            {% else %}
+              <a href="/?page={{ page }}&page_size={{ page_size }}&auto_refresh=1">Resume refresh</a>
+            {% endif %}
+          </div>
+          <div class="active-grid">
+            {% for item in active_jobs %}
+            <article class="active-item">
+              <div class="eyebrow">{{ item.legal_mode or "unknown mode" }}</div>
+              <h3><a href="/jobs/{{ item.job_id }}">{{ item.job_id }}</a></h3>
+              <p><strong>Merchant:</strong> {{ item.merchant_id }}</p>
+              <p><strong>Stage:</strong> {{ item.stage or "-" }}</p>
+              <p><strong>Docs:</strong> {{ item.document_count }}</p>
+              <p><span class="status-pill {% if item.status == 'PENDING' %}status-pending{% elif item.status == 'PROCESSING' %}status-processing{% endif %}">{{ item.status }}</span></p>
+            </article>
+            {% else %}
+            <article class="active-item">
+              <div class="eyebrow">No active jobs</div>
+              <p class="muted">Dispara un nuevo caso y debería aparecer aquí mientras pasa por `PENDING` y `PROCESSING`.</p>
+            </article>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="card">
           <div class="eyebrow">Recent Jobs</div>
           <table class="jobs-table">
             <thead>
@@ -208,7 +294,7 @@
                   <strong>{{ item.merchant_id }}</strong><br />
                   <span class="muted">{{ item.request_id or "-" }}</span>
                 </td>
-                <td><span class="status-pill">{{ item.status }}</span></td>
+                <td><span class="status-pill {% if item.status == 'PENDING' %}status-pending{% elif item.status == 'PROCESSING' %}status-processing{% endif %}">{{ item.status }}</span></td>
                 <td>
                   <strong>{{ item.overall_status or "-" }}</strong><br />
                   <span class="muted">{{ item.overall_summary or "-" }}</span>

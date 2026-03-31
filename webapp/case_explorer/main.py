@@ -85,9 +85,16 @@ async def home(request: Request) -> HTMLResponse:
 
     page = int(request.query_params.get("page", "1") or "1")
     page_size = int(request.query_params.get("page_size", "20") or "20")
+    auto_refresh = request.query_params.get("auto_refresh", "1") != "0"
     page = max(page, 1)
     page_size = min(max(page_size, 1), 100)
     jobs_payload = fetch_cases(page=page, page_size=page_size)
+    jobs = jobs_payload.get("items", [])
+    active_jobs = [
+        item
+        for item in jobs
+        if item.get("status") in {"PENDING", "PROCESSING"}
+    ]
 
     return templates.TemplateResponse(
         request,
@@ -96,9 +103,11 @@ async def home(request: Request) -> HTMLResponse:
             **_base_context(request),
             "oauth_ready": bool(settings.google_oauth_client_id),
             "jobs_payload": jobs_payload,
-            "jobs": jobs_payload.get("items", []),
+            "jobs": jobs,
+            "active_jobs": active_jobs,
             "page": page,
             "page_size": page_size,
+            "auto_refresh": auto_refresh,
             "prev_page": page - 1 if page > 1 else None,
             "next_page": page + 1 if jobs_payload.get("has_next") else None,
         },
