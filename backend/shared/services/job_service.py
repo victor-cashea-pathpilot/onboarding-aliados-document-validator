@@ -1,12 +1,15 @@
 """Service layer for job lifecycle orchestration."""
 
 from functools import lru_cache
+from statistics import median
 
 from backend.shared.factories import build_dispatcher, build_repository
 from backend.shared.logging import get_logger, log_event
 from backend.shared.models.contracts import (
     CaseExplorerListItem,
     CaseExplorerListResponse,
+    CaseExplorerListStats,
+    CaseExplorerOutcomeCounts,
     CaseExplorerRequestView,
     CaseExplorerResponse,
     SanitizedDocumentReference,
@@ -15,6 +18,7 @@ from backend.shared.models.contracts import (
     StatusResponseItem,
     SubmitValidationRequest,
     SubmitValidationResponse,
+    utc_now,
 )
 from backend.shared.models.jobs import JobRecord
 from backend.shared.config import get_settings
@@ -104,16 +108,114 @@ class JobService:
         )
         return self._to_case_explorer_response(record)
 
-    def list_cases(self, page: int = 1, page_size: int = 20) -> CaseExplorerListResponse:
+    def list_cases(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        query: str | None = None,
+    ) -> CaseExplorerListResponse:
         """Return a paginated list of jobs for the internal explorer."""
 
-        records, has_next = self.repository.list_page(page=page, page_size=page_size)
+        normalized_query = (query or "").strip().lower()
+        recent_records, _ = self.repository.list_page(page=1, page_size=500)
+        filtered_records = self._filter_case_records(recent_records, normalized_query)
+        start = max(page - 1, 0) * page_size
+        end = start + page_size
+        records = filtered_records[start:end]
+        has_next = end < len(filtered_records)
         return CaseExplorerListResponse(
             page=page,
             page_size=page_size,
             has_next=has_next,
+            query=query,
+            total_items=len(filtered_records),
+            stats=self._build_case_list_stats(recent_records),
             items=[self._to_case_list_item(record) for record in records],
         )
+
+    def _filter_case_records(
+        self,
+        records: list[JobRecord],
+        query: str,
+    ) -> list[JobRecord]:
+        """Filter case records by a simple free-text query."""
+
+        if not query:
+            return records
+
+        matched: list[JobRecord] = []
+        for record in records:
+            legal_mode = (
+                record.cross_validation.legal_mode
+                if record.cross_validation is not None
+                and record.cross_validation.legal_mode is not None
+                else (
+                    record.normalized_snapshot.legal_mode
+                    if record.normalized_snapshot is not None
+                    else None
+                )
+            )
+            haystack = " ".join(
+                part
+                for part in (
+                    record.job_id,
+                    record.merchant_id,
+                    record.request_id or "",
+                    record.status,
+                    legal_mode or "",
+                    record.overall_result.status if record.overall_result is not None else "",
+                )
+                if part
+            ).lower()
+            if query in haystack:
+                matched.append(record)
+        return matched
+
+    def _build_case_list_stats(self, records: list[JobRecord]) -> CaseExplorerListStats:
+        """Build summary metrics for the explorer header."""
+
+        cutoff = utc_now().timestamp() - 24 * 60 * 60
+        last_24h = [record for record in records if record.created_at.timestamp() >= cutoff]
+        durations = sorted(
+            (record.updated_at - record.created_at).total_seconds()
+            for record in last_24h
+            if record.status in {"COMPLETED", "FAILED"}
+        )
+        return CaseExplorerListStats(
+            cases_last_24h=len(last_24h),
+            p50_duration_seconds=median(durations) if durations else None,
+            p90_duration_seconds=self._percentile(durations, 0.9),
+            outcome_counts=CaseExplorerOutcomeCounts(
+                approved=sum(
+                    1
+                    for record in last_24h
+                    if record.overall_result is not None
+                    and record.overall_result.status == "APPROVED"
+                ),
+                rejected=sum(
+                    1
+                    for record in last_24h
+                    if record.overall_result is not None
+                    and record.overall_result.status == "REJECTED"
+                ),
+                requires_review=sum(
+                    1
+                    for record in last_24h
+                    if record.overall_result is not None
+                    and record.overall_result.status == "REQUIRES_REVIEW"
+                ),
+            ),
+        )
+
+    def _percentile(self, values: list[float], percentile: float) -> float | None:
+        """Compute a discrete percentile over sorted durations."""
+
+        if not values:
+            return None
+        if len(values) == 1:
+            return values[0]
+        index = round((len(values) - 1) * percentile)
+        return values[index]
 
     def _to_status_response(self, record: JobRecord) -> StatusResponseItem:
         """Map an internal record to the public status contract."""
@@ -179,6 +281,11 @@ class JobService:
                 record.progress.message if record.progress is not None else None
             ),
             document_count=record.request.documents.total_documents(),
+            duration_seconds=(
+                (record.updated_at - record.created_at).total_seconds()
+                if record.status in {"COMPLETED", "FAILED"}
+                else None
+            ),
             created_at=record.created_at,
             updated_at=record.updated_at,
         )

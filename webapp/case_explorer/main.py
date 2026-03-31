@@ -68,6 +68,18 @@ def _case_summary(payload: dict) -> dict:
     }
 
 
+def _format_duration(seconds: float | None) -> str:
+    """Format seconds into a compact duration label."""
+
+    if seconds is None:
+        return "-"
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    minutes = int(seconds // 60)
+    remainder = seconds - (minutes * 60)
+    return f"{minutes}m {remainder:.0f}s"
+
+
 def _is_authenticated(request: Request) -> bool:
     """Return whether the request already has a valid session."""
 
@@ -403,16 +415,33 @@ async def home(request: Request) -> HTMLResponse:
 
     page = int(request.query_params.get("page", "1") or "1")
     page_size = int(request.query_params.get("page_size", "20") or "20")
+    query = (request.query_params.get("q", "") or "").strip()
     auto_refresh = request.query_params.get("auto_refresh", "1") != "0"
     page = max(page, 1)
     page_size = min(max(page_size, 1), 100)
-    jobs_payload = fetch_cases(page=page, page_size=page_size)
+    jobs_payload = fetch_cases(page=page, page_size=page_size, query=query)
     jobs = jobs_payload.get("items", [])
-    active_jobs = [
-        item
-        for item in jobs
-        if item.get("status") in {"PENDING", "PROCESSING"}
-    ]
+    active_jobs = [item for item in jobs if item.get("status") in {"PENDING", "PROCESSING"}]
+    recent_jobs = [item for item in jobs if item.get("status") not in {"PENDING", "PROCESSING"}]
+    table_rows = active_jobs + recent_jobs
+    stats = jobs_payload.get("stats", {})
+    outcome_counts = stats.get("outcome_counts", {})
+    total_outcomes = (
+        outcome_counts.get("approved", 0)
+        + outcome_counts.get("rejected", 0)
+        + outcome_counts.get("requires_review", 0)
+    )
+    if total_outcomes > 0:
+        approved_deg = outcome_counts.get("approved", 0) / total_outcomes * 360
+        rejected_deg = outcome_counts.get("rejected", 0) / total_outcomes * 360
+        chart_style = (
+            "conic-gradient("
+            f"#16a34a 0deg {approved_deg:.2f}deg, "
+            f"#dc2626 {approved_deg:.2f}deg {(approved_deg + rejected_deg):.2f}deg, "
+            f"#d97706 {(approved_deg + rejected_deg):.2f}deg 360deg)"
+        )
+    else:
+        chart_style = "conic-gradient(#e2e8f0 0deg 360deg)"
 
     return templates.TemplateResponse(
         request,
@@ -423,11 +452,17 @@ async def home(request: Request) -> HTMLResponse:
             "jobs_payload": jobs_payload,
             "jobs": jobs,
             "active_jobs": active_jobs,
+            "table_rows": table_rows,
             "page": page,
             "page_size": page_size,
+            "query": query,
             "auto_refresh": auto_refresh,
             "prev_page": page - 1 if page > 1 else None,
             "next_page": page + 1 if jobs_payload.get("has_next") else None,
+            "stats": stats,
+            "chart_style": chart_style,
+            "p50_duration_label": _format_duration(stats.get("p50_duration_seconds")),
+            "p90_duration_label": _format_duration(stats.get("p90_duration_seconds")),
         },
     )
 

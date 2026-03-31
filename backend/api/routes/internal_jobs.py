@@ -260,15 +260,17 @@ async def get_job_detail(job_id: str) -> CaseExplorerResponse:
 async def list_jobs(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    q: str | None = Query(default=None),
 ) -> CaseExplorerListResponse:
     """Return a paginated list of jobs for internal browsing."""
 
-    response = get_job_service().list_cases(page=page, page_size=page_size)
+    response = get_job_service().list_cases(page=page, page_size=page_size, query=q)
     log_event(
         logger,
         "api.internal.job_list.returned",
         page=page,
         page_size=page_size,
+        query=q,
         count=len(response.items),
         has_next=response.has_next,
     )

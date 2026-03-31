@@ -124,10 +124,14 @@ def test_case_explorer_service_lists_paginated_jobs() -> None:
     assert response.page_size == 2
     assert response.has_next is True
     assert len(response.items) == 2
+    assert response.total_items == 3
     assert response.items[0].job_id == "val_case122"
     assert response.items[0].document_count == 2
     assert response.items[0].progress_percentage == 100
     assert response.items[0].progress_message == "Completed"
+    assert response.items[0].duration_seconds == 0
+    assert response.stats.cases_last_24h == 3
+    assert response.stats.outcome_counts.requires_review == 3
 
 
 def test_case_explorer_endpoint_returns_sanitized_job_detail(monkeypatch) -> None:
@@ -170,8 +174,22 @@ def test_case_explorer_list_endpoint_returns_paginated_jobs(monkeypatch) -> None
     payload = response.json()
     assert payload["page"] == 1
     assert payload["has_next"] is True
+    assert payload["total_items"] == 3
     assert len(payload["items"]) == 2
     assert payload["items"][0]["job_id"] == "val_case122"
+
+
+def test_case_explorer_list_endpoint_filters_jobs(monkeypatch) -> None:
+    service = build_service_with_record()
+    monkeypatch.setattr(internal_jobs, "get_job_service", lambda: service)
+    client = TestClient(app)
+
+    response = client.get("/internal/jobs?page=1&page_size=20&q=merchant-1")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_items"] == 1
+    assert payload["items"][0]["merchant_id"] == "merchant-1"
 
 
 def test_case_explorer_endpoint_returns_404_when_missing(monkeypatch) -> None:
