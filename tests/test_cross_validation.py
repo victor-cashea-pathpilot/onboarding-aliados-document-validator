@@ -193,3 +193,67 @@ def test_cross_validation_detects_unsupported_joint_signature_scheme() -> None:
     assert checks["CORPORATE_DOCUMENT_PRECEDENCE"].status == "PASSED"
     assert checks["SIGNATURE_AUTHORITY_PRESENT"].status == "PASSED"
     assert checks["SIGNATURE_SCHEME_SUPPORTED"].status == "FAILED"
+
+
+def test_cross_validation_accepts_inherited_signature_authority_from_older_mercantile_act() -> None:
+    snapshot = CanonicalMerchantSnapshot(
+        merchant_id="merchant-6",
+        legal_mode="sociedad_mercantil",
+        rif_number="J-30792505-1",
+        rif_company_name="INSTITUTO POPULAR DIAGNOSTICO DE GUARENAS C.A.",
+        rif_expiration_date="23/04/2027",
+        primary_cedula_id="V-10.292.347",
+        company_record=CanonicalCompanyRecord(
+            company_name="INSTITUTO POPULAR DIAGNOSTICO DE GUARENAS, C.A.",
+            source_document_type="acta_mercantil",
+            source_document_id="merc-3",
+            source_document_date="10/04/2025",
+            board_status="VIGENTE",
+            board_source_document_id="merc-3",
+            board_source_document_date="10/04/2025",
+            signature_type="SEPARADA",
+            signature_quote="Firma separada vigente",
+            authority_details="Presidente y Vicepresidente pueden actuar conjunta o separadamente.",
+            signature_source_document_id="merc-2",
+            signature_source_document_date="14/08/2002",
+        ),
+        representatives=[
+            CanonicalRepresentative(
+                full_name="YANITZA DEL VALLE RODRIGUEZ ORTIZ",
+                id_number="V-10.292.347",
+                role="Presidente",
+                source_document_type="acta_mercantil",
+                source_document_id="merc-3",
+                source_document_date="10/04/2025",
+                signature_type="SEPARADA",
+                signature_quote="Firma separada vigente",
+                authority_details="Presidente y Vicepresidente pueden actuar conjunta o separadamente.",
+                signature_validity_probability="100",
+            ),
+            CanonicalRepresentative(
+                full_name="ALEXIS JOSE RODRIGUEZ ORTIZ",
+                id_number="V-6.317.290",
+                role="Vicepresidente",
+                source_document_type="acta_mercantil",
+                source_document_id="merc-3",
+                source_document_date="10/04/2025",
+                signature_type="SEPARADA",
+                signature_quote="Firma separada vigente",
+                authority_details="Presidente y Vicepresidente pueden actuar conjunta o separadamente.",
+                signature_validity_probability="100",
+            ),
+        ],
+        presence={
+            "rif": True,
+            "cedula": True,
+            "acta_constitutiva": True,
+            "acta_mercantil": True,
+            "certificado_emprendimiento": False,
+        },
+    )
+
+    checks = {check.code: check for check in CrossValidationService().validate(snapshot)}
+
+    assert checks["BOARD_VALIDITY"].status == "PASSED"
+    assert checks["SIGNATURE_AUTHORITY_PRESENT"].status == "PASSED"
+    assert checks["SIGNATURE_SCHEME_SUPPORTED"].status == "PASSED"

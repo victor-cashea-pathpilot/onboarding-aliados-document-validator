@@ -27,6 +27,7 @@ class CanonicalCompanyRecord(BaseModel):
     company_name: str = ""
     source_document_type: str = ""
     source_document_id: str | None = None
+    source_document_date: str = ""
     fiscal_address: str = ""
     registration_number: str = ""
     registration_tomo: str = ""
@@ -35,8 +36,16 @@ class CanonicalCompanyRecord(BaseModel):
     company_expiration_date: str = ""
     board_status: str = ""
     board_expiration_date: str = ""
+    board_source_document_type: str = ""
+    board_source_document_id: str | None = None
+    board_source_document_date: str = ""
+    signature_type: str = ""
+    signature_quote: str = ""
+    authority_details: str = ""
+    signature_source_document_type: str = ""
+    signature_source_document_id: str | None = None
+    signature_source_document_date: str = ""
     line_code: str = ""
-    source_document_date: str = ""
 
 
 class CanonicalMerchantSnapshot(BaseModel):

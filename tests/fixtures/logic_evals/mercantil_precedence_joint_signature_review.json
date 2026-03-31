@@ -122,7 +122,7 @@
     "company_source_document_type": "acta_mercantil",
     "primary_cedula_id": "V-10.203.040",
     "rif_number": "J412340001",
-    "representatives_count": 2,
+    "representatives_count": 1,
     "check_statuses": {
       "LEGAL_MODE_DETECTED": "PASSED",
       "HAS_RIF": "PASSED",

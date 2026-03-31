@@ -87,155 +87,226 @@ class DocumentNormalizationService:
         snapshot: CanonicalMerchantSnapshot,
         documents: DocumentsResult,
     ) -> None:
-        prioritized_items = self._prioritized_company_items(documents)
+        chronological_items = self._chronological_company_items(documents)
+        current_representatives: list[CanonicalRepresentative] = []
+        signature_bundle: dict[str, str | None] = {
+            "signature_type": "",
+            "signature_quote": "",
+            "authority_details": "",
+            "source_document_type": "",
+            "source_document_id": None,
+            "source_document_date": "",
+        }
 
-        for item in prioritized_items:
+        for item in chronological_items:
             fields = item.extracted_data.get("extracted_fields", {})
             document_type = str(item.extracted_data.get("document_type", "")).strip()
-            if not snapshot.company_record.company_name:
-                source_document_date = self._nested_get(
-                    fields,
-                    "registro_mercantil",
-                    "fecha_registro",
-                )
-                snapshot.company_record = CanonicalCompanyRecord(
-                    company_name=str(
-                        fields.get("razon_social")
-                        or fields.get("company_name")
-                        or ""
-                    ).strip(),
-                    source_document_type=document_type,
-                    source_document_id=item.document_id,
-                    fiscal_address=self._nested_get(
-                        fields,
-                        "locations",
-                        "fiscal_address",
-                    ),
-                    registration_number=self._nested_get(
-                        fields,
-                        "registro_mercantil",
-                        "numero",
-                    ),
-                    registration_tomo=self._nested_get(
-                        fields,
-                        "registro_mercantil",
-                        "tomo",
-                    ),
-                    registration_date=self._nested_get(
-                        fields,
-                        "registro_mercantil",
-                        "fecha_registro",
-                    ),
-                    source_document_date=source_document_date,
-                    company_status=(
-                        self._nested_get(fields, "company_validity", "status")
-                        or self._nested_get(fields, "company_validity", "current_status")
-                    ),
-                    company_expiration_date=(
-                        self._nested_get(fields, "company_validity", "expiration_date")
-                        or self._nested_get(
-                            fields,
-                            "company_validity",
-                            "calculated_expiration_date",
-                        )
-                    ),
-                    board_status=self._nested_get(
-                        fields,
-                        "corporate_structure",
-                        "board",
-                        "status",
-                    )
-                    or self._nested_get(
-                        fields,
-                        "corporate_structure",
-                        "legal_representative",
-                        "board_status",
-                    ),
-                    board_expiration_date=self._nested_get(
-                        fields,
-                        "corporate_structure",
-                        "board",
-                        "expiration_date",
-                    ),
-                    line_code=self._nested_get(
-                        fields,
-                        "business_classification",
-                        "line_code",
-                    ),
-                )
+            source_document_date = self._nested_get(
+                fields,
+                "registro_mercantil",
+                "fecha_registro",
+            )
+            legal_rep = self._nested_get_dict(fields, "corporate_structure", "legal_representative")
 
-            self._append_representatives(
-                snapshot=snapshot,
+            self._merge_company_record(
+                record=snapshot.company_record,
+                fields=fields,
+                document_type=document_type,
+                document_id=item.document_id,
+                source_document_date=source_document_date,
+            )
+
+            if self._has_explicit_signature_authority(legal_rep):
+                signature_bundle = {
+                    "signature_type": str(legal_rep.get("signature_type", "")).strip(),
+                    "signature_quote": str(legal_rep.get("signature_quote", "")).strip(),
+                    "authority_details": str(legal_rep.get("authority_details", "")).strip(),
+                    "source_document_type": document_type,
+                    "source_document_id": item.document_id,
+                    "source_document_date": source_document_date,
+                }
+                snapshot.company_record.signature_type = str(signature_bundle["signature_type"] or "")
+                snapshot.company_record.signature_quote = str(signature_bundle["signature_quote"] or "")
+                snapshot.company_record.authority_details = str(signature_bundle["authority_details"] or "")
+                snapshot.company_record.signature_source_document_type = str(signature_bundle["source_document_type"] or "")
+                snapshot.company_record.signature_source_document_id = signature_bundle["source_document_id"]
+                snapshot.company_record.signature_source_document_date = str(signature_bundle["source_document_date"] or "")
+
+            representatives = self._extract_representatives(
                 item=item,
                 fields=fields,
                 document_type=document_type,
+                legal_rep=legal_rep,
+                source_document_date=source_document_date,
+                signature_bundle=signature_bundle,
+                board_status=snapshot.company_record.board_status,
             )
+            if representatives:
+                current_representatives = representatives
 
-    def _append_representatives(self, *, snapshot, item, fields, document_type: str) -> None:
-        legal_rep = self._nested_get_dict(fields, "corporate_structure", "legal_representative")
-        board_status = self._nested_get(fields, "corporate_structure", "board", "status") or str(
-            legal_rep.get("board_status", "")
-        ).strip()
-        source_document_date = self._nested_get(
-            fields,
-            "registro_mercantil",
-            "fecha_registro",
+        snapshot.representatives = current_representatives
+
+    def _merge_company_record(
+        self,
+        *,
+        record: CanonicalCompanyRecord,
+        fields: dict,
+        document_type: str,
+        document_id: str | None,
+        source_document_date: str,
+    ) -> None:
+        company_name = self._meaningful(
+            str(fields.get("razon_social") or fields.get("company_name") or "").strip()
         )
-        signature_type = str(legal_rep.get("signature_type", "")).strip()
-        signature_quote = str(legal_rep.get("signature_quote", "")).strip()
-        authority_details = str(legal_rep.get("authority_details", "")).strip()
+        fiscal_address = self._meaningful(
+            self._nested_get(fields, "locations", "fiscal_address")
+        )
+        registration_number = self._meaningful(
+            self._nested_get(fields, "registro_mercantil", "numero")
+        )
+        registration_tomo = self._meaningful(
+            self._nested_get(fields, "registro_mercantil", "tomo")
+        )
+        registration_date = self._meaningful(
+            self._nested_get(fields, "registro_mercantil", "fecha_registro")
+        )
+        company_status = self._meaningful(
+            self._nested_get(fields, "company_validity", "status")
+            or self._nested_get(fields, "company_validity", "current_status")
+        )
+        company_expiration = self._meaningful(
+            self._nested_get(fields, "company_validity", "expiration_date")
+            or self._nested_get(fields, "company_validity", "calculated_expiration_date")
+        )
+        board_status = self._meaningful(
+            self._nested_get(fields, "corporate_structure", "board", "status")
+            or self._nested_get(fields, "corporate_structure", "legal_representative", "board_status")
+        )
+        board_expiration = self._meaningful(
+            self._nested_get(fields, "corporate_structure", "board", "expiration_date")
+        )
+        line_code = self._meaningful(
+            self._nested_get(fields, "business_classification", "line_code")
+        )
 
+        if company_name:
+            record.company_name = company_name
+            record.source_document_type = document_type
+            record.source_document_id = document_id
+            record.source_document_date = source_document_date
+        if fiscal_address:
+            record.fiscal_address = fiscal_address
+        if registration_number:
+            record.registration_number = registration_number
+        if registration_tomo:
+            record.registration_tomo = registration_tomo
+        if registration_date:
+            record.registration_date = registration_date
+        if company_status:
+            record.company_status = company_status
+        if company_expiration:
+            record.company_expiration_date = company_expiration
+        if line_code:
+            record.line_code = line_code
+        if board_status:
+            record.board_status = board_status
+            record.board_source_document_type = document_type
+            record.board_source_document_id = document_id
+            record.board_source_document_date = source_document_date
+        if board_expiration:
+            record.board_expiration_date = board_expiration
+
+    def _extract_representatives(
+        self,
+        *,
+        item,
+        fields: dict,
+        document_type: str,
+        legal_rep: dict,
+        source_document_date: str,
+        signature_bundle: dict[str, str | None],
+        board_status: str,
+    ) -> list[CanonicalRepresentative]:
         representatives = legal_rep.get("representatives")
         if isinstance(representatives, list) and representatives:
-            for rep in representatives:
-                snapshot.representatives.append(
-                    CanonicalRepresentative(
-                        full_name=str(rep.get("full_name", "")).strip(),
-                        id_number=str(rep.get("id_number", "")).strip(),
-                        role=str(rep.get("specific_role", "")).strip(),
-                        source_document_type=document_type,
-                        source_document_id=item.document_id,
-                        signature_type=signature_type,
-                        signature_quote=signature_quote,
-                        authority_details=authority_details,
-                        board_status=board_status,
-                        signature_validity_probability=str(
-                            rep.get("signature_validity_probability", "")
-                        ).strip(),
-                        source_document_date=source_document_date,
-                    )
-                )
-            return
-
-        if legal_rep:
-            snapshot.representatives.append(
-                CanonicalRepresentative(
-                    full_name=str(legal_rep.get("full_name", "")).strip(),
-                    id_number=str(legal_rep.get("id_number", "")).strip(),
-                    role=str(legal_rep.get("current_role", "")).strip(),
-                    source_document_type=document_type,
-                    source_document_id=item.document_id,
-                    signature_type=signature_type,
-                    signature_quote=signature_quote,
-                    authority_details=authority_details,
-                    board_status=board_status,
-                    signature_validity_probability=str(
-                        legal_rep.get("signature_validity_probability", "")
-                    ).strip(),
+            return [
+                self._build_representative(
+                    raw=rep,
+                    document_type=document_type,
+                    document_id=item.document_id,
                     source_document_date=source_document_date,
+                    signature_bundle=signature_bundle,
+                    board_status=board_status,
                 )
-            )
+                for rep in representatives
+            ]
 
-    def _prioritized_company_items(self, documents: DocumentsResult) -> list:
+        if legal_rep and any(
+            self._meaningful(str(legal_rep.get(field, "")).strip())
+            for field in ("full_name", "id_number", "current_role")
+        ):
+            return [
+                self._build_representative(
+                    raw={
+                        "full_name": legal_rep.get("full_name", ""),
+                        "id_number": legal_rep.get("id_number", ""),
+                        "specific_role": legal_rep.get("current_role", ""),
+                        "signature_validity_probability": legal_rep.get(
+                            "signature_validity_probability",
+                            "",
+                        ),
+                    },
+                    document_type=document_type,
+                    document_id=item.document_id,
+                    source_document_date=source_document_date,
+                    signature_bundle=signature_bundle,
+                    board_status=board_status,
+                )
+            ]
+
+        return []
+
+    def _build_representative(
+        self,
+        *,
+        raw: dict,
+        document_type: str,
+        document_id: str | None,
+        source_document_date: str,
+        signature_bundle: dict[str, str | None],
+        board_status: str,
+    ) -> CanonicalRepresentative:
+        return CanonicalRepresentative(
+            full_name=str(raw.get("full_name", "")).strip(),
+            id_number=str(raw.get("id_number", "")).strip(),
+            role=str(raw.get("specific_role", "")).strip(),
+            source_document_type=document_type,
+            source_document_id=document_id,
+            signature_type=str(signature_bundle.get("signature_type") or ""),
+            signature_quote=str(signature_bundle.get("signature_quote") or ""),
+            authority_details=str(signature_bundle.get("authority_details") or ""),
+            board_status=board_status,
+            signature_validity_probability=str(
+                raw.get("signature_validity_probability", "")
+            ).strip(),
+            source_document_date=source_document_date,
+        )
+
+    def _has_explicit_signature_authority(self, legal_rep: dict) -> bool:
+        return any(
+            self._meaningful(str(legal_rep.get(field, "")).strip())
+            for field in ("signature_type", "signature_quote", "authority_details")
+        )
+
+    def _chronological_company_items(self, documents: DocumentsResult) -> list:
         approved_items = [
-            *self._approved_items(documents.acta_mercantil),
             *self._approved_items(documents.acta_constitutiva),
+            *self._approved_items(documents.acta_mercantil),
             *self._approved_items(documents.certificado_emprendimiento),
         ]
         return sorted(
             approved_items,
             key=self._company_item_sort_key,
-            reverse=True,
         )
 
     def _company_item_sort_key(self, item) -> tuple:
@@ -305,3 +376,11 @@ class DocumentNormalizationService:
 
     def _normalize_text(self, value: str) -> str:
         return " ".join(str(value).strip().lower().replace(".", " ").split())
+
+    def _meaningful(self, value: str) -> str:
+        cleaned = str(value or "").strip()
+        if not cleaned:
+            return ""
+        if cleaned.upper() == "NO_ENCONTRADO":
+            return ""
+        return cleaned
