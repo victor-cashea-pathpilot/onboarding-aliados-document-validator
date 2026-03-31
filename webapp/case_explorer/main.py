@@ -11,12 +11,44 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+from backend.shared.extraction.prompts import (
+    build_acta_constitutiva_prompt,
+    build_acta_mercantil_prompt,
+    build_cedula_prompt,
+    build_certificado_emprendimiento_prompt,
+    build_rif_prompt,
+)
+from backend.shared.validation_prompts import (
+    build_cross_validation_llm_prompt,
+    build_legal_assessment_prompt,
+)
 from webapp.case_explorer.auth import verify_google_credential
 from webapp.case_explorer.client import fetch_case, fetch_cases
 from webapp.case_explorer.config import get_settings
 
 settings = get_settings()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+
+EXTRACTION_PROMPTS = {
+    "rif": build_rif_prompt,
+    "cedula": build_cedula_prompt,
+    "acta_constitutiva": build_acta_constitutiva_prompt,
+    "acta_mercantil": build_acta_mercantil_prompt,
+    "certificado_emprendimiento": build_certificado_emprendimiento_prompt,
+}
+
+SIMPLE_MODEL_TYPES = {"rif", "cedula"}
+DEFAULT_GEMINI_MODEL_SIMPLE = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL_COMPLEX = "gemini-2.5-pro"
+
+STAGE_ORDER = {
+    "document_intake": 1,
+    "document_extraction": 2,
+    "document_normalization": 3,
+    "cross_validation": 4,
+    "completed": 5,
+    "failed": 99,
+}
 
 
 def _case_summary(payload: dict) -> dict:
@@ -61,6 +93,285 @@ def _base_context(request: Request) -> dict:
         "user": request.session.get("user"),
         "auth_mode": settings.auth_mode,
     }
+
+
+def _status_for_stage(payload: dict, target_stage: str) -> str:
+    """Infer a visual node status from the current job stage."""
+
+    job_status = payload.get("status")
+    current_stage = ((payload.get("progress") or {}).get("stage")) or ""
+
+    if job_status == "FAILED":
+        return "failed" if target_stage == current_stage else "completed"
+    if job_status == "COMPLETED":
+        return "completed"
+    if not current_stage:
+        return "pending"
+
+    current_rank = STAGE_ORDER.get(current_stage, 0)
+    target_rank = STAGE_ORDER.get(target_stage, 0)
+    if current_rank > target_rank:
+        return "completed"
+    if current_rank == target_rank:
+        return "active"
+    return "pending"
+
+
+def _document_references(request_payload: dict) -> list[dict]:
+    """Flatten sanitized document references for explorer use."""
+
+    documents = (request_payload or {}).get("documents") or {}
+    refs: list[dict] = []
+    for document_type, items in documents.items():
+        for item in items or []:
+            refs.append(
+                {
+                    "document_type": document_type,
+                    "document_id": item.get("document_id"),
+                    "url": item.get("url"),
+                }
+            )
+    return refs
+
+
+def _build_extraction_nodes(payload: dict) -> list[dict]:
+    """Build one visual node per extracted document."""
+
+    request_documents = (payload.get("request") or {}).get("documents") or {}
+    documents_result = payload.get("documents") or {}
+    nodes: list[dict] = []
+    index = 0
+
+    for document_type, prompt_builder in EXTRACTION_PROMPTS.items():
+        request_bucket = request_documents.get(document_type) or []
+        result_bucket = documents_result.get(document_type) or []
+        max_len = max(len(request_bucket), len(result_bucket))
+        for bucket_index in range(max_len):
+            request_item = request_bucket[bucket_index] if bucket_index < len(request_bucket) else {}
+            result_item = result_bucket[bucket_index] if bucket_index < len(result_bucket) else {}
+            extracted_data = result_item.get("extracted_data") or {}
+            extracted_fields = extracted_data.get("extracted_fields")
+            extraction_status = extracted_data.get("extraction_status")
+            output_payload = (
+                extracted_fields
+                if extracted_fields
+                else {
+                    "status": result_item.get("status"),
+                    "errors": result_item.get("errors") or [],
+                }
+            )
+            if extraction_status == "completed":
+                node_status = "completed"
+            elif payload.get("status") == "PROCESSING" and ((payload.get("progress") or {}).get("stage") == "document_extraction"):
+                node_status = "active"
+            elif payload.get("status") == "FAILED":
+                node_status = "failed"
+            else:
+                node_status = "pending"
+
+            model_name = (
+                getattr(
+                    settings,
+                    "gemini_model_simple",
+                    DEFAULT_GEMINI_MODEL_SIMPLE,
+                )
+                if document_type in SIMPLE_MODEL_TYPES
+                else getattr(
+                    settings,
+                    "gemini_model_complex",
+                    DEFAULT_GEMINI_MODEL_COMPLEX,
+                )
+            )
+            document_id = request_item.get("document_id") or result_item.get("document_id")
+            nodes.append(
+                {
+                    "id": f"extract-{document_type}-{bucket_index}",
+                    "kind": "llm_extraction",
+                    "title": f"Extraction · {document_type}",
+                    "subtitle": document_id or f"{document_type}-{bucket_index + 1}",
+                    "status": node_status,
+                    "stage": "document_extraction",
+                    "model": model_name,
+                    "files": [
+                        {
+                            "document_type": document_type,
+                            "document_id": document_id,
+                            "url": request_item.get("url"),
+                        }
+                    ],
+                    "input_payload": {
+                        "document_type": document_type,
+                        "document_id": document_id,
+                        "source_url": request_item.get("url"),
+                        "content_type": extracted_data.get("content_type"),
+                        "content_length": extracted_data.get("content_length"),
+                    },
+                    "prompt": prompt_builder(),
+                    "output_payload": output_payload,
+                    "order": 20 + index,
+                }
+            )
+            index += 1
+    return nodes
+
+
+def _build_workflow_nodes(payload: dict) -> list[dict]:
+    """Build a visual workflow graph from the persisted case payload."""
+
+    request_payload = payload.get("request") or {}
+    progress = payload.get("progress") or {}
+    documents_result = payload.get("documents") or {}
+    snapshot = payload.get("normalized_snapshot") or {}
+    cross_validation = payload.get("cross_validation") or {}
+    checks = cross_validation.get("checks") or []
+    files = _document_references(request_payload)
+
+    nodes = [
+        {
+            "id": "request_received",
+            "kind": "system",
+            "title": "Submit Request",
+            "subtitle": payload.get("job_id"),
+            "status": "completed",
+            "stage": "request_received",
+            "model": None,
+            "files": files,
+            "input_payload": request_payload,
+            "prompt": None,
+            "output_payload": {
+                "job_id": payload.get("job_id"),
+                "merchant_id": payload.get("merchant_id"),
+                "request_id": payload.get("request_id"),
+                "status": payload.get("status"),
+            },
+            "order": 0,
+        },
+        {
+            "id": "document_intake",
+            "kind": "workflow_step",
+            "title": "Document Intake",
+            "subtitle": "Reachability, MIME, size and technical validation",
+            "status": _status_for_stage(payload, "document_intake"),
+            "stage": "document_intake",
+            "model": None,
+            "files": files,
+            "input_payload": request_payload.get("documents") or {},
+            "prompt": None,
+            "output_payload": documents_result,
+            "order": 10,
+        },
+    ]
+
+    nodes.extend(_build_extraction_nodes(payload))
+
+    nodes.extend(
+        [
+            {
+                "id": "normalization",
+                "kind": "workflow_step",
+                "title": "Normalization",
+                "subtitle": "Canonical snapshot consolidation",
+                "status": "completed"
+                if snapshot
+                else _status_for_stage(payload, "document_normalization"),
+                "stage": "document_normalization",
+                "model": None,
+                "files": files,
+                "input_payload": documents_result,
+                "prompt": None,
+                "output_payload": snapshot or {"status": "pending"},
+                "order": 100,
+            },
+            {
+                "id": "deterministic_cross_validation",
+                "kind": "workflow_step",
+                "title": "Deterministic Cross Validation",
+                "subtitle": "Rules over normalized data",
+                "status": "completed"
+                if checks
+                else _status_for_stage(payload, "cross_validation"),
+                "stage": "cross_validation",
+                "model": None,
+                "files": files,
+                "input_payload": {
+                    "snapshot": snapshot,
+                },
+                "prompt": None,
+                "output_payload": {"checks": checks},
+                "order": 110,
+            },
+            {
+                "id": "llm_cross_validation",
+                "kind": "llm_validation",
+                "title": "LLM Cross Validation",
+                "subtitle": "Contextual legal consistency review",
+                "status": "completed"
+                if cross_validation.get("llm_cross_validation")
+                else _status_for_stage(payload, "cross_validation"),
+                "stage": "cross_validation",
+                "model": getattr(
+                    settings,
+                    "gemini_model_complex",
+                    DEFAULT_GEMINI_MODEL_COMPLEX,
+                ),
+                "files": files,
+                "input_payload": {
+                    "snapshot": snapshot,
+                    "checks": checks,
+                },
+                "prompt": build_cross_validation_llm_prompt(),
+                "output_payload": cross_validation.get("llm_cross_validation")
+                or {"status": "pending"},
+                "order": 120,
+            },
+            {
+                "id": "llm_legal_assessment",
+                "kind": "llm_validation",
+                "title": "LLM Legal Assessment",
+                "subtitle": "Final legal recommendation layer",
+                "status": "completed"
+                if cross_validation.get("llm_legal_assessment")
+                else _status_for_stage(payload, "cross_validation"),
+                "stage": "cross_validation",
+                "model": getattr(
+                    settings,
+                    "gemini_model_complex",
+                    DEFAULT_GEMINI_MODEL_COMPLEX,
+                ),
+                "files": files,
+                "input_payload": {
+                    "snapshot": snapshot,
+                    "checks": checks,
+                },
+                "prompt": build_legal_assessment_prompt(),
+                "output_payload": cross_validation.get("llm_legal_assessment")
+                or {"status": "pending"},
+                "order": 130,
+            },
+            {
+                "id": "final_verdict",
+                "kind": "workflow_step",
+                "title": "Final Verdict",
+                "subtitle": "Overall result composition",
+                "status": "completed"
+                if payload.get("overall_result")
+                else _status_for_stage(payload, "completed"),
+                "stage": "completed",
+                "model": None,
+                "files": files,
+                "input_payload": {
+                    "checks": checks,
+                    "llm_cross_validation": cross_validation.get("llm_cross_validation"),
+                    "llm_legal_assessment": cross_validation.get("llm_legal_assessment"),
+                },
+                "prompt": None,
+                "output_payload": payload.get("overall_result") or {"status": "pending"},
+                "order": 140,
+            },
+        ]
+    )
+
+    return sorted(nodes, key=lambda item: item["order"])
 
 
 app = FastAPI(
@@ -155,6 +466,7 @@ async def case_detail(request: Request, job_id: str) -> HTMLResponse:
 
     _require_auth(request)
     payload = fetch_case(job_id)
+    workflow_nodes = _build_workflow_nodes(payload)
     return templates.TemplateResponse(
         request,
         "case_detail.html",
@@ -164,6 +476,8 @@ async def case_detail(request: Request, job_id: str) -> HTMLResponse:
             "summary": _case_summary(payload),
             "case_payload": payload,
             "case_payload_pretty": json.dumps(payload, ensure_ascii=False, indent=2),
+            "workflow_nodes": workflow_nodes,
+            "workflow_nodes_json": json.dumps(workflow_nodes, ensure_ascii=False),
         },
     )
 

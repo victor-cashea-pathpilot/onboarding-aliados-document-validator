@@ -13,12 +13,13 @@
         --muted: #475569;
         --line: #e2e8f0;
         --accent: #0f766e;
-        --completed-bg: #dcfce7;
-        --completed-ink: #166534;
+        --accent-soft: #ccfbf1;
         --pending-bg: #fef3c7;
         --pending-ink: #92400e;
         --processing-bg: #dbeafe;
         --processing-ink: #1d4ed8;
+        --completed-bg: #dcfce7;
+        --completed-ink: #166534;
         --failed-bg: #fee2e2;
         --failed-ink: #b91c1c;
       }
@@ -35,7 +36,7 @@
         font-weight: 700;
       }
       .page {
-        max-width: 1360px;
+        max-width: 1440px;
         margin: 0 auto;
         padding: 32px 20px 48px;
       }
@@ -79,6 +80,7 @@
         font-size: 13px;
       }
       .status-pending { background: var(--pending-bg); color: var(--pending-ink); }
+      .status-active { background: var(--processing-bg); color: var(--processing-ink); }
       .status-processing { background: var(--processing-bg); color: var(--processing-ink); }
       .status-failed { background: var(--failed-bg); color: var(--failed-ink); }
       .summary-grid {
@@ -137,14 +139,84 @@
         margin-top: 18px;
         flex-wrap: wrap;
       }
-      .grid {
+      .workflow-card {
+        margin-bottom: 20px;
+      }
+      .workflow-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .workflow-head h2 {
+        margin: 8px 0 0;
+        font-size: 26px;
+      }
+      .node-rail {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(220px, 260px);
+        gap: 14px;
+        overflow-x: auto;
+        padding: 18px 4px 4px;
+      }
+      .node-button {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--panel-alt);
+        padding: 16px;
+        text-align: left;
+        cursor: pointer;
+        min-height: 180px;
+      }
+      .node-button.active {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.14);
+      }
+      .node-button h3 {
+        margin: 10px 0 8px;
+        font-size: 18px;
+        line-height: 1.25;
+      }
+      .node-copy {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .node-meta {
+        display: grid;
+        gap: 6px;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .node-kind {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 20px;
       }
       .card h2 {
         margin: 8px 0 12px;
         font-size: 20px;
+      }
+      .column-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
       }
       pre {
         margin: 0;
@@ -160,6 +232,30 @@
         border: 1px solid var(--line);
         border-radius: 16px;
         padding: 16px;
+        max-height: 640px;
+        overflow: auto;
+      }
+      .file-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .file-item {
+        border: 1px solid var(--line);
+        background: var(--panel-alt);
+        border-radius: 14px;
+        padding: 12px;
+      }
+      .file-item strong {
+        display: block;
+      }
+      .empty {
+        color: var(--muted);
+      }
+      @media (max-width: 1100px) {
+        .columns {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -170,9 +266,9 @@
           <div>
             <div class="eyebrow">Internal Case Explorer</div>
             <h1>{{ summary.merchant_id }}</h1>
-            <div class="muted">{{ summary.job_id }}</div>
+            <div class="progress-message">{{ summary.job_id }}</div>
           </div>
-          <div class="status {% if summary.status == 'PENDING' %}status-pending{% elif summary.status == 'PROCESSING' %}status-processing{% elif summary.status == 'FAILED' %}status-failed{% endif %}">
+          <div class="status {% if summary.status == 'PENDING' %}status-pending{% elif summary.status in ['PROCESSING', 'active'] %}status-processing{% elif summary.status == 'FAILED' %}status-failed{% endif %}">
             {{ summary.status }}
           </div>
         </div>
@@ -217,36 +313,133 @@
         </div>
       </section>
 
-      <section class="grid">
+      <section class="card workflow-card">
+        <div class="workflow-head">
+          <div>
+            <div class="eyebrow">Workflow Nodes</div>
+            <h2>Step-by-step case execution</h2>
+          </div>
+          <div class="progress-message">Selecciona un nodo para ver el input, el prompt y el output.</div>
+        </div>
+        <div class="node-rail">
+          {% for node in workflow_nodes %}
+          <button class="node-button {% if loop.first %}active{% endif %}" type="button" data-node-id="{{ node.id }}">
+            <span class="node-kind">{{ node.kind }}</span>
+            <h3>{{ node.title }}</h3>
+            <div class="status {% if node.status == 'pending' %}status-pending{% elif node.status in ['active', 'processing'] %}status-processing{% elif node.status == 'failed' %}status-failed{% endif %}">
+              {{ node.status }}
+            </div>
+            <div class="node-copy">{{ node.subtitle }}</div>
+            <div class="node-meta">
+              <span><strong>Stage:</strong> {{ node.stage }}</span>
+              <span><strong>Model:</strong> {{ node.model or "-" }}</span>
+              <span><strong>Files:</strong> {{ node.files | length }}</span>
+            </div>
+          </button>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="columns">
         <section class="card">
-          <div class="eyebrow">Sanitized Request</div>
-          <h2>Input submitted to the API</h2>
-          <div class="json-shell">
-            <pre>{{ case_payload.request | tojson(indent=2) }}</pre>
+          <div class="column-top">
+            <div>
+              <div class="eyebrow">Node Input</div>
+              <h2 id="input-title">Input</h2>
+            </div>
+            <span id="input-status" class="status">-</span>
+          </div>
+          <div id="file-list" class="file-list"></div>
+          <div class="json-shell" style="margin-top: 14px;">
+            <pre id="input-json"></pre>
           </div>
         </section>
+
         <section class="card">
-          <div class="eyebrow">Documents Result</div>
-          <h2>Per-document outcome</h2>
+          <div class="column-top">
+            <div>
+              <div class="eyebrow">LLM Prompt</div>
+              <h2 id="prompt-title">Prompt</h2>
+            </div>
+            <span id="prompt-model" class="node-kind">-</span>
+          </div>
           <div class="json-shell">
-            <pre>{{ case_payload.documents | tojson(indent=2) }}</pre>
+            <pre id="prompt-text" class="empty"></pre>
           </div>
         </section>
+
         <section class="card">
-          <div class="eyebrow">Normalized Snapshot</div>
-          <h2>Canonical internal view</h2>
-          <div class="json-shell">
-            <pre>{{ case_payload.normalized_snapshot | tojson(indent=2) }}</pre>
+          <div class="column-top">
+            <div>
+              <div class="eyebrow">Node Output</div>
+              <h2 id="output-title">Output</h2>
+            </div>
+            <span id="output-stage" class="node-kind">-</span>
           </div>
-        </section>
-        <section class="card">
-          <div class="eyebrow">Cross Validation</div>
-          <h2>Checks, findings and LLM review</h2>
           <div class="json-shell">
-            <pre>{{ case_payload.cross_validation | tojson(indent=2) }}</pre>
+            <pre id="output-json"></pre>
           </div>
         </section>
       </section>
     </main>
+
+    <script>
+      const nodes = {{ workflow_nodes_json | safe }};
+
+      function formatJson(value) {
+        return JSON.stringify(value ?? {}, null, 2);
+      }
+
+      function statusClass(status) {
+        if (status === "pending") return "status status-pending";
+        if (status === "active" || status === "processing") return "status status-processing";
+        if (status === "failed") return "status status-failed";
+        return "status";
+      }
+
+      function renderFiles(files) {
+        if (!files || files.length === 0) {
+          return '<div class="file-item empty">No files attached to this node.</div>';
+        }
+        return files.map((file) => `
+          <article class="file-item">
+            <strong>${file.document_type || "document"}</strong>
+            <div>${file.document_id || "-"}</div>
+            <div class="progress-message">${file.url || "-"}</div>
+          </article>
+        `).join("");
+      }
+
+      function selectNode(nodeId) {
+        const node = nodes.find((item) => item.id === nodeId) || nodes[0];
+        if (!node) return;
+
+        for (const button of document.querySelectorAll(".node-button")) {
+          button.classList.toggle("active", button.dataset.nodeId === node.id);
+        }
+
+        document.getElementById("input-title").textContent = node.title;
+        document.getElementById("input-status").textContent = node.status;
+        document.getElementById("input-status").className = statusClass(node.status);
+        document.getElementById("input-json").textContent = formatJson(node.input_payload);
+        document.getElementById("file-list").innerHTML = renderFiles(node.files);
+
+        document.getElementById("prompt-title").textContent = node.title;
+        document.getElementById("prompt-model").textContent = node.model || "No model";
+        document.getElementById("prompt-text").textContent = node.prompt || "This node does not use an LLM prompt.";
+
+        document.getElementById("output-title").textContent = node.title;
+        document.getElementById("output-stage").textContent = node.stage || "-";
+        document.getElementById("output-json").textContent = formatJson(node.output_payload);
+      }
+
+      for (const button of document.querySelectorAll(".node-button")) {
+        button.addEventListener("click", () => selectNode(button.dataset.nodeId));
+      }
+
+      if (nodes.length > 0) {
+        selectNode(nodes[0].id);
+      }
+    </script>
   </body>
 </html>
