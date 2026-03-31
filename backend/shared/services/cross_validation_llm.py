@@ -58,7 +58,7 @@ class CrossValidationLLMService:
         client = self.gemini_client or get_gemini_client()
         response = client.analyze_json(
             model=self.model_name,
-            prompt=build_cross_validation_llm_prompt(),
+            prompt=build_cross_validation_llm_prompt(snapshot.legal_mode),
             payload=self._build_payload(snapshot=snapshot, checks=checks),
         )
         review = self._parse_response(response, source="llm_cross_validation")

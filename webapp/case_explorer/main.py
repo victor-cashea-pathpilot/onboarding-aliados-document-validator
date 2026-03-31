@@ -224,6 +224,11 @@ def _build_workflow_nodes(payload: dict) -> list[dict]:
     snapshot = payload.get("normalized_snapshot") or {}
     cross_validation = payload.get("cross_validation") or {}
     checks = cross_validation.get("checks") or []
+    legal_mode = (
+        cross_validation.get("legal_mode")
+        or snapshot.get("legal_mode")
+        or "unknown"
+    )
     files = _document_references(request_payload)
 
     nodes = [
@@ -318,8 +323,9 @@ def _build_workflow_nodes(payload: dict) -> list[dict]:
                 "input_payload": {
                     "snapshot": snapshot,
                     "checks": checks,
+                    "legal_mode": legal_mode,
                 },
-                "prompt": build_cross_validation_llm_prompt(),
+                "prompt": build_cross_validation_llm_prompt(legal_mode),
                 "output_payload": cross_validation.get("llm_cross_validation")
                 or {"status": "pending"},
                 "order": 120,
@@ -342,8 +348,9 @@ def _build_workflow_nodes(payload: dict) -> list[dict]:
                 "input_payload": {
                     "snapshot": snapshot,
                     "checks": checks,
+                    "legal_mode": legal_mode,
                 },
-                "prompt": build_legal_assessment_prompt(),
+                "prompt": build_legal_assessment_prompt(legal_mode),
                 "output_payload": cross_validation.get("llm_legal_assessment")
                 or {"status": "pending"},
                 "order": 130,

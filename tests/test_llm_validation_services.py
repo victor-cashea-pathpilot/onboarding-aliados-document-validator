@@ -107,4 +107,33 @@ def test_cross_validation_llm_real_path_uses_prompt_and_payload() -> None:
     assert len(client.calls) == 1
     assert "snapshot" in client.calls[0]["payload"]
     assert "checks" in client.calls[0]["payload"]
-    assert "consistencia documental" in client.calls[0]["prompt"].lower()
+    prompt = client.calls[0]["prompt"].lower()
+    assert "sociedades mercantiles venezolanas" in prompt
+    assert "junta directiva" in prompt
+
+
+def test_legal_assessment_llm_real_path_uses_emprendimiento_variant() -> None:
+    client = FakeGeminiClient(
+        {
+            "recommendation": "REQUIRES_REVIEW",
+            "confidence": 81,
+            "summary": "Se requiere revisión.",
+            "findings": [],
+        }
+    )
+    snapshot = build_snapshot()
+    snapshot.legal_mode = "emprendimiento"
+
+    review = LegalAssessmentLLMService(
+        mock_mode=False,
+        gemini_client=client,
+    ).assess(
+        snapshot=snapshot,
+        checks=[],
+    )
+
+    assert review.recommendation == "REQUIRES_REVIEW"
+    assert len(client.calls) == 1
+    prompt = client.calls[0]["prompt"].lower()
+    assert "expedientes de emprendimiento" in prompt
+    assert "certificado" in prompt
