@@ -155,6 +155,8 @@ class ActaMercantilExtractor(BaseDocumentExtractor):
                     "statutory_term": "5 anos",
                 },
                 "legal_representative": {
+                    "representation_clause_modified": "YES",
+                    "signature_clause_status": "EXPLICIT",
                     "signature_type": "SEPARADA",
                     "signature_quote": "El Presidente podra firmar separadamente.",
                     "authority_details": "Facultades de representacion judicial y extrajudicial.",
