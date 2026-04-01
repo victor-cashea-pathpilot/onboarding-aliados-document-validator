@@ -293,10 +293,17 @@ class DocumentNormalizationService:
         )
 
     def _has_explicit_signature_authority(self, legal_rep: dict) -> bool:
-        return any(
-            self._meaningful(str(legal_rep.get(field, "")).strip())
-            for field in ("signature_type", "signature_quote", "authority_details")
-        )
+        signature_type = self._meaningful(str(legal_rep.get("signature_type", "")).strip())
+        signature_quote = self._meaningful(str(legal_rep.get("signature_quote", "")).strip())
+        authority_details = self._meaningful(str(legal_rep.get("authority_details", "")).strip())
+
+        if signature_type:
+            return True
+        if signature_quote and not self._is_negative_signature_text(signature_quote):
+            return True
+        if authority_details and not self._is_negative_signature_text(authority_details):
+            return True
+        return False
 
     def _chronological_company_items(self, documents: DocumentsResult) -> list:
         approved_items = [
@@ -384,3 +391,18 @@ class DocumentNormalizationService:
         if cleaned.upper() == "NO_ENCONTRADO":
             return ""
         return cleaned
+
+    def _is_negative_signature_text(self, value: str) -> bool:
+        normalized = self._normalize_text(value)
+        negative_markers = (
+            "no se detalla",
+            "no se especifica",
+            "no se indica",
+            "no consta",
+            "no se menciona",
+            "sin detallar",
+            "no definido",
+            "no encontrada",
+            "no encontrado",
+        )
+        return any(marker in normalized for marker in negative_markers)
