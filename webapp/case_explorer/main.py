@@ -50,6 +50,13 @@ STAGE_ORDER = {
     "failed": 99,
 }
 
+MONITOR_STEPS = [
+    ("document_intake", "Merchant Legal"),
+    ("document_extraction", "Merchant Documents"),
+    ("cross_validation", "Final Analysis"),
+    ("completed", "Ready for Approval"),
+]
+
 
 def _case_summary(payload: dict) -> dict:
     """Extract a compact summary for the page header."""
@@ -78,6 +85,92 @@ def _format_duration(seconds: float | None) -> str:
     minutes = int(seconds // 60)
     remainder = seconds - (minutes * 60)
     return f"{minutes}m {remainder:.0f}s"
+
+
+def _monitor_step_states(
+    *,
+    status: str | None,
+    stage: str | None,
+    overall_status: str | None = None,
+) -> list[dict]:
+    """Return a UI-friendly progress model for the case monitor."""
+
+    current_stage = stage or ""
+    current_rank = STAGE_ORDER.get(current_stage, 0)
+    steps: list[dict] = []
+
+    for step_stage, label in MONITOR_STEPS:
+        step_rank = STAGE_ORDER[step_stage]
+        tone = "pending"
+        state_label = "Pending"
+
+        if status == "FAILED":
+            if current_rank > step_rank:
+                tone = "complete"
+                state_label = "Completed"
+            elif current_rank == step_rank:
+                tone = "failed"
+                state_label = "Failed"
+        elif status == "COMPLETED":
+            if step_stage != "completed":
+                tone = "complete"
+                state_label = "Completed"
+            elif overall_status == "APPROVED":
+                tone = "complete"
+                state_label = "Approved"
+            elif overall_status == "REQUIRES_REVIEW":
+                tone = "review"
+                state_label = "Manual review"
+            elif overall_status == "REJECTED":
+                tone = "failed"
+                state_label = "Rejected"
+            else:
+                tone = "complete"
+                state_label = "Completed"
+        else:
+            if current_rank > step_rank:
+                tone = "complete"
+                state_label = "Completed"
+            elif current_rank == step_rank or (not current_stage and step_stage == "document_intake"):
+                tone = "active"
+                state_label = "In progress"
+
+        steps.append(
+            {
+                "stage": step_stage,
+                "label": label,
+                "tone": tone,
+                "state_label": state_label,
+            }
+        )
+
+    return steps
+
+
+def _monitor_headline(payload: dict) -> tuple[str, str]:
+    """Return a primary and secondary status line for the monitor card."""
+
+    status = payload.get("status")
+    overall_status = (payload.get("overall_result") or {}).get("status")
+    progress = payload.get("progress") or {}
+    message = progress.get("message") or ""
+
+    if status == "COMPLETED":
+        if overall_status == "APPROVED":
+            return "Ready for Approval", "All current validations passed."
+        if overall_status == "REQUIRES_REVIEW":
+            return "Manual Review Required", message or "The case needs analyst review."
+        if overall_status == "REJECTED":
+            return "Rejected", message or "The case did not pass the current checks."
+        return "Completed", message or "Case completed."
+
+    if status == "FAILED":
+        return "Workflow Failed", message or "Case execution failed."
+
+    if status == "PROCESSING":
+        return "Analyzing...", message or "The workflow is still running."
+
+    return "Queued", message or "The case is waiting to be processed."
 
 
 def _is_authenticated(request: Request) -> bool:
@@ -393,6 +486,29 @@ def _build_workflow_nodes(payload: dict) -> list[dict]:
     return sorted(nodes, key=lambda item: item["order"])
 
 
+def _decorate_case_row(item: dict) -> dict:
+    """Attach monitor metadata used by the web UI."""
+
+    row = dict(item)
+    row["monitor_steps"] = _monitor_step_states(
+        status=row.get("status"),
+        stage=row.get("stage"),
+        overall_status=row.get("overall_status"),
+    )
+    primary, secondary = _monitor_headline(
+        {
+            "status": row.get("status"),
+            "overall_result": {"status": row.get("overall_status")},
+            "progress": {
+                "message": row.get("progress_message"),
+            },
+        }
+    )
+    row["monitor_primary"] = primary
+    row["monitor_secondary"] = secondary
+    return row
+
+
 app = FastAPI(
     title=settings.app_title,
     version="0.1.0",
@@ -421,6 +537,7 @@ async def home(request: Request) -> HTMLResponse:
     page_size = min(max(page_size, 1), 100)
     jobs_payload = fetch_cases(page=page, page_size=page_size, query=query)
     jobs = jobs_payload.get("items", [])
+    jobs = [_decorate_case_row(item) for item in jobs]
     active_jobs = [item for item in jobs if item.get("status") in {"PENDING", "PROCESSING"}]
     recent_jobs = [item for item in jobs if item.get("status") not in {"PENDING", "PROCESSING"}]
     table_rows = active_jobs + recent_jobs
@@ -509,6 +626,12 @@ async def case_detail(request: Request, job_id: str) -> HTMLResponse:
     _require_auth(request)
     payload = fetch_case(job_id)
     workflow_nodes = _build_workflow_nodes(payload)
+    monitor_steps = _monitor_step_states(
+        status=payload.get("status"),
+        stage=(payload.get("progress") or {}).get("stage"),
+        overall_status=(payload.get("overall_result") or {}).get("status"),
+    )
+    monitor_primary, monitor_secondary = _monitor_headline(payload)
     return templates.TemplateResponse(
         request,
         "case_detail.html",
@@ -520,6 +643,9 @@ async def case_detail(request: Request, job_id: str) -> HTMLResponse:
             "case_payload_pretty": json.dumps(payload, ensure_ascii=False, indent=2),
             "workflow_nodes": workflow_nodes,
             "workflow_nodes_json": json.dumps(workflow_nodes, ensure_ascii=False),
+            "monitor_steps": monitor_steps,
+            "monitor_primary": monitor_primary,
+            "monitor_secondary": monitor_secondary,
         },
     )
 

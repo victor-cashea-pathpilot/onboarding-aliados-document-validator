@@ -6,108 +6,275 @@
     <title>Case Explorer · {{ summary.job_id }}</title>
     <style>
       :root {
-        --bg: #ffffff;
+        --bg: #f7f7f4;
         --panel: #ffffff;
-        --panel-alt: #f8fafc;
-        --ink: #0f172a;
-        --muted: #475569;
-        --line: #e2e8f0;
-        --accent: #0f766e;
-        --accent-soft: #ccfbf1;
-        --pending-bg: #fef3c7;
-        --pending-ink: #92400e;
-        --processing-bg: #dbeafe;
-        --processing-ink: #1d4ed8;
-        --completed-bg: #dcfce7;
-        --completed-ink: #166534;
-        --failed-bg: #fee2e2;
-        --failed-ink: #b91c1c;
+        --panel-soft: #f4f3f1;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+        --ok: #22c55e;
+        --ok-soft: #dcfce7;
+        --warn: #f59e0b;
+        --warn-soft: #fef3c7;
+        --danger: #ef4444;
+        --danger-soft: #fee2e2;
+        --info: #2563eb;
+        --info-soft: #dbeafe;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        background: radial-gradient(circle at top, #ffffff 0%, var(--bg) 56%);
         color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       a {
-        color: var(--accent);
+        color: inherit;
         text-decoration: none;
-        font-weight: 700;
+      }
+      button {
+        cursor: pointer;
       }
       .page {
-        max-width: 1440px;
+        max-width: 1480px;
         margin: 0 auto;
-        padding: 32px 20px 48px;
+        padding: 28px 18px 56px;
       }
-      .hero, .card {
+      .surface {
+        background: var(--panel);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 32px;
+        box-shadow: var(--shadow);
+      }
+      .shell {
+        padding: 28px;
+      }
+      .app-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .app-label::before {
+        content: "";
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: var(--ok);
+        box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.15);
+      }
+      .hero-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .hero-title {
+        margin: 14px 0 0;
+        font-size: 34px;
+        line-height: 1.02;
+      }
+      .hero-copy {
+        margin: 10px 0 0;
+        max-width: 780px;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+      .hero-status {
+        text-align: right;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .divider {
+        height: 1px;
+        background: var(--line);
+        margin: 18px 0 22px;
+      }
+      .top-grid {
+        display: grid;
+        grid-template-columns: 1.25fr 0.95fr;
+        gap: 18px;
+        align-items: stretch;
+      }
+      .monitor-card,
+      .summary-card,
+      .workflow-card,
+      .column-card {
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: 24px;
-        padding: 24px;
-        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.05);
       }
-      .hero {
-        margin-bottom: 20px;
-        background: radial-gradient(circle at top right, #ccfbf1 0%, #ffffff 34%, #ffffff 100%);
+      .monitor-card,
+      .summary-card,
+      .workflow-card {
+        padding: 22px;
       }
-      .eyebrow {
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
+      .monitor-card {
+        background: linear-gradient(180deg, #ffffff 0%, #fafaf8 100%);
+      }
+      .monitor-title {
+        margin: 0 0 4px;
+        font-size: 24px;
+      }
+      .monitor-copy {
+        margin: 0 0 18px;
         color: var(--muted);
-        font-weight: 700;
       }
-      h1 {
-        margin: 10px 0 14px;
-        font-size: 38px;
-        line-height: 1.05;
+      .monitor-steps {
+        display: grid;
+        gap: 12px;
       }
-      .hero-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 16px;
-        flex-wrap: wrap;
+      .monitor-step {
+        display: grid;
+        grid-template-columns: 42px 1fr auto;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 18px;
+        border-radius: 18px;
+        background: var(--panel-soft);
+        border: 1px solid #ececec;
       }
-      .status {
-        display: inline-block;
-        padding: 8px 12px;
+      .monitor-step.is-complete {
+        background: #f8fffb;
+      }
+      .monitor-step.is-active {
+        background: #f8fbff;
+      }
+      .monitor-step.is-review {
+        background: #fffaf0;
+      }
+      .monitor-step.is-failed {
+        background: #fff7f7;
+      }
+      .monitor-icon {
+        width: 30px;
+        height: 30px;
         border-radius: 999px;
-        background: var(--completed-bg);
-        color: var(--completed-ink);
-        font-weight: 700;
+        border: 3px solid #d1d5db;
+        position: relative;
+        background: white;
+      }
+      .monitor-step.is-complete .monitor-icon,
+      .monitor-step.is-review .monitor-icon {
+        border-color: transparent;
+        background: var(--ok);
+      }
+      .monitor-step.is-failed .monitor-icon {
+        border-color: transparent;
+        background: var(--danger);
+      }
+      .monitor-step.is-active .monitor-icon {
+        border-color: var(--info);
+      }
+      .monitor-step.is-complete .monitor-icon::after,
+      .monitor-step.is-review .monitor-icon::after {
+        content: "";
+        position: absolute;
+        left: 8px;
+        top: 4px;
+        width: 8px;
+        height: 14px;
+        border-right: 3px solid white;
+        border-bottom: 3px solid white;
+        transform: rotate(40deg);
+      }
+      .monitor-step.is-failed .monitor-icon::before,
+      .monitor-step.is-failed .monitor-icon::after {
+        content: "";
+        position: absolute;
+        left: 13px;
+        top: 5px;
+        width: 3px;
+        height: 18px;
+        background: white;
+      }
+      .monitor-step.is-failed .monitor-icon::before {
+        transform: rotate(45deg);
+      }
+      .monitor-step.is-failed .monitor-icon::after {
+        transform: rotate(-45deg);
+      }
+      .monitor-step.is-active .monitor-icon::after {
+        content: "";
+        position: absolute;
+        inset: 6px;
+        border-radius: 999px;
+        background: var(--info);
+      }
+      .monitor-step strong {
+        font-size: 15px;
+      }
+      .monitor-step span {
+        color: var(--muted);
         font-size: 13px;
       }
-      .status-pending { background: var(--pending-bg); color: var(--pending-ink); }
-      .status-active { background: var(--processing-bg); color: var(--processing-ink); }
-      .status-processing { background: var(--processing-bg); color: var(--processing-ink); }
-      .status-failed { background: var(--failed-bg); color: var(--failed-ink); }
-      .summary-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 12px;
-        margin-top: 18px;
+      .monitor-state {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--muted);
       }
       .summary-card {
-        background: rgba(255, 255, 255, 0.86);
-        border: 1px solid var(--line);
+        display: grid;
+        gap: 18px;
+      }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 700;
+        width: fit-content;
+      }
+      .status-pill.pending {
+        background: var(--warn-soft);
+        color: #92400e;
+      }
+      .status-pill.processing {
+        background: var(--info-soft);
+        color: #1d4ed8;
+      }
+      .status-pill.completed {
+        background: var(--ok-soft);
+        color: #166534;
+      }
+      .status-pill.failed {
+        background: var(--danger-soft);
+        color: #b91c1c;
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .metric-box {
+        padding: 16px;
         border-radius: 18px;
-        padding: 14px 16px;
+        background: var(--panel-soft);
+        border: 1px solid #ececec;
       }
-      .summary-card strong {
+      .metric-box strong {
         display: block;
-        font-size: 22px;
-        line-height: 1.1;
+        font-size: 24px;
+        line-height: 1;
       }
-      .summary-card span {
+      .metric-box span {
         display: block;
+        margin-top: 7px;
         color: var(--muted);
         font-size: 12px;
-        margin-top: 4px;
       }
       .progress-wrap {
-        margin-top: 18px;
+        padding: 18px;
+        border-radius: 18px;
+        background: var(--panel-soft);
+        border: 1px solid #ececec;
       }
       .progress-head {
         display: flex;
@@ -136,11 +303,30 @@
       .nav {
         display: flex;
         gap: 12px;
-        margin-top: 18px;
         flex-wrap: wrap;
       }
+      .nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: var(--panel-soft);
+        border: 1px solid var(--line);
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .section-title {
+        margin: 0;
+        font-size: 26px;
+      }
+      .section-copy {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
       .workflow-card {
-        margin-bottom: 20px;
+        margin-top: 20px;
       }
       .workflow-head {
         display: flex;
@@ -149,14 +335,10 @@
         gap: 12px;
         flex-wrap: wrap;
       }
-      .workflow-head h2 {
-        margin: 8px 0 0;
-        font-size: 26px;
-      }
       .node-rail {
         display: grid;
         grid-auto-flow: column;
-        grid-auto-columns: minmax(220px, 260px);
+        grid-auto-columns: minmax(240px, 280px);
         gap: 14px;
         overflow-x: auto;
         padding: 18px 4px 4px;
@@ -164,18 +346,30 @@
       .node-button {
         border: 1px solid var(--line);
         border-radius: 20px;
-        background: var(--panel-alt);
+        background: var(--panel-soft);
         padding: 16px;
         text-align: left;
         cursor: pointer;
-        min-height: 180px;
+        min-height: 200px;
       }
       .node-button.active {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.14);
+        border-color: #cbd5e1;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+        background: #f8fbff;
+      }
+      .node-kind {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #eef2ff;
+        color: #4338ca;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 700;
       }
       .node-button h3 {
-        margin: 10px 0 8px;
+        margin: 12px 0 8px;
         font-size: 18px;
         line-height: 1.25;
       }
@@ -191,25 +385,14 @@
         color: var(--muted);
         font-size: 12px;
       }
-      .node-kind {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: var(--accent-soft);
-        color: var(--accent);
-        border-radius: 999px;
-        padding: 6px 10px;
-        font-size: 11px;
-        font-weight: 700;
-      }
       .columns {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 20px;
+        margin-top: 20px;
       }
-      .card h2 {
-        margin: 8px 0 12px;
-        font-size: 20px;
+      .column-card {
+        padding: 22px;
       }
       .column-top {
         display: flex;
@@ -217,6 +400,18 @@
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
+      }
+      .column-title {
+        margin: 0;
+        font-size: 20px;
+      }
+      .eyebrow {
+        margin: 0 0 6px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        font-weight: 700;
       }
       .column-actions {
         display: inline-flex;
@@ -237,14 +432,21 @@
         cursor: pointer;
       }
       .copy-button:hover {
-        border-color: var(--accent);
-        color: var(--accent);
+        border-color: #cbd5e1;
       }
       .copy-feedback {
         color: var(--muted);
         font-size: 12px;
         min-width: 54px;
         text-align: right;
+      }
+      .json-shell {
+        background: var(--panel-soft);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+        max-height: 680px;
+        overflow: auto;
       }
       pre {
         margin: 0;
@@ -255,14 +457,6 @@
         line-height: 1.55;
         color: #1e293b;
       }
-      .json-shell {
-        background: var(--panel-alt);
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 16px;
-        max-height: 640px;
-        overflow: auto;
-      }
       .file-list {
         display: grid;
         gap: 10px;
@@ -270,7 +464,7 @@
       }
       .file-item {
         border: 1px solid var(--line);
-        background: var(--panel-alt);
+        background: var(--panel-soft);
         border-radius: 14px;
         padding: 12px;
       }
@@ -280,7 +474,8 @@
       .empty {
         color: var(--muted);
       }
-      @media (max-width: 1100px) {
+      @media (max-width: 1180px) {
+        .top-grid,
         .columns {
           grid-template-columns: 1fr;
         }
@@ -289,72 +484,101 @@
   </head>
   <body>
     <main class="page">
-      <section class="hero">
-        <div class="hero-top">
+      <section class="surface shell">
+        <div class="hero-head">
           <div>
-            <div class="eyebrow">Internal Case Explorer</div>
-            <h1>{{ summary.merchant_id }}</h1>
-            <div class="progress-message">{{ summary.job_id }}</div>
+            <div class="app-label">Onboarding Agent</div>
+            <h1 class="hero-title">{{ summary.merchant_id }}</h1>
+            <p class="hero-copy">{{ monitor_primary }} {{ monitor_secondary }}</p>
           </div>
-          <div class="status {% if summary.status == 'PENDING' %}status-pending{% elif summary.status in ['PROCESSING', 'active'] %}status-processing{% elif summary.status == 'FAILED' %}status-failed{% endif %}">
-            {{ summary.status }}
+          <div class="hero-status">
+            <div>{{ case_payload.progress.stage if case_payload.progress else "queued" }}</div>
+            <div style="margin-top: 8px;">
+              <span class="status-pill {% if summary.status == 'PENDING' %}pending{% elif summary.status == 'PROCESSING' %}processing{% elif summary.status == 'FAILED' %}failed{% else %}completed{% endif %}">
+                {{ summary.status }}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div class="summary-grid">
-          <article class="summary-card">
-            <strong>{{ summary.overall_status or "-" }}</strong>
-            <span>Overall result</span>
-          </article>
-          <article class="summary-card">
-            <strong>{{ summary.legal_mode or "-" }}</strong>
-            <span>Legal mode</span>
-          </article>
-          <article class="summary-card">
-            <strong>{{ case_payload.progress.percentage if case_payload.progress else 0 }}%</strong>
-            <span>Current progress</span>
-          </article>
-          <article class="summary-card">
-            <strong>{{ case_payload.progress.stage if case_payload.progress else "-" }}</strong>
-            <span>Current stage</span>
-          </article>
-        </div>
+        <div class="divider"></div>
 
-        <div class="progress-message" style="margin-top: 14px;">
-          {{ summary.overall_summary or "No overall summary available yet." }}
-        </div>
+        <section class="top-grid">
+          <article class="monitor-card">
+            <h2 class="monitor-title">Case Status</h2>
+            <p class="monitor-copy">Track the current onboarding path and see which validation layers are already resolved.</p>
+            <div class="monitor-steps">
+              {% for step in monitor_steps %}
+              <div class="monitor-step is-{{ step.tone }}">
+                <div class="monitor-icon"></div>
+                <div>
+                  <strong>{{ step.label }}</strong>
+                  <span>{{ step.state_label }}</span>
+                </div>
+                <div class="monitor-state">{{ step.stage.replace("_", " ") }}</div>
+              </div>
+              {% endfor %}
+            </div>
+          </article>
 
-        <div class="progress-wrap">
-          <div class="progress-head">
-            <span>{{ case_payload.progress.stage if case_payload.progress else "queued" }}</span>
-            <strong>{{ case_payload.progress.percentage if case_payload.progress else 0 }}%</strong>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill" style="width: {{ case_payload.progress.percentage if case_payload.progress else 0 }}%;"></div>
-          </div>
-          <div class="progress-message">{{ case_payload.progress.message if case_payload.progress else "No progress metadata available." }}</div>
-        </div>
+          <article class="summary-card">
+            <div class="nav">
+              <a class="nav-link" href="/">← Back to cases</a>
+              <a class="nav-link" href="/jobs/{{ job_id }}/json">Raw JSON</a>
+            </div>
 
-        <div class="nav">
-          <a href="/">Back to cases</a>
-          <a href="/jobs/{{ job_id }}/json">Raw JSON</a>
-        </div>
+            <div class="summary-grid">
+              <div class="metric-box">
+                <strong>{{ summary.overall_status or "-" }}</strong>
+                <span>Overall result</span>
+              </div>
+              <div class="metric-box">
+                <strong>{{ summary.legal_mode or "-" }}</strong>
+                <span>Legal mode</span>
+              </div>
+              <div class="metric-box">
+                <strong>{{ case_payload.progress.percentage if case_payload.progress else 0 }}%</strong>
+                <span>Current progress</span>
+              </div>
+              <div class="metric-box">
+                <strong>{{ case_payload.documents | length if case_payload.documents else 0 }}</strong>
+                <span>Document groups</span>
+              </div>
+            </div>
+
+            <div class="progress-wrap">
+              <div class="progress-head">
+                <span>{{ case_payload.progress.stage if case_payload.progress else "queued" }}</span>
+                <strong>{{ case_payload.progress.percentage if case_payload.progress else 0 }}%</strong>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" style="width: {{ case_payload.progress.percentage if case_payload.progress else 0 }}%;"></div>
+              </div>
+              <div class="progress-message">{{ case_payload.progress.message if case_payload.progress else "No progress metadata available." }}</div>
+            </div>
+
+            <div class="metric-box">
+              <strong>{{ summary.job_id }}</strong>
+              <span>Job ID · Updated {{ summary.updated_at or "-" }}</span>
+            </div>
+          </article>
+        </section>
       </section>
 
-      <section class="card workflow-card">
+      <section class="workflow-card">
         <div class="workflow-head">
           <div>
-            <div class="eyebrow">Workflow Nodes</div>
-            <h2>Step-by-step case execution</h2>
+            <div class="app-label">Monitor</div>
+            <h2 class="section-title">Workflow monitor</h2>
+            <p class="section-copy">Click any node to inspect the exact input, prompt, and output used at that stage.</p>
           </div>
-          <div class="progress-message">Selecciona un nodo para ver el input, el prompt y el output.</div>
         </div>
         <div class="node-rail">
           {% for node in workflow_nodes %}
           <button class="node-button {% if loop.first %}active{% endif %}" type="button" data-node-id="{{ node.id }}">
             <span class="node-kind">{{ node.kind }}</span>
             <h3>{{ node.title }}</h3>
-            <div class="status {% if node.status == 'pending' %}status-pending{% elif node.status in ['active', 'processing'] %}status-processing{% elif node.status == 'failed' %}status-failed{% endif %}">
+            <div class="status-pill {% if node.status == 'pending' %}pending{% elif node.status in ['active', 'processing'] %}processing{% elif node.status == 'failed' %}failed{% else %}completed{% endif %}">
               {{ node.status }}
             </div>
             <div class="node-copy">{{ node.subtitle }}</div>
@@ -369,18 +593,16 @@
       </section>
 
       <section class="columns">
-        <section class="card">
+        <section class="column-card">
           <div class="column-top">
             <div>
               <div class="eyebrow">Node Input</div>
-              <h2 id="input-title">Input</h2>
+              <h2 id="input-title" class="column-title">Input</h2>
             </div>
             <div class="column-actions">
-              <button type="button" class="copy-button" data-copy-target="input-json" data-copy-label="input">
-                ⧉ Copy
-              </button>
+              <button type="button" class="copy-button" data-copy-target="input-json">⧉ Copy</button>
               <span id="input-copy-feedback" class="copy-feedback"></span>
-              <span id="input-status" class="status">-</span>
+              <span id="input-status" class="status-pill completed">-</span>
             </div>
           </div>
           <div id="file-list" class="file-list"></div>
@@ -389,16 +611,14 @@
           </div>
         </section>
 
-        <section class="card">
+        <section class="column-card">
           <div class="column-top">
             <div>
               <div class="eyebrow">LLM Prompt</div>
-              <h2 id="prompt-title">Prompt</h2>
+              <h2 id="prompt-title" class="column-title">Prompt</h2>
             </div>
             <div class="column-actions">
-              <button type="button" class="copy-button" data-copy-target="prompt-text" data-copy-label="prompt">
-                ⧉ Copy
-              </button>
+              <button type="button" class="copy-button" data-copy-target="prompt-text">⧉ Copy</button>
               <span id="prompt-copy-feedback" class="copy-feedback"></span>
               <span id="prompt-model" class="node-kind">-</span>
             </div>
@@ -408,16 +628,14 @@
           </div>
         </section>
 
-        <section class="card">
+        <section class="column-card">
           <div class="column-top">
             <div>
               <div class="eyebrow">Node Output</div>
-              <h2 id="output-title">Output</h2>
+              <h2 id="output-title" class="column-title">Output</h2>
             </div>
             <div class="column-actions">
-              <button type="button" class="copy-button" data-copy-target="output-json" data-copy-label="output">
-                ⧉ Copy
-              </button>
+              <button type="button" class="copy-button" data-copy-target="output-json">⧉ Copy</button>
               <span id="output-copy-feedback" class="copy-feedback"></span>
               <span id="output-stage" class="node-kind">-</span>
             </div>
@@ -436,11 +654,11 @@
         return JSON.stringify(value ?? {}, null, 2);
       }
 
-      function statusClass(status) {
-        if (status === "pending") return "status status-pending";
-        if (status === "active" || status === "processing") return "status status-processing";
-        if (status === "failed") return "status status-failed";
-        return "status";
+      function statusPillClass(status) {
+        if (status === "pending") return "status-pill pending";
+        if (status === "active" || status === "processing") return "status-pill processing";
+        if (status === "failed") return "status-pill failed";
+        return "status-pill completed";
       }
 
       function renderFiles(files) {
@@ -466,7 +684,7 @@
 
         document.getElementById("input-title").textContent = node.title;
         document.getElementById("input-status").textContent = node.status;
-        document.getElementById("input-status").className = statusClass(node.status);
+        document.getElementById("input-status").className = statusPillClass(node.status);
         document.getElementById("input-json").textContent = formatJson(node.input_payload);
         document.getElementById("file-list").innerHTML = renderFiles(node.files);
 
@@ -479,7 +697,7 @@
         document.getElementById("output-json").textContent = formatJson(node.output_payload);
       }
 
-      async function copyBlock(targetId, label) {
+      async function copyBlock(targetId) {
         const element = document.getElementById(targetId);
         if (!element) return;
         const feedbackId = `${targetId.split("-")[0]}-copy-feedback`;
@@ -500,7 +718,7 @@
       }
 
       for (const button of document.querySelectorAll(".copy-button")) {
-        button.addEventListener("click", () => copyBlock(button.dataset.copyTarget, button.dataset.copyLabel));
+        button.addEventListener("click", () => copyBlock(button.dataset.copyTarget));
       }
 
       if (nodes.length > 0) {
