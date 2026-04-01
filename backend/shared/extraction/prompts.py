@@ -157,8 +157,18 @@ INSTRUCCIONES ESPECÍFICAS:
 - Busca el periodo de vigencia de los cargos.
 - Calcula fecha_vencimiento_junta sumando ese periodo a la fecha de la asamblea.
 - Determina el estatus_junta comparándolo con la fecha de hoy.
-- Determina si la firma es CONJUNTA o SEPARADA.
-- Extrae la cita textual exacta de la cláusula de firma.
+- Determina si esta acta MODIFICA EXPRESAMENTE la cláusula de representación legal o firma.
+- Si la acta solo nombra junta/directiva pero NO cambia la cláusula de firma/representación, entonces:
+  - "representation_clause_modified" = "NO"
+  - "signature_clause_status" = "NOT_MODIFIED"
+  - deja "signature_type", "signature_quote" y "authority_details" en "NO_ENCONTRADO"
+- Si la acta sí contiene una nueva cláusula de firma/representación, entonces:
+  - "representation_clause_modified" = "YES"
+  - "signature_clause_status" = "EXPLICIT"
+  - extrae "signature_type", "signature_quote" y "authority_details"
+- Si no puedes determinarlo con certeza:
+  - "representation_clause_modified" = "UNKNOWN"
+  - "signature_clause_status" = "AMBIGUOUS"
 - Resume cambios relevantes de capital, razón social, domicilio u objeto.
 
 Responde ÚNICAMENTE con un JSON válido en este formato:
@@ -184,6 +194,8 @@ Responde ÚNICAMENTE con un JSON válido en este formato:
       "statutory_term": ""
     }},
     "legal_representative": {{
+      "representation_clause_modified": "YES / NO / UNKNOWN",
+      "signature_clause_status": "EXPLICIT / NOT_MODIFIED / AMBIGUOUS / NO_ENCONTRADO",
       "signature_type": "CONJUNTA / SEPARADA",
       "signature_quote": "",
       "authority_details": "",

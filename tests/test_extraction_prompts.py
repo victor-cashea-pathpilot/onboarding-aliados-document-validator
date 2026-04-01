@@ -48,6 +48,9 @@ def test_complex_document_prompts_are_adapted_from_workflow() -> None:
     assert "fecha de hoy" in mercantil_prompt
     assert '"company_validity"' in mercantil_prompt
     assert "fecha_vencimiento_junta" in mercantil_prompt
+    assert '"representation_clause_modified"' in mercantil_prompt
+    assert '"signature_clause_status"' in mercantil_prompt
+    assert "MODIFICA EXPRESAMENTE la cláusula de representación legal o firma" in mercantil_prompt
     assert "tipo_firma" not in mercantil_prompt
     assert "$now" not in mercantil_prompt
 

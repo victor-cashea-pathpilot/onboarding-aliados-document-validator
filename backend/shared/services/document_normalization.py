@@ -293,6 +293,19 @@ class DocumentNormalizationService:
         )
 
     def _has_explicit_signature_authority(self, legal_rep: dict) -> bool:
+        clause_modified = self._normalize_flag(
+            str(legal_rep.get("representation_clause_modified", "")).strip()
+        )
+        clause_status = self._normalize_clause_status(
+            str(legal_rep.get("signature_clause_status", "")).strip()
+        )
+
+        if clause_modified == "NO" or clause_status == "NOT_MODIFIED":
+            return False
+
+        if clause_modified == "YES" or clause_status == "EXPLICIT":
+            return True
+
         signature_type = self._meaningful(str(legal_rep.get("signature_type", "")).strip())
         signature_quote = self._meaningful(str(legal_rep.get("signature_quote", "")).strip())
         authority_details = self._meaningful(str(legal_rep.get("authority_details", "")).strip())
@@ -406,3 +419,25 @@ class DocumentNormalizationService:
             "no encontrado",
         )
         return any(marker in normalized for marker in negative_markers)
+
+    def _normalize_flag(self, value: str) -> str:
+        normalized = self._normalize_text(value).upper()
+        if normalized in {"YES", "SI", "SÍ", "TRUE"}:
+            return "YES"
+        if normalized in {"NO", "FALSE"}:
+            return "NO"
+        if normalized in {"UNKNOWN", "AMBIGUOUS"}:
+            return "UNKNOWN"
+        return ""
+
+    def _normalize_clause_status(self, value: str) -> str:
+        normalized = self._normalize_text(value).upper()
+        mapping = {
+            "EXPLICIT": "EXPLICIT",
+            "NOT MODIFIED": "NOT_MODIFIED",
+            "NOT_MODIFIED": "NOT_MODIFIED",
+            "AMBIGUOUS": "AMBIGUOUS",
+            "NO_ENCONTRADO": "NO_ENCONTRADO",
+            "NO ENCONTRADO": "NO_ENCONTRADO",
+        }
+        return mapping.get(normalized, "")

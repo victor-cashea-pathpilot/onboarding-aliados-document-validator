@@ -116,6 +116,8 @@ def test_normalization_prefers_latest_corporate_document_and_derives_legal_mode(
                         "corporate_structure": {
                             "board": {"status": "VENCIDA", "expiration_date": "07/09/2022"},
                             "legal_representative": {
+                                "representation_clause_modified": "YES",
+                                "signature_clause_status": "EXPLICIT",
                                 "signature_type": "SEPARADA",
                                 "authority_details": "Presidencia original",
                                 "representatives": [
@@ -146,6 +148,8 @@ def test_normalization_prefers_latest_corporate_document_and_derives_legal_mode(
                         "corporate_structure": {
                             "board": {"status": "VIGENTE", "expiration_date": "12/06/2029"},
                             "legal_representative": {
+                                "representation_clause_modified": "YES",
+                                "signature_clause_status": "EXPLICIT",
                                 "signature_type": "SEPARADA",
                                 "authority_details": "Directiva ratificada",
                                 "representatives": [
@@ -192,6 +196,8 @@ def test_normalization_applies_corporate_documents_as_field_level_patches() -> N
                         "corporate_structure": {
                             "board": {"status": "VENCIDA", "expiration_date": "05/08/2001"},
                             "legal_representative": {
+                                "representation_clause_modified": "YES",
+                                "signature_clause_status": "EXPLICIT",
                                 "signature_type": "CONJUNTA",
                                 "signature_quote": "Firma conjunta original",
                                 "authority_details": "Facultades originales de la constitutiva",
@@ -222,6 +228,8 @@ def test_normalization_applies_corporate_documents_as_field_level_patches() -> N
                         "registro_mercantil": {"fecha_registro": "14/08/2002"},
                         "corporate_structure": {
                             "legal_representative": {
+                                "representation_clause_modified": "YES",
+                                "signature_clause_status": "EXPLICIT",
                                 "signature_type": "SEPARADA",
                                 "signature_quote": "Firma separada vigente",
                                 "authority_details": "Presidente y Vicepresidente pueden actuar conjunta o separadamente.",
@@ -257,6 +265,8 @@ def test_normalization_applies_corporate_documents_as_field_level_patches() -> N
                         "corporate_structure": {
                             "board": {"status": "VIGENTE", "expiration_date": "10/04/2030"},
                             "legal_representative": {
+                                "representation_clause_modified": "NO",
+                                "signature_clause_status": "NOT_MODIFIED",
                                 "representatives": [
                                     {
                                         "full_name": "YANITZA DEL VALLE RODRIGUEZ ORTIZ",
@@ -312,6 +322,8 @@ def test_normalization_does_not_override_signature_with_negative_placeholder_tex
                         "registro_mercantil": {"fecha_registro": "14/08/2002"},
                         "corporate_structure": {
                             "legal_representative": {
+                                "representation_clause_modified": "YES",
+                                "signature_clause_status": "EXPLICIT",
                                 "signature_type": "SEPARADA",
                                 "signature_quote": "Presidente y Vicepresidente podrán firmar conjunta o separadamente.",
                                 "authority_details": "Se mantiene un esquema de firma separada por cargo.",
@@ -340,6 +352,8 @@ def test_normalization_does_not_override_signature_with_negative_placeholder_tex
                         "corporate_structure": {
                             "board": {"status": "VIGENTE", "expiration_date": "10/04/2030"},
                             "legal_representative": {
+                                "representation_clause_modified": "NO",
+                                "signature_clause_status": "NOT_MODIFIED",
                                 "signature_type": "NO_ENCONTRADO",
                                 "authority_details": "La administración y representación de la compañía no se detalla en esta acta. Se nombra Presidente y Vicepresidente.",
                                 "representatives": [
