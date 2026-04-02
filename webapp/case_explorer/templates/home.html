@@ -100,126 +100,26 @@
       }
       .top-grid {
         display: grid;
-        grid-template-columns: 1.2fr 1fr;
+        grid-template-columns: 1fr;
         gap: 18px;
         align-items: stretch;
       }
-      .monitor-card,
       .metric-card,
       .table-card {
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: 24px;
       }
-      .monitor-card {
-        padding: 22px;
-        background: linear-gradient(180deg, #ffffff 0%, #fafaf8 100%);
-      }
-      .monitor-title {
-        margin: 0 0 4px;
-        font-size: 24px;
-      }
-      .monitor-copy {
-        margin: 0 0 18px;
-        color: var(--muted);
-      }
-      .monitor-steps {
-        display: grid;
-        gap: 12px;
-      }
-      .monitor-step {
-        display: grid;
-        grid-template-columns: 42px 1fr auto;
-        align-items: center;
-        gap: 14px;
-        padding: 16px 18px;
-        border-radius: 18px;
-        background: var(--panel-soft);
-        border: 1px solid #ececec;
-      }
-      .monitor-step.is-complete {
-        background: #f8fffb;
-      }
-      .monitor-step.is-active {
-        background: #f8fbff;
-      }
-      .monitor-step.is-review {
-        background: #fffaf0;
-      }
-      .monitor-step.is-failed {
-        background: #fff7f7;
-      }
-      .monitor-icon {
-        width: 30px;
-        height: 30px;
-        border-radius: 999px;
-        border: 3px solid #d1d5db;
-        position: relative;
-        background: white;
-      }
-      .monitor-step.is-complete .monitor-icon,
-      .monitor-step.is-review .monitor-icon {
-        border-color: transparent;
-        background: var(--ok);
-      }
-      .monitor-step.is-failed .monitor-icon {
-        border-color: transparent;
-        background: var(--danger);
-      }
-      .monitor-step.is-active .monitor-icon {
-        border-color: var(--info);
-      }
-      .monitor-step.is-complete .monitor-icon::after,
-      .monitor-step.is-review .monitor-icon::after {
-        content: "";
-        position: absolute;
-        left: 8px;
-        top: 4px;
-        width: 8px;
-        height: 14px;
-        border-right: 3px solid white;
-        border-bottom: 3px solid white;
-        transform: rotate(40deg);
-      }
-      .monitor-step.is-failed .monitor-icon::before,
-      .monitor-step.is-failed .monitor-icon::after {
-        content: "";
-        position: absolute;
-        left: 13px;
-        top: 5px;
-        width: 3px;
-        height: 18px;
-        background: white;
-      }
-      .monitor-step.is-failed .monitor-icon::before {
-        transform: rotate(45deg);
-      }
-      .monitor-step.is-failed .monitor-icon::after {
-        transform: rotate(-45deg);
-      }
-      .monitor-step.is-active .monitor-icon::after {
-        content: "";
-        position: absolute;
-        inset: 6px;
-        border-radius: 999px;
-        background: var(--info);
-      }
-      .monitor-step strong {
-        font-size: 15px;
-      }
-      .monitor-step span {
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .monitor-state {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--muted);
-      }
       .metric-card {
         padding: 22px;
         display: grid;
         gap: 16px;
+      }
+      .metric-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+        gap: 18px;
+        align-items: center;
       }
       .metric-grid {
         display: grid;
@@ -245,14 +145,14 @@
       }
       .chart-box {
         display: grid;
-        grid-template-columns: 160px 1fr;
-        gap: 18px;
+        grid-template-columns: 132px 1fr;
+        gap: 16px;
         align-items: center;
-        padding: 8px 0 2px;
+        padding: 0;
       }
       .pie {
-        width: 150px;
-        height: 150px;
+        width: 132px;
+        height: 132px;
         border-radius: 999px;
         background: {{ chart_style }};
         position: relative;
@@ -261,7 +161,7 @@
       .pie::after {
         content: "";
         position: absolute;
-        inset: 24px;
+        inset: 22px;
         border-radius: 999px;
         background: var(--panel);
         border: 1px solid var(--line);
@@ -536,6 +436,7 @@
         .top-grid {
           grid-template-columns: 1fr;
         }
+        .metric-row,
         .metric-grid,
         .chart-box {
           grid-template-columns: 1fr;
@@ -551,7 +452,7 @@
       <section class="surface shell">
         <div class="hero-head">
           <div>
-            <div class="app-label">Onboarding Agent</div>
+            <div class="app-label">Onboarding Case Explorer</div>
             <h1 class="hero-title">{{ settings.app_title }}</h1>
             <p class="hero-copy">
               Explore persisted cases, inspect extraction and legal-validation prompts, and monitor each workflow from intake to final approval.
@@ -588,60 +489,38 @@
         {% endif %}
 
         <div class="top-grid">
-          <article class="monitor-card">
-            <h2 class="monitor-title">Monitor live workflow</h2>
-            <p class="monitor-copy">
-              The explorer keeps recent and active jobs visible, with a stage-oriented view that mirrors the case workflow.
-            </p>
-            <div class="monitor-steps">
-              {% set hero_steps = [
-                {"label": "Merchant Legal", "tone": "complete", "state_label": "Verified"},
-                {"label": "Merchant Documents", "tone": "complete" if active_jobs else "active", "state_label": "Verified" if active_jobs else "In progress"},
-                {"label": "Final Analysis", "tone": "active" if active_jobs else "pending", "state_label": "Analyzing" if active_jobs else "Pending"},
-                {"label": "Ready for Approval", "tone": "pending" if active_jobs else "complete", "state_label": "Pending" if active_jobs else "Ready"}
-              ] %}
-              {% for step in hero_steps %}
-              <div class="monitor-step is-{{ step.tone }}">
-                <div class="monitor-icon"></div>
-                <div>
-                  <strong>{{ step.label }}</strong>
-                </div>
-                <div class="monitor-state">{{ step.state_label }}</div>
-              </div>
-              {% endfor %}
-            </div>
-          </article>
-
           <article class="metric-card">
-            <div class="metric-grid">
-              <div class="metric-box">
-                <strong>{{ stats.cases_last_24h or 0 }}</strong>
-                <span>Casos en las últimas 24 horas</span>
+            <div class="metric-row">
+              <div class="metric-grid">
+                <div class="metric-box">
+                  <strong>{{ stats.cases_last_24h or 0 }}</strong>
+                  <span>Casos en las últimas 24 horas</span>
+                </div>
+                <div class="metric-box">
+                  <strong>{{ p50_duration_label }}</strong>
+                  <span>p50 de duración por job</span>
+                </div>
+                <div class="metric-box">
+                  <strong>{{ p90_duration_label }}</strong>
+                  <span>p90 de duración por job</span>
+                </div>
               </div>
-              <div class="metric-box">
-                <strong>{{ p50_duration_label }}</strong>
-                <span>p50 de duración por job</span>
-              </div>
-              <div class="metric-box">
-                <strong>{{ p90_duration_label }}</strong>
-                <span>p90 de duración por job</span>
-              </div>
-            </div>
 
-            <div class="chart-box">
-              <div class="pie" aria-label="Outcome distribution pie chart"></div>
-              <div class="legend">
-                <div class="legend-row">
-                  <span class="legend-key"><span class="swatch" style="background: var(--ok);"></span>Aprobados</span>
-                  <strong>{{ stats.outcome_counts.approved }}</strong>
-                </div>
-                <div class="legend-row">
-                  <span class="legend-key"><span class="swatch" style="background: var(--danger);"></span>Rechazados</span>
-                  <strong>{{ stats.outcome_counts.rejected }}</strong>
-                </div>
-                <div class="legend-row">
-                  <span class="legend-key"><span class="swatch" style="background: var(--warn);"></span>Requieren revisión manual</span>
-                  <strong>{{ stats.outcome_counts.requires_review }}</strong>
+              <div class="chart-box">
+                <div class="pie" aria-label="Outcome distribution pie chart"></div>
+                <div class="legend">
+                  <div class="legend-row">
+                    <span class="legend-key"><span class="swatch" style="background: var(--ok);"></span>Aprobados</span>
+                    <strong>{{ stats.outcome_counts.approved }}</strong>
+                  </div>
+                  <div class="legend-row">
+                    <span class="legend-key"><span class="swatch" style="background: var(--danger);"></span>Rechazados</span>
+                    <strong>{{ stats.outcome_counts.rejected }}</strong>
+                  </div>
+                  <div class="legend-row">
+                    <span class="legend-key"><span class="swatch" style="background: var(--warn);"></span>Requieren revisión manual</span>
+                    <strong>{{ stats.outcome_counts.requires_review }}</strong>
+                  </div>
                 </div>
               </div>
             </div>
@@ -739,7 +618,7 @@
                       <td>{{ item.legal_mode or "-" }}</td>
                       <td>{{ item.document_count }}</td>
                       <td>{{ item.duration_seconds | round(1) if item.duration_seconds is not none else "-" }}{% if item.duration_seconds is not none %}s{% endif %}</td>
-                      <td>{{ item.updated_at }}</td>
+                      <td>{{ item.updated_at_display }}</td>
                     </tr>
                   {% else %}
                     <tr>

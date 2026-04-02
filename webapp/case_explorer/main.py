@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -57,6 +59,25 @@ MONITOR_STEPS = [
     ("completed", "Ready for Approval"),
 ]
 
+VENEZUELA_TZ = ZoneInfo("America/Caracas")
+
+
+def _format_timestamp_venezuela(value: str | None) -> str:
+    """Render an ISO timestamp in Venezuela local time for the explorer UI."""
+
+    if not value:
+        return "-"
+
+    try:
+        normalized = value.replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(normalized)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        local_value = parsed.astimezone(VENEZUELA_TZ)
+        return local_value.strftime("%d/%m/%Y %I:%M:%S %p VET")
+    except ValueError:
+        return value
+
 
 def _case_summary(payload: dict) -> dict:
     """Extract a compact summary for the page header."""
@@ -72,6 +93,7 @@ def _case_summary(payload: dict) -> dict:
         "overall_summary": overall.get("summary"),
         "legal_mode": validation.get("legal_mode"),
         "updated_at": payload.get("updated_at"),
+        "updated_at_display": _format_timestamp_venezuela(payload.get("updated_at")),
     }
 
 
@@ -506,6 +528,7 @@ def _decorate_case_row(item: dict) -> dict:
     )
     row["monitor_primary"] = primary
     row["monitor_secondary"] = secondary
+    row["updated_at_display"] = _format_timestamp_venezuela(row.get("updated_at"))
     return row
 
 

@@ -487,7 +487,7 @@
       <section class="surface shell">
         <div class="hero-head">
           <div>
-            <div class="app-label">Onboarding Agent</div>
+            <div class="app-label">Onboarding Case Explorer</div>
             <h1 class="hero-title">{{ summary.merchant_id }}</h1>
             <p class="hero-copy">{{ monitor_primary }} {{ monitor_secondary }}</p>
           </div>
@@ -559,7 +559,7 @@
 
             <div class="metric-box">
               <strong>{{ summary.job_id }}</strong>
-              <span>Job ID · Updated {{ summary.updated_at or "-" }}</span>
+              <span>Job ID · Updated {{ summary.updated_at_display or "-" }}</span>
             </div>
           </article>
         </section>
