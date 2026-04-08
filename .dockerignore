@@ -1,0 +1,14 @@
+.git
+.github
+.venv
+.pytest_cache
+.DS_Store
+__pycache__
+*.pyc
+.private_docs
+.local_test_docs
+docs/export
+docs/assets
+eval_cases/baseline.json
+tests
+scripts

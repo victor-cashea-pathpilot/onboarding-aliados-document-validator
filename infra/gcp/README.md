@@ -19,6 +19,71 @@ Esta carpeta es la fuente de verdad operativa para desplegar la arquitectura en 
 - `deploy_observability.sh`: aplica métricas + dashboards
 - `smoke_test.sh`: prueba básica contra el API desplegado
 
+## Docker y builds locales
+
+Los tres servicios se construyen desde el root del repo usando el contexto completo y un `.dockerignore` en la raíz para reducir archivos no necesarios en la imagen.
+
+Imágenes principales:
+
+- API: `backend/Dockerfile.api`
+- Worker: `backend/Dockerfile.worker`
+- Case Explorer: `webapp/Dockerfile`
+
+Ejemplos de build local:
+
+```bash
+docker build -f backend/Dockerfile.api -t onboarding-api:local .
+docker build -f backend/Dockerfile.worker -t onboarding-worker:local .
+docker build -f webapp/Dockerfile -t onboarding-case-explorer:local .
+```
+
+Ejemplos de run local:
+
+```bash
+docker run --rm -p 8080:8080 --env-file backend/.env onboarding-api:local
+docker run --rm -p 8081:8080 --env-file backend/.env onboarding-worker:local
+docker run --rm -p 8082:8080 --env-file webapp/.env onboarding-case-explorer:local
+```
+
+Notas:
+
+- las imágenes corren con usuario no-root
+- el contexto de build excluye archivos pesados o no necesarios como `.git`, `.venv`, `tests`, `.private_docs` y exportes temporales de documentación
+- los deploys de GCP siguen publicando `linux/amd64` para compatibilidad con Cloud Run
+
+## Imágenes publicadas en GCP
+
+Los scripts de deploy no usan imágenes guardadas en el repo. Construyen y publican imágenes en `Artifact Registry`.
+
+Nombres de imagen actuales:
+
+- API:
+  - `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api:${IMAGE_TAG}`
+- Worker:
+  - `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-worker:${IMAGE_TAG}`
+- Case Explorer:
+  - `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-case-explorer:${IMAGE_TAG}`
+
+Estas rutas se resuelven desde:
+
+- `api_image()` en `infra/gcp/common.sh`
+- `worker_image()` en `infra/gcp/common.sh`
+- `case_explorer_image()` en `infra/gcp/common.sh`
+
+Ejemplo para listar las imágenes publicadas:
+
+```bash
+gcloud artifacts docker images list \
+  ${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}
+```
+
+Ejemplo para inspeccionar tags de una imagen:
+
+```bash
+gcloud artifacts docker tags list \
+  ${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api
+```
+
 ## Prerrequisitos
 
 - `gcloud` autenticado
