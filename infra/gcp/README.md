@@ -51,6 +51,39 @@ Notas:
 - el contexto de build excluye archivos pesados o no necesarios como `.git`, `.venv`, `tests`, `.private_docs` y exportes temporales de documentación
 - los deploys de GCP siguen publicando `linux/amd64` para compatibilidad con Cloud Run
 
+## Imágenes publicadas en GCP
+
+Los scripts de deploy no usan imágenes guardadas en el repo. Construyen y publican imágenes en `Artifact Registry`.
+
+Nombres de imagen actuales:
+
+- API:
+  - `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api:${IMAGE_TAG}`
+- Worker:
+  - `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-worker:${IMAGE_TAG}`
+- Case Explorer:
+  - `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-case-explorer:${IMAGE_TAG}`
+
+Estas rutas se resuelven desde:
+
+- `api_image()` en `infra/gcp/common.sh`
+- `worker_image()` en `infra/gcp/common.sh`
+- `case_explorer_image()` en `infra/gcp/common.sh`
+
+Ejemplo para listar las imágenes publicadas:
+
+```bash
+gcloud artifacts docker images list \
+  ${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}
+```
+
+Ejemplo para inspeccionar tags de una imagen:
+
+```bash
+gcloud artifacts docker tags list \
+  ${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api
+```
+
 ## Prerrequisitos
 
 - `gcloud` autenticado
