@@ -125,7 +125,14 @@ def test_case_detail_renders_with_mocked_case(monkeypatch) -> None:
             },
             "request": {"documents": {"rif": [{"url": "https://example.com/rif.pdf"}]}},
             "documents": {"rif": []},
-            "normalized_snapshot": {"rif_number": "J123456789"},
+            "normalized_snapshot": {
+                "rif_number": "J123456789",
+                "primary_cedula_id": "V-12345678",
+                "primary_cedula_expiration_date": "31/12/2030",
+                "primary_cedula_is_expired": False,
+                "primary_cedula_expiration_years": 0,
+                "primary_cedula_policy_outcome": "valid",
+            },
             "updated_at": "2026-03-29T00:00:00Z",
         },
     )
@@ -139,6 +146,9 @@ def test_case_detail_renders_with_mocked_case(monkeypatch) -> None:
     assert "Current progress" in response.text
     assert "100%" in response.text
     assert "Back" in response.text
+    assert "Cedula Policy" in response.text
+    assert "31/12/2030" in response.text
+    assert "Vigente" in response.text
 
 
 def test_case_detail_json_returns_payload(monkeypatch) -> None:

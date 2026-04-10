@@ -40,12 +40,14 @@ Fecha actual de referencia: {_today_ddmmyyyy()}.
 1. Número de Cédula: incluye el prefijo (V-, E-, P-) seguido del número completo.
 2. Nombres: nombres completos de la persona.
 3. Apellidos: apellidos completos de la persona.
+4. Fecha de Vencimiento: fecha de vencimiento de la cédula en formato DD/MM/AAAA, si está presente y legible.
 
 Responde SOLO con un JSON válido en este formato exacto:
 {{
   "id_number": "",
   "first_name": "",
-  "last_name": ""
+  "last_name": "",
+  "expiration_date": ""
 }}
 
 Si algún dato no es legible o no está presente, usa una cadena vacía para ese campo.

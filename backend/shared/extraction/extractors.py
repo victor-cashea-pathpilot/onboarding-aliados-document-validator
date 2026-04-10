@@ -49,6 +49,7 @@ class CedulaExtractor(BaseDocumentExtractor):
             "id_number": "V-12345678",
             "first_name": "NOMBRE",
             "last_name": "APELLIDO",
+            "expiration_date": "31/12/2030",
             "mock_source_url": source_url,
             "mock_document_id": document_id,
         }

@@ -58,6 +58,15 @@ class CanonicalMerchantSnapshot(BaseModel):
     rif_fiscal_address: str = ""
     primary_cedula_id: str = ""
     primary_cedula_full_name: str = ""
+    primary_cedula_expiration_date: str = ""
+    primary_cedula_is_expired: bool | None = None
+    primary_cedula_expiration_years: int | None = None
+    primary_cedula_policy_outcome: Literal[
+        "valid",
+        "expired_within_10_years",
+        "expired_over_10_years",
+        "unknown",
+    ] = "unknown"
     legal_mode: Literal[
         "sociedad_mercantil",
         "firma_personal",

@@ -21,12 +21,13 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 
 - Plan por etapas: [docs/Stages_Plan_v1.md](docs/Stages_Plan_v1.md)
 - Especificación de API: [docs/API_Spec_v2.md](docs/API_Spec_v2.md)
-- Arquitectura MVP: [docs/Architecture_v2.md](docs/Architecture_v2.md)
+- Arquitectura implementada y requerimientos infra/security: [docs/Architecture_v2.md](docs/Architecture_v2.md)
 - Arquitectura actual vs target Cashea: [docs/Architecture_Current_vs_Target.md](docs/Architecture_Current_vs_Target.md)
 - Casos reales de prueba y política de uso: [docs/Real_Test_Cases_v1.md](docs/Real_Test_Cases_v1.md)
 - Estrategia de evals: [docs/Evals_Strategy_v1.md](docs/Evals_Strategy_v1.md)
 - Real extraction evals locales: [docs/Real_Extraction_Evals_v1.md](docs/Real_Extraction_Evals_v1.md)
 - Despliegue GCP: [infra/gcp/README.md](infra/gcp/README.md)
+- Docker y builds locales: [infra/gcp/README.md#docker-y-builds-locales](infra/gcp/README.md#docker-y-builds-locales)
 
 ## Workflow de ramas
 

@@ -109,6 +109,47 @@
       .progress-wrap {
         margin-top: 18px;
       }
+      .policy-card {
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 18px;
+      }
+      .policy-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .policy-head h2 {
+        margin: 8px 0 0;
+        font-size: 20px;
+      }
+      .policy-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .policy-item {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel-alt);
+        padding: 14px 16px;
+      }
+      .policy-item strong {
+        display: block;
+        font-size: 18px;
+        line-height: 1.2;
+      }
+      .policy-item span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 4px;
+      }
       .progress-head {
         display: flex;
         justify-content: space-between;
@@ -334,6 +375,50 @@
           </div>
           <div class="progress-message">{{ case_payload.progress.message if case_payload.progress else "No progress metadata available." }}</div>
         </div>
+
+        <section class="policy-card">
+          <div class="policy-head">
+            <div>
+              <div class="eyebrow">Cedula Policy</div>
+              <h2>Vigencia documental e impacto en veredicto</h2>
+            </div>
+            <div class="status {% if cedula_policy.policy_outcome == 'expired_over_10_years' %}status-failed{% elif cedula_policy.policy_outcome == 'unknown' %}status-pending{% else %}{% endif %}">
+              {{ cedula_policy.policy_label }}
+            </div>
+          </div>
+          <div class="policy-grid">
+            <article class="policy-item">
+              <strong>{{ cedula_policy.id_number }}</strong>
+              <span>Cédula</span>
+            </article>
+            <article class="policy-item">
+              <strong>{{ cedula_policy.expiration_date }}</strong>
+              <span>Fecha de vencimiento</span>
+            </article>
+            <article class="policy-item">
+              <strong>
+                {% if cedula_policy.is_expired is sameas true %}
+                  Sí
+                {% elif cedula_policy.is_expired is sameas false %}
+                  No
+                {% else %}
+                  -
+                {% endif %}
+              </strong>
+              <span>¿Vencida?</span>
+            </article>
+            <article class="policy-item">
+              <strong>
+                {% if cedula_policy.expiration_years is not none %}
+                  {{ cedula_policy.expiration_years }}
+                {% else %}
+                  -
+                {% endif %}
+              </strong>
+              <span>Años desde vencimiento</span>
+            </article>
+          </div>
+        </section>
 
         <div class="nav">
           <a href="/">Back to cases</a>

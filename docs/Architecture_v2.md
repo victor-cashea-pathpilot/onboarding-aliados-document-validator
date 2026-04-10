@@ -1,219 +1,260 @@
-# Onboarding Agent Architecture v2
+# Componentes y Requerimientos de Despliegue
 
-## Goal
+## Objetivo
 
-Define the revised MVP architecture for Cashea onboarding document validation using Google Cloud and Gemini.
+Este documento enumera únicamente los componentes **internos** de la solución que el equipo de infraestructura necesita desplegar y operar, junto con el modelo de seguridad actual.
 
-This version removes prototype-only components such as HubSpot ingestion and document classification. The request payload already provides document URLs and document types.
+No incluye sistemas externos consumidores del API.
 
-## Architecture Summary
+## Componentes internos y requerimientos
 
-The system is a Google-native asynchronous processing pipeline:
+### 1. Cloud Run — API Service
 
-1. Cashea submits a validation job with typed document URLs.
-2. The API persists the job and enqueues background processing.
-3. A worker downloads documents, extracts structured data with Gemini, normalizes it, and runs cross-validation.
-4. Results are stored and exposed through the status endpoint.
+Responsabilidad:
 
-## Recommended MVP Components
+- recibir requests de validación
+- crear `job_id`
+- persistir el job inicial
+- encolar procesamiento asíncrono
+- exponer consulta de estado y endpoints internos para operación
 
-### API Layer
+Endpoints principales:
 
-- `Cloud Run` service for the public API
-- Optional `API Gateway` or `Apigee` for auth, quotas, and traffic controls
+- `POST /validate`
+- `POST /status`
+- `GET /internal/jobs/{job_id}`
+- `GET /internal/jobs`
 
-Responsibilities:
+Requerimientos de infraestructura:
 
-- request validation
-- authentication
-- job creation
-- initial persistence
-- status retrieval
+- servicio desplegado en `Cloud Run`
+- variables de entorno por ambiente
+- healthcheck estable
+- timeout para requests cortos
+- logs por `stdout/stderr`
 
-### Async Processing
+Dependencias:
 
-- `Cloud Tasks` or `Pub/Sub`
+- `Firestore`
+- `Cloud Tasks`
 
-Recommendation:
+Permisos mínimos requeridos:
 
-- use `Cloud Tasks` if you want tighter per-job control and simpler retry semantics
-- use `Pub/Sub` if you expect higher fan-out or more event-driven extensions later
+- lectura/escritura en `Firestore`
+- creación de tasks en `Cloud Tasks`
 
-### Worker Layer
+### 2. Firestore
 
-- `Cloud Run` worker service
+Responsabilidad:
 
-Responsibilities:
+- fuente de verdad del job
 
-- download documents
-- validate file integrity
-- call Gemini per document type
-- normalize extracted data
-- run cross-validation rules
-- persist results
+Persistencia actual:
 
-### Storage and State
+- request original
+- estado del job
+- progreso
+- resultados por documento
+- snapshot normalizado
+- validación cruzada
+- resultado final
 
-- `Firestore` for job state, progress, extracted outputs, and final results
-- `Cloud Storage` for optional temporary file staging
+Requerimientos de infraestructura:
 
-### AI Layer
+- `Firestore` en modo nativo
+- colección de jobs por ambiente
+- índices para paginación/consulta del `Case Explorer`
 
-- `Vertex AI Gemini`
+Permisos mínimos requeridos:
 
-Recommended usage:
+- acceso restringido a service accounts del API y worker
 
-- one structured extraction prompt per document type
-- optionally use a stronger model for long legal documents and a faster model for simple identity/fiscal documents
-- keep prompt outputs strict and schema-validated
+### 3. Cloud Tasks
 
-### Security and Operations
+Responsabilidad:
 
-- `Secret Manager` for secrets
-- `Cloud Logging` for structured logs
-- `Cloud Monitoring` for uptime and error alerts
+- ejecutar el procesamiento asíncrono del job
+- aplicar retries y rate limiting
+- invocar el worker autenticadamente
 
-## Logical Flow
+Requerimientos de infraestructura:
 
-```mermaid
-flowchart TD
-    A["Cashea Client"] --> B["API Layer<br/>Cloud Run"]
-    B --> C["Job Store<br/>Firestore"]
-    B --> D["Async Queue<br/>Cloud Tasks or Pub/Sub"]
-    D --> E["Worker Service<br/>Cloud Run"]
-    E --> F["Document Fetch and Validation"]
-    F --> G["Gemini Extraction by Document Type"]
-    G --> H["Canonical Normalization"]
-    H --> I["Cross-Validation Engine"]
-    I --> C
-    B --> C
-    C --> J["Status Response"]
-    E -. optional .-> K["Cloud Storage"]
-    E --> L["Cloud Logging and Monitoring"]
-```
+- una cola dedicada por ambiente
+- configuración explícita de:
+  - `max dispatches`
+  - `max concurrent dispatches`
+  - retries
+  - backoff
 
-## Internal Processing Stages
+Permisos mínimos requeridos:
 
-### 1. Intake
+- invocación del worker con `OIDC`
+- service account dedicada para invocar el worker
 
-Input:
+### 4. Cloud Run — Worker Service
 
-- `merchant_id`
-- typed document URLs
+Responsabilidad:
 
-Checks:
+- procesar un job completo
+- validar y descargar documentos
+- ejecutar extracción en paralelo por documento
+- normalizar datos
+- ejecutar validación cruzada
+- persistir resultado final
 
-- supported document type
-- URL reachability
-- file size and MIME
-- duplicate document handling rules
+Requerimientos de infraestructura:
 
-### 2. Extraction
+- servicio desplegado en `Cloud Run`
+- acceso privado / autenticado
+- CPU y memoria suficientes para documentos largos
+- timeout suficiente para llamadas LLM
+- `containerConcurrency` ajustada al throughput esperado
 
-Route each file directly by provided type:
+Dependencias:
 
-- `rif`
-- `cedula`
-- `acta_constitutiva`
-- `acta_mercantil`
-- `certificado_emprendimiento`
+- `Firestore`
+- `Vertex AI`
+- acceso saliente a URLs de documentos
 
-Each extractor returns structured JSON and confidence.
+Permisos mínimos requeridos:
 
-### 3. Normalization
+- lectura/escritura en `Firestore`
+- acceso a `Vertex AI`
 
-Map extracted data into a canonical case model.
+### 5. Vertex AI (Gemini)
 
-Examples:
+Responsabilidad:
 
-- normalize ID formats
-- normalize company names
-- normalize dates
-- derive entity type
-- derive signature authority structure
+- extracción estructurada por documento
+- validación cruzada contextual
+- assessment legal final
 
-### 4. Cross-Validation
+Uso actual:
 
-Compare normalized fields across documents.
+- `Gemini 2.5 Flash`
+  - `RIF`
+  - `Cédula`
+  - documentos simples
 
-Examples:
+- `Gemini 2.5 Pro`
+  - `Acta Constitutiva`
+  - `Acta Mercantil`
+  - `Certificado de Emprendimiento`
+  - validación final
 
-- RIF company name vs constitutive company name
-- representative ID vs legal representative list
-- board validity vs current date
-- signature mode vs number of representatives provided
+Requerimientos de infraestructura:
 
-### 5. Verdict Composition
+- `Vertex AI API` habilitada
+- proyecto/región configurados
+- cuotas suficientes para el throughput esperado
 
-Produce:
+Permisos mínimos requeridos:
 
-- document-level results
-- cross-validation check results
-- case-level verdict
+- acceso vía IAM / service account del worker
 
-## Data Boundaries
+### 6. Cloud Logging / Monitoring
 
-### External Contract
+Responsabilidad:
 
-Stable and customer-facing:
+- trazabilidad operativa
+- diagnóstico de fallos
+- dashboards y métricas
 
-- submit validation request
-- poll job status
-- consume structured results
+Estado actual:
 
-### Internal Model
+- logs JSON estructurados
+- métricas derivadas de logs
+- dashboard operativo en `Cloud Monitoring`
 
-Flexible and implementation-facing:
+Requerimientos de infraestructura:
 
-- extractor output schemas
-- canonical normalization model
-- validation rule outputs
+- `Cloud Logging`
+- `Cloud Monitoring`
+- creación de métricas basadas en logs
+- creación de dashboard por ambiente
 
-This separation is important so internal prompt changes do not break Cashea integration.
+### 7. Cloud Run — Case Explorer
 
-## MVP Architecture Decisions
+Responsabilidad:
 
-### Keep
+- inspección interna de casos
+- visualización de prompts, inputs, outputs y progreso del workflow
 
-- async processing
-- Google-native deployment
-- Gemini-based structured extraction
-- explicit state persistence
-- deterministic cross-validation rules
+Requerimientos de infraestructura:
 
-### Remove
+- servicio desplegado en `Cloud Run`
+- usa el API como backend
+- protegido con `IAP`
 
-- document classification stage
-- CRM ingestion
-- workflow-engine-specific dependencies in the public design
+Dependencias:
 
-### Defer
+- `Cloud Run — API Service`
 
-- advanced analytics warehouse
-- eval platform beyond baseline regression testing
-- manual-review backoffice UI
+Permisos mínimos requeridos:
 
-## Suggested Evolution Path
+- service account con permiso de invocar el API interno
 
-### MVP
+## Seguridad actual
 
-- one API service
-- one worker service
-- Firestore state store
-- Cloud Tasks queue
-- Gemini extraction and validation
+### Acceso a servicios
 
-### Next Phase
+- `API Service`: acceso autenticado
+- `Worker Service`: acceso privado, invocado por `Cloud Tasks` con `OIDC`
+- `Case Explorer`: acceso protegido con `IAP / Google login`
 
-- split extraction and validation workers if latency or cost requires it
-- add gateway controls
-- add BigQuery for analytics and auditing
-- add evaluation pipelines and benchmark dashboards
+### Identidades de servicio
 
-## Operational Concerns
+Se usan service accounts separadas para:
 
-- signed URLs may expire during retries
-- long legal documents will dominate latency and cost
-- logs must avoid leaking sensitive PII unnecessarily
-- model timeouts and malformed outputs must be recoverable
-- every verdict should be traceable to extraction evidence and rule outcomes
+- `API`
+- `Worker`
+- `Cloud Tasks` caller
+- `Case Explorer`
+
+### Firestore
+
+- no se expone a clientes externos
+- acceso restringido a componentes internos autorizados
+
+### Vertex AI
+
+- acceso por IAM
+- no se usan API keys públicas en runtime
+
+### Documentos
+
+- el sistema consume documentos vía:
+  - URLs externas
+  - signed URLs
+- no se deben loggear tokens completos ni query params sensibles
+
+### Webapp interna
+
+- `Case Explorer` usa `IAP` para control de acceso
+- el acceso se otorga por usuario o grupo
+
+## Resumen de despliegue
+
+Para desplegar la arquitectura actual se necesitan estos componentes:
+
+- `Cloud Run — API Service`
+- `Firestore`
+- `Cloud Tasks`
+- `Cloud Run — Worker Service`
+- `Vertex AI`
+- `Cloud Logging / Monitoring`
+- `Cloud Run — Case Explorer`
+- `IAP`
+
+## Capacidad objetivo del MVP
+
+Volumen objetivo inicial:
+
+- `100` casos por día
+- picos de `10` casos simultáneos
+
+Los puntos más sensibles para capacity son:
+
+- concurrencia del worker
+- throughput de `Cloud Tasks`
+- cuotas de `Vertex AI Gemini`

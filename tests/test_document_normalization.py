@@ -35,6 +35,7 @@ def test_normalization_builds_canonical_snapshot_from_documents() -> None:
                         "id_number": "V-12.048.047",
                         "first_name": "FREDDY RAMON",
                         "last_name": "CONTRERAS DIAZ",
+                        "expiration_date": "31/12/2030",
                     },
                 },
             )
@@ -92,6 +93,10 @@ def test_normalization_builds_canonical_snapshot_from_documents() -> None:
 
     assert snapshot.rif_number == "J-41036436-0"
     assert snapshot.primary_cedula_id == "V-12.048.047"
+    assert snapshot.primary_cedula_expiration_date == "31/12/2030"
+    assert snapshot.primary_cedula_is_expired is False
+    assert snapshot.primary_cedula_expiration_years == 0
+    assert snapshot.primary_cedula_policy_outcome == "valid"
     assert snapshot.company_record.company_name == "FREDLOU STILO Y BELLEZA C.A."
     assert snapshot.company_record.board_status == "VENCIDA"
     assert snapshot.company_record.registration_number == "15"
@@ -382,3 +387,36 @@ def test_normalization_does_not_override_signature_with_negative_placeholder_tex
     assert snapshot.company_record.signature_type == "SEPARADA"
     assert snapshot.representatives[0].source_document_id == "merc-newer"
     assert snapshot.representatives[0].signature_type == "SEPARADA"
+
+
+def test_normalization_tracks_expired_cedula_metadata() -> None:
+    documents = DocumentsResult(
+        cedula=[
+            DocumentResultItem(
+                document_id="ced-legacy",
+                status="APPROVED",
+                confidence=90,
+                extracted_data={
+                    "document_type": "cedula",
+                    "extraction_status": "completed",
+                    "extracted_fields": {
+                        "id_number": "V-10.000.001",
+                        "first_name": "ANA",
+                        "last_name": "PEREZ",
+                        "expiration_date": "01/01/2014",
+                    },
+                },
+            )
+        ]
+    )
+
+    snapshot = DocumentNormalizationService().normalize(
+        merchant_id="merchant-cedula-expired",
+        documents=documents,
+    )
+
+    assert snapshot.primary_cedula_expiration_date == "01/01/2014"
+    assert snapshot.primary_cedula_is_expired is True
+    assert snapshot.primary_cedula_expiration_years is not None
+    assert snapshot.primary_cedula_expiration_years >= 10
+    assert snapshot.primary_cedula_policy_outcome == "expired_over_10_years"
