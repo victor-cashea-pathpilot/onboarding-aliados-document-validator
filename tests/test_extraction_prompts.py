@@ -28,6 +28,7 @@ def test_cedula_prompt_reuses_expected_schema() -> None:
     assert '"id_number"' in prompt
     assert '"first_name"' in prompt
     assert '"last_name"' in prompt
+    assert '"expiration_date"' in prompt
     assert "{{" not in prompt
     assert "$json" not in prompt
 

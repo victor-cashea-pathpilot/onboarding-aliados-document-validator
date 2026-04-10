@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from backend.shared.models.canonical import (
     CanonicalCompanyRecord,
@@ -78,9 +78,13 @@ class DocumentNormalizationService:
         snapshot.primary_cedula_id = str(fields.get("id_number", "")).strip()
         first_name = str(fields.get("first_name", "")).strip()
         last_name = str(fields.get("last_name", "")).strip()
+        snapshot.primary_cedula_expiration_date = str(
+            fields.get("expiration_date", "")
+        ).strip()
         snapshot.primary_cedula_full_name = " ".join(
             value for value in (first_name, last_name) if value
         ).strip()
+        self._apply_cedula_expiration_policy(snapshot)
 
     def _apply_company_documents(
         self,
@@ -361,6 +365,33 @@ class DocumentNormalizationService:
 
         return "unknown"
 
+    def _apply_cedula_expiration_policy(
+        self,
+        snapshot: CanonicalMerchantSnapshot,
+    ) -> None:
+        expiration = self._parse_optional_date(snapshot.primary_cedula_expiration_date)
+        if expiration is None:
+            snapshot.primary_cedula_is_expired = None
+            snapshot.primary_cedula_expiration_years = None
+            snapshot.primary_cedula_policy_outcome = "unknown"
+            return
+
+        today = datetime.now(UTC).date()
+        is_expired = expiration < today
+        snapshot.primary_cedula_is_expired = is_expired
+        if not is_expired:
+            snapshot.primary_cedula_expiration_years = 0
+            snapshot.primary_cedula_policy_outcome = "valid"
+            return
+
+        years_since_expiration = self._full_years_between(expiration, today)
+        snapshot.primary_cedula_expiration_years = years_since_expiration
+        snapshot.primary_cedula_policy_outcome = (
+            "expired_over_10_years"
+            if self._add_years(expiration, 10) < today
+            else "expired_within_10_years"
+        )
+
     def _approved_items(self, items):
         return [
             item
@@ -393,6 +424,29 @@ class DocumentNormalizationService:
             except ValueError:
                 continue
         return datetime.min
+
+    def _parse_optional_date(self, value: str) -> datetime.date | None:
+        cleaned = value.strip()
+        if not cleaned or cleaned.upper() == "NO_ENCONTRADO":
+            return None
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(cleaned, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    def _full_years_between(self, start: datetime.date, end: datetime.date) -> int:
+        years = end.year - start.year
+        if (end.month, end.day) < (start.month, start.day):
+            years -= 1
+        return max(years, 0)
+
+    def _add_years(self, value: datetime.date, years: int) -> datetime.date:
+        try:
+            return value.replace(year=value.year + years)
+        except ValueError:
+            return value.replace(month=2, day=28, year=value.year + years)
 
     def _normalize_text(self, value: str) -> str:
         return " ".join(str(value).strip().lower().replace(".", " ").split())

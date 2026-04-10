@@ -30,6 +30,7 @@ class CrossValidationService:
                 "Se recibió al menos una cédula.",
                 "No se recibió cédula.",
             ),
+            self._cedula_validity_policy(snapshot),
             self._check_presence(
                 "HAS_CONSTITUTIVE_DOC",
                 any(
@@ -177,6 +178,44 @@ class CrossValidationService:
                 "La cédula coincide con al menos un representante legal vigente."
                 if cedula in legal_ids
                 else "La cédula no coincide con ningún representante legal vigente."
+            ),
+        )
+
+    def _cedula_validity_policy(
+        self,
+        snapshot: CanonicalMerchantSnapshot,
+    ) -> CrossValidationCheck:
+        expiration = self._parse_date(snapshot.primary_cedula_expiration_date)
+        if expiration is None:
+            return CrossValidationCheck(
+                code="CEDULA_VALIDITY_POLICY",
+                status="SKIPPED",
+                message="No hay fecha suficiente para evaluar la política de vigencia de la cédula.",
+            )
+
+        today = datetime.now(timezone.utc).date()
+        if expiration >= today:
+            return CrossValidationCheck(
+                code="CEDULA_VALIDITY_POLICY",
+                status="PASSED",
+                message="La cédula figura vigente según la fecha extraída.",
+            )
+
+        years_since_expiration = self._full_years_between(expiration, today)
+        if self._add_years(expiration, 10) < today:
+            return CrossValidationCheck(
+                code="CEDULA_VALIDITY_POLICY",
+                status="FAILED",
+                message=(
+                    "La cédula figura vencida por más de 10 años y debe rechazarse por política."
+                ),
+            )
+
+        return CrossValidationCheck(
+            code="CEDULA_VALIDITY_POLICY",
+            status="PASSED",
+            message=(
+                "La cédula figura vencida, pero dentro del umbral permitido de hasta 10 años."
             ),
         )
 
@@ -470,3 +509,15 @@ class CrossValidationService:
         if normalized in {"baja", "bajo"}:
             return 30
         return 0
+
+    def _full_years_between(self, start, end) -> int:
+        years = end.year - start.year
+        if (end.month, end.day) < (start.month, start.day):
+            years -= 1
+        return max(years, 0)
+
+    def _add_years(self, value, years: int):
+        try:
+            return value.replace(year=value.year + years)
+        except ValueError:
+            return value.replace(month=2, day=28, year=value.year + years)
