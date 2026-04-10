@@ -68,6 +68,27 @@ def _case_summary(payload: dict) -> dict:
     }
 
 
+def _cedula_policy_summary(payload: dict) -> dict:
+    """Extract cédula expiration policy metadata for the case detail hero."""
+
+    snapshot = payload.get("normalized_snapshot") or {}
+    outcome = snapshot.get("primary_cedula_policy_outcome") or "unknown"
+    outcome_labels = {
+        "valid": "Vigente",
+        "expired_within_10_years": "Vencida <= 10 años",
+        "expired_over_10_years": "Vencida > 10 años",
+        "unknown": "Sin dato suficiente",
+    }
+    return {
+        "id_number": snapshot.get("primary_cedula_id") or "-",
+        "expiration_date": snapshot.get("primary_cedula_expiration_date") or "-",
+        "is_expired": snapshot.get("primary_cedula_is_expired"),
+        "expiration_years": snapshot.get("primary_cedula_expiration_years"),
+        "policy_outcome": outcome,
+        "policy_label": outcome_labels.get(outcome, outcome),
+    }
+
+
 def _format_duration(seconds: float | None) -> str:
     """Format seconds into a compact duration label."""
 
@@ -516,6 +537,7 @@ async def case_detail(request: Request, job_id: str) -> HTMLResponse:
             **_base_context(request),
             "job_id": job_id,
             "summary": _case_summary(payload),
+            "cedula_policy": _cedula_policy_summary(payload),
             "case_payload": payload,
             "case_payload_pretty": json.dumps(payload, ensure_ascii=False, indent=2),
             "workflow_nodes": workflow_nodes,
