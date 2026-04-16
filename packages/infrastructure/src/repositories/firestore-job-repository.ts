@@ -1,5 +1,5 @@
 import { Firestore, Timestamp } from '@google-cloud/firestore';
-import type { JobRecord } from '@domain/job';
+import type { JobRecord } from '@domain';
 import { getInfrastructureSettings } from '../config/settings';
 import type { JobRepository } from './job-repository';
 
@@ -70,7 +70,7 @@ export class FirestoreJobRepository implements JobRepository {
   async listPage(page: number, pageSize: number): Promise<{ records: JobRecord[]; hasNext: boolean }> {
     const offset = Math.max(page - 1, 0) * pageSize;
     const snapshots = await this.collection()
-      .orderBy('updatedAt', 'desc')
+      .orderBy('updated_at', 'desc')
       .offset(offset)
       .limit(pageSize + 1)
       .get();
@@ -88,29 +88,47 @@ export class FirestoreJobRepository implements JobRepository {
 
   private serialize(job: JobRecord): Record<string, unknown> {
     return {
-      ...job,
-      createdAt: job.createdAt,
-      updatedAt: job.updatedAt,
+      job_id: job.jobId,
+      merchant_id: job.merchantId,
+      request_id: job.requestId ?? null,
+      status: job.status,
+      poll_count: job.pollCount,
+      request: job.request,
+      progress: job.progress ?? null,
+      overall_result: job.overallResult ?? null,
+      documents: job.documents ?? null,
+      normalized_snapshot: job.normalizedSnapshot ?? null,
+      cross_validation: job.crossValidation ?? null,
+      created_at: job.createdAt,
+      updated_at: job.updatedAt,
     };
   }
 
   private deserialize(data: Record<string, unknown>): JobRecord {
+    const jobId = data.job_id ?? data.jobId;
+    const merchantId = data.merchant_id ?? data.merchantId;
+    const requestId = data.request_id ?? data.requestId;
+    const pollCount = data.poll_count ?? data.pollCount ?? 0;
+    const overallResult = data.overall_result ?? data.overallResult ?? null;
+    const normalizedSnapshot = data.normalized_snapshot ?? data.normalizedSnapshot ?? null;
+    const crossValidation = data.cross_validation ?? data.crossValidation ?? null;
+    const createdAt = data.created_at ?? data.createdAt;
+    const updatedAt = data.updated_at ?? data.updatedAt;
+
     return {
-      ...data,
-      jobId: String(data.jobId),
-      merchantId: String(data.merchantId),
+      jobId: String(jobId),
+      merchantId: String(merchantId),
       status: data.status as JobRecord['status'],
-      pollCount: Number(data.pollCount ?? 0),
+      pollCount: Number(pollCount),
       request: (data.request ?? {}) as Record<string, unknown>,
-      requestId: (data.requestId as string | null | undefined) ?? null,
+      requestId: (requestId as string | null | undefined) ?? null,
       progress: (data.progress as JobRecord['progress']) ?? null,
-      overallResult: (data.overallResult as JobRecord['overallResult']) ?? null,
+      overallResult: (overallResult as JobRecord['overallResult']) ?? null,
       documents: (data.documents as JobRecord['documents']) ?? null,
-      normalizedSnapshot:
-        (data.normalizedSnapshot as JobRecord['normalizedSnapshot']) ?? null,
-      crossValidation: (data.crossValidation as JobRecord['crossValidation']) ?? null,
-      createdAt: parseDate(data.createdAt) ?? new Date().toISOString(),
-      updatedAt: parseDate(data.updatedAt) ?? new Date().toISOString(),
+      normalizedSnapshot: (normalizedSnapshot as JobRecord['normalizedSnapshot']) ?? null,
+      crossValidation: (crossValidation as JobRecord['crossValidation']) ?? null,
+      createdAt: parseDate(createdAt) ?? new Date().toISOString(),
+      updatedAt: parseDate(updatedAt) ?? new Date().toISOString(),
     };
   }
 }

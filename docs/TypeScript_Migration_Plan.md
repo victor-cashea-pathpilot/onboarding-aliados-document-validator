@@ -254,7 +254,11 @@ Status on this branch:
   - `deploy_ts_case_explorer.sh`
   - `deploy_ts_phase1_validation.sh`
 - documented validation flow in `infra/gcp/README.md`
-- next checkpoint is optional parallel deploy in the current GCP project
+- completed parallel GCP deploy validation for scaffold services:
+  - `onboarding-api-ts-dev`
+  - `onboarding-worker-ts-dev`
+  - `onboarding-case-explorer-ts-dev`
+- validated health endpoints in Cloud Run
 
 ### Phase 2: Contracts and domain model port
 
@@ -308,7 +312,7 @@ Deliverables:
 
 Status on this branch:
 
-- started
+- completed
 - created `packages/infrastructure`
 - added shared TypeScript infrastructure building blocks for:
   - config loading
@@ -352,7 +356,7 @@ Deliverables:
 
 Status on this branch:
 
-- started
+- validated
 - implemented the real TypeScript API flow for:
   - `POST /validate`
   - `POST /status`
@@ -369,6 +373,15 @@ Status on this branch:
   - status lookup for missing jobs
 - validated API tests with:
   - `npm run test:ts:api`
+- deployed the TypeScript API to Cloud Run:
+  - `onboarding-api-ts`
+- fixed Firestore compatibility so the TS API writes Python-compatible `snake_case` job records
+- validated a real end-to-end smoke test against the current Python worker:
+  - authenticated `POST /validate`
+  - `Cloud Tasks` dispatch
+  - job execution in the existing worker
+  - authenticated `POST /status`
+  - final completed job visible from the TS API
 
 ### Phase 5: Worker migration
 

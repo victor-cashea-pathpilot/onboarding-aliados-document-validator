@@ -1,4 +1,4 @@
-import type { JobRecord } from '@domain/job';
+import type { JobRecord } from '@domain';
 
 export interface JobRepository {
   save(job: JobRecord): Promise<JobRecord>;

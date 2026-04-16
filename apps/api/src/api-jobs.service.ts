@@ -1,12 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { JobDispatcher, JobRepository } from '@infrastructure/index';
-import { sanitizeUrl } from '@infrastructure/index';
-import type { JobRecord } from '@domain/job';
-import {
-  JOB_DISPATCHER,
-  JOB_REPOSITORY,
-} from './api.providers';
+import type { JobDispatcher, JobRepository } from '@infrastructure';
+import { sanitizeUrl } from '@infrastructure';
+import type { JobRecord } from '@domain';
+import { JOB_DISPATCHER, JOB_REPOSITORY } from './api.tokens';
 import type {
   DocumentsPayloadDto,
   StatusRequestDto,
@@ -17,6 +14,17 @@ import type {
 
 function utcNow(): string {
   return new Date().toISOString();
+}
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
 function totalDocuments(payload: DocumentsPayloadDto): number {
@@ -124,47 +132,28 @@ export class ApiJobsService {
     pageSize = 20,
     query?: string,
   ): Promise<Record<string, unknown>> {
-    const { records, hasNext } = await this.repository.listPage(page, pageSize);
-    const filtered = query
-      ? records.filter((record) => {
-          const normalized = query.trim().toLowerCase();
-          const haystack = [
-            record.jobId,
-            record.merchantId,
-            record.requestId ?? '',
-            record.status,
-            (record.crossValidation as { legalMode?: string } | null)?.legalMode ?? '',
-            (record.overallResult as { status?: string } | null)?.status ?? '',
-          ]
-            .join(' ')
-            .toLowerCase();
-          return haystack.includes(normalized);
-        })
-      : records;
+    const normalizedQuery = (query ?? '').trim().toLowerCase();
+    const { records: recentRecords } = await this.repository.listPage(1, 500);
+    const filtered = normalizedQuery
+      ? recentRecords.filter((record) => this.matchesQuery(record, normalizedQuery))
+      : recentRecords;
+    const start = Math.max(page - 1, 0) * pageSize;
+    const end = start + pageSize;
+    const pagedRecords = filtered.slice(start, end);
 
-    const items = filtered.map((record) => ({
+    const items = pagedRecords.map((record) => ({
       job_id: record.jobId,
       merchant_id: record.merchantId,
       request_id: record.requestId ?? null,
       status: record.status,
-      overall_status: (record.overallResult as { status?: string } | null)?.status ?? null,
-      overall_summary:
-        (record.overallResult as { summary?: string } | null)?.summary ?? null,
-      legal_mode:
-        (record.crossValidation as { legalMode?: string; legal_mode?: string } | null)
-          ?.legal_mode ??
-        (record.crossValidation as { legalMode?: string; legal_mode?: string } | null)
-          ?.legalMode ??
-        null,
+      overall_status: this.extractOverallStatus(record),
+      overall_summary: this.extractOverallSummary(record),
+      legal_mode: this.extractLegalMode(record),
       stage: record.progress?.stage ?? null,
       progress_percentage: record.progress?.percentage ?? null,
       progress_message: record.progress?.message ?? null,
-      document_count: totalDocuments(record.request.documents as DocumentsPayloadDto),
-      duration_seconds:
-        record.status === 'COMPLETED' || record.status === 'FAILED'
-          ? (new Date(record.updatedAt).getTime() - new Date(record.createdAt).getTime()) /
-            1000
-          : null,
+      document_count: this.getDocumentCount(record),
+      duration_seconds: this.getDurationSeconds(record),
       created_at: record.createdAt,
       updated_at: record.updatedAt,
     }));
@@ -172,21 +161,110 @@ export class ApiJobsService {
     return {
       page,
       page_size: pageSize,
-      has_next: hasNext,
+      has_next: end < filtered.length,
       query: query ?? null,
       total_items: filtered.length,
-      stats: {
-        cases_last_24h: records.length,
-        p50_duration_seconds: null,
-        p90_duration_seconds: null,
-        outcome_counts: {
-          approved: 0,
-          rejected: 0,
-          requires_review: 0,
-        },
-      },
+      stats: this.buildStats(recentRecords),
       items,
     };
+  }
+
+  private matchesQuery(record: JobRecord, query: string): boolean {
+    const haystack = [
+      record.jobId,
+      record.merchantId,
+      record.requestId ?? '',
+      record.status,
+      this.extractLegalMode(record) ?? '',
+      this.extractOverallStatus(record) ?? '',
+    ]
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(query);
+  }
+
+  private extractOverallStatus(record: JobRecord): string | null {
+    const overall = asObject(record.overallResult);
+    return asString(overall?.status);
+  }
+
+  private extractOverallSummary(record: JobRecord): string | null {
+    const overall = asObject(record.overallResult);
+    return asString(overall?.summary);
+  }
+
+  private extractLegalMode(record: JobRecord): string | null {
+    const crossValidation = asObject(record.crossValidation);
+    const crossValidationMode =
+      asString(crossValidation?.legal_mode) ?? asString(crossValidation?.legalMode);
+    if (crossValidationMode) {
+      return crossValidationMode;
+    }
+
+    const normalizedSnapshot = asObject(record.normalizedSnapshot);
+    return (
+      asString(normalizedSnapshot?.legal_mode) ??
+      asString(normalizedSnapshot?.legalMode) ??
+      null
+    );
+  }
+
+  private getDocumentCount(record: JobRecord): number {
+    const request = asObject(record.request);
+    const documents = asObject(request?.documents);
+    const safeBucket = (key: string) => {
+      const bucket = documents?.[key];
+      return Array.isArray(bucket) ? bucket.length : 0;
+    };
+    return (
+      safeBucket('rif') +
+      safeBucket('cedula') +
+      safeBucket('certificado_emprendimiento') +
+      safeBucket('acta_constitutiva') +
+      safeBucket('acta_mercantil')
+    );
+  }
+
+  private getDurationSeconds(record: JobRecord): number | null {
+    if (record.status !== 'COMPLETED' && record.status !== 'FAILED') {
+      return null;
+    }
+    return (new Date(record.updatedAt).getTime() - new Date(record.createdAt).getTime()) / 1000;
+  }
+
+  private buildStats(records: JobRecord[]): Record<string, unknown> {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const last24h = records.filter((record) => new Date(record.createdAt).getTime() >= cutoff);
+    const durations = last24h
+      .map((record) => this.getDurationSeconds(record))
+      .filter((value): value is number => value !== null)
+      .sort((left, right) => left - right);
+
+    return {
+      cases_last_24h: last24h.length,
+      p50_duration_seconds: this.percentile(durations, 0.5),
+      p90_duration_seconds: this.percentile(durations, 0.9),
+      outcome_counts: {
+        approved: last24h.filter((record) => this.extractOverallStatus(record) === 'APPROVED')
+          .length,
+        rejected: last24h.filter((record) => this.extractOverallStatus(record) === 'REJECTED')
+          .length,
+        requires_review: last24h.filter(
+          (record) => this.extractOverallStatus(record) === 'REQUIRES_REVIEW',
+        ).length,
+      },
+    };
+  }
+
+  private percentile(values: number[], percentile: number): number | null {
+    if (values.length === 0) {
+      return null;
+    }
+    if (values.length === 1) {
+      return values[0];
+    }
+    const index = Math.round((values.length - 1) * percentile);
+    return values[index] ?? null;
   }
 
   private sanitizeRequest(payload: Record<string, unknown>): Record<string, unknown> {

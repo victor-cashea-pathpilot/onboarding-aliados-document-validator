@@ -2,6 +2,6 @@
   "name": "@onboarding-agent/domain",
   "version": "0.1.0",
   "private": true,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts"
+  "main": "../../dist/packages/domain/index.js",
+  "types": "../../dist/packages/domain/index.d.ts"
 }

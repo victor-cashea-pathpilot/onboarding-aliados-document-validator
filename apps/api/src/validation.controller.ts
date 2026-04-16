@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -43,7 +44,11 @@ export class ValidationController {
 
   @Get('/internal/jobs/:jobId')
   async getJob(@Param('jobId') jobId: string) {
-    return this.jobsService.getCase(jobId);
+    const job = await this.jobsService.getCase(jobId);
+    if (!job) {
+      throw new NotFoundException(`Job '${jobId}' was not found.`);
+    }
+    return job;
   }
 
   @Get('/internal/jobs')

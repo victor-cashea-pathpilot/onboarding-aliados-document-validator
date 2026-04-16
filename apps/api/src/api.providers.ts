@@ -2,11 +2,9 @@ import { Provider } from '@nestjs/common';
 import {
   CloudTasksJobDispatcher,
   FirestoreJobRepository,
-} from '@infrastructure/index';
+} from '@infrastructure';
 import { ApiJobsService } from './api-jobs.service';
-
-export const JOB_REPOSITORY = Symbol('JOB_REPOSITORY');
-export const JOB_DISPATCHER = Symbol('JOB_DISPATCHER');
+import { JOB_DISPATCHER, JOB_REPOSITORY } from './api.tokens';
 
 export const apiProviders: Provider[] = [
   {

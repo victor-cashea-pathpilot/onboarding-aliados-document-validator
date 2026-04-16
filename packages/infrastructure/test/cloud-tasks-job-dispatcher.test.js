@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 const {
   CloudTasksJobDispatcher,
-} = require('../../../dist/packages/infrastructure/dispatchers/cloud-tasks-job-dispatcher.js');
+} = require('../../../dist/packages/infrastructure/infrastructure/src/dispatchers/cloud-tasks-job-dispatcher.js');
 
 function withEnv(values, run) {
   const previous = new Map();

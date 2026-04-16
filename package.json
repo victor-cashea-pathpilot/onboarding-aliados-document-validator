@@ -10,9 +10,9 @@
   ],
   "scripts": {
     "build": "npm run build:packages && npm run build:api && npm run build:worker && npm run build:case-explorer",
-    "build:api": "nest build api",
-    "build:worker": "nest build worker",
-    "build:case-explorer": "nest build case-explorer",
+    "build:api": "nest build api && tsc-alias -p apps/api/tsconfig.json",
+    "build:worker": "nest build worker && tsc-alias -p apps/worker/tsconfig.json",
+    "build:case-explorer": "nest build case-explorer && tsc-alias -p apps/case-explorer/tsconfig.json",
     "build:packages": "tsc -p packages/contracts/tsconfig.json && tsc -p packages/domain/tsconfig.json && tsc -p packages/infrastructure/tsconfig.json",
     "test:ts": "npm run build && node --test packages/**/*.test.js apps/**/*.test.js",
     "test:ts:infrastructure": "npm run build && node --test packages/infrastructure/test/**/*.test.js",
@@ -47,6 +47,7 @@
     "source-map-support": "^0.5.21",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.1.3"
   }
 }

@@ -1,5 +1,5 @@
 import { CloudTasksClient, protos } from '@google-cloud/tasks';
-import type { JobRecord } from '@domain/job';
+import type { JobRecord } from '@domain';
 import { getInfrastructureSettings, requireCloudTasksSettings } from '../config/settings';
 import { createLogger } from '../logging/logger';
 import type { JobDispatcher } from './job-dispatcher';
