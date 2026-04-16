@@ -236,6 +236,23 @@ Deliverables:
 - TS canonical/domain package
 - unit tests for model parity
 
+Status on this branch:
+
+- started
+- ported core contract types for:
+  - submit/status flows
+  - document buckets
+  - document results
+  - cross-validation outputs
+  - case explorer responses
+- ported domain types for:
+  - legal mode
+  - cédula policy outcome
+  - canonical merchant snapshot
+  - job record shape
+- validated compile compatibility with:
+  - `npm run build`
+
 ### Phase 3: Infrastructure adapters
 
 Goal:
