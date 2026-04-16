@@ -404,6 +404,25 @@ Deliverables:
 - deployable TS worker
 - regression suite against current evals
 
+Status on this branch:
+
+- started
+- made the TypeScript worker contract-compatible with the current Cloud Tasks flow:
+  - `POST /internal/process-job`
+  - `job_id` payload
+  - optional `X-Worker-Token`
+- wired the TS worker to the shared Firestore repository
+- added initial worker job lifecycle behavior:
+  - unauthorized token rejection
+  - missing job handling
+  - transition from `PENDING` to initial `PROCESSING` progress state
+- added worker tests for:
+  - token enforcement
+  - missing job behavior
+  - initial progress updates
+- validated worker tests with:
+  - `npm run test:ts:worker`
+
 ### Phase 6: Case Explorer migration
 
 Goal:
