@@ -422,11 +422,18 @@ Status on this branch:
   - MIME type validation
   - document-level intake result persistence
   - structured intake logging
+- ported the next processing slice:
+  - extraction orchestration for intake-approved documents
+  - Gemini model selection by document type
+  - parallel extraction batching
+  - document-level extraction result persistence
+  - structured extraction logging
 - added worker tests for:
   - token enforcement
   - missing job behavior
   - initial progress updates
   - document intake service behavior
+  - document extraction service behavior
   - persistence of document-level intake results
 - validated worker tests with:
   - `npm run test:ts:worker`

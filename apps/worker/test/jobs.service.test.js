@@ -24,6 +24,8 @@ test('JobsService rejects invalid worker token when one is configured', async ()
     },
     'expected-token',
     createLogger(),
+    { buildDocumentsResult: async () => ({}) },
+    { extractDocuments: async () => ({}) },
   );
 
   await assert.rejects(
@@ -42,6 +44,7 @@ test('JobsService raises not found when the job is missing', async () => {
     null,
     createLogger(),
     { buildDocumentsResult: async () => ({}) },
+    { extractDocuments: async () => ({}) },
   );
 
   await assert.rejects(() => service.processJob('missing-job', null), NotFoundException);
@@ -79,12 +82,18 @@ test('JobsService marks pending jobs as processing with initial progress', async
       };
     },
   };
+  const extractionService = {
+    async extractDocuments(documents) {
+      return documents;
+    },
+  };
 
   const service = new JobsService(
     repository,
     'expected-token',
     createLogger(),
     intakeService,
+    extractionService,
   );
   const response = await service.processJob('job-123', 'expected-token');
 
@@ -95,8 +104,8 @@ test('JobsService marks pending jobs as processing with initial progress', async
   });
 
   assert.equal(updatedRecord.status, 'PROCESSING');
-  assert.equal(updatedRecord.progress.stage, 'document_intake');
-  assert.equal(updatedRecord.progress.percentage, 30);
+  assert.equal(updatedRecord.progress.stage, 'document_extraction');
+  assert.equal(updatedRecord.progress.percentage, 75);
 });
 
 test('JobsService leaves non-pending jobs unchanged', async () => {
@@ -132,6 +141,7 @@ test('JobsService leaves non-pending jobs unchanged', async () => {
     null,
     createLogger(),
     { buildDocumentsResult: async () => ({}) },
+    { extractDocuments: async () => ({}) },
   );
   const response = await service.processJob('job-234', null);
 
@@ -208,11 +218,20 @@ test('JobsService persists intake document results', async () => {
     null,
     createLogger(),
     { buildDocumentsResult: async () => intakeDocuments },
+    {
+      async extractDocuments(documents) {
+        documents.rif[0].extracted_data.extracted_fields = { rif_number: 'J-12345678-0' };
+        documents.rif[0].extracted_data.extraction_status = 'completed';
+        return documents;
+      },
+    },
   );
   await service.processJob('job-345', null);
 
-  assert.equal(updates.length, 2);
-  assert.deepEqual(updates[1].documents, intakeDocuments);
-  assert.equal(updates[1].progress.stage, 'document_intake');
-  assert.equal(updates[1].progress.percentage, 30);
+  assert.equal(updates.length, 3);
+  assert.equal(updates[1].progress.stage, 'document_extraction');
+  assert.equal(updates[1].progress.percentage, 65);
+  assert.deepEqual(updates[2].documents, intakeDocuments);
+  assert.equal(updates[2].progress.stage, 'document_extraction');
+  assert.equal(updates[2].progress.percentage, 75);
 });

@@ -7,6 +7,7 @@ import {
 import type { JobRecord } from '@domain';
 import type { JobRepository, LoggerLike } from '@infrastructure';
 import { formatUnknownError } from '@infrastructure';
+import { DocumentExtractionService } from './document-extraction.service';
 import { DocumentIntakeService } from './document-intake.service';
 import { JOB_REPOSITORY, WORKER_AUTH_TOKEN } from './worker.tokens';
 
@@ -17,6 +18,7 @@ export class JobsService {
     @Inject(WORKER_AUTH_TOKEN) private readonly workerAuthToken: string | null,
     @Inject('WORKER_LOGGER') private readonly logger: LoggerLike,
     private readonly documentIntake: DocumentIntakeService,
+    private readonly documentExtraction: DocumentExtractionService,
   ) {}
 
   async processJob(jobId: string, providedWorkerToken?: string | null) {
@@ -74,7 +76,7 @@ export class JobsService {
 
   private async markInitialProcessingState(record: JobRecord): Promise<JobRecord> {
     if (record.status === 'PENDING') {
-      const processingRecord: JobRecord = {
+      const intakeRecord: JobRecord = {
         ...record,
         status: 'PROCESSING',
         progress: {
@@ -84,17 +86,34 @@ export class JobsService {
         },
         updatedAt: new Date().toISOString(),
       };
-      await this.repository.update(processingRecord);
+      await this.repository.update(intakeRecord);
 
-      const documents = await this.documentIntake.buildDocumentsResult(processingRecord);
-      const updatedRecord: JobRecord = {
-        ...processingRecord,
+      const intakeDocuments = await this.documentIntake.buildDocumentsResult(intakeRecord);
+      const extractionPendingRecord: JobRecord = {
+        ...intakeRecord,
         progress: {
-          stage: 'document_intake',
-          percentage: 30,
-          message: 'Document intake completado en worker TypeScript.',
+          stage: 'document_extraction',
+          percentage: 65,
+          message: 'Extrayendo datos de documentos en paralelo.',
         },
-        documents,
+        documents: intakeDocuments,
+        updatedAt: new Date().toISOString(),
+      };
+      await this.repository.update(extractionPendingRecord);
+
+      const extractedDocuments = await this.documentExtraction.extractDocuments(
+        intakeDocuments,
+        extractionPendingRecord,
+      );
+
+      const updatedRecord: JobRecord = {
+        ...extractionPendingRecord,
+        progress: {
+          stage: 'document_extraction',
+          percentage: 75,
+          message: 'Document extraction completado en worker TypeScript.',
+        },
+        documents: extractedDocuments,
         updatedAt: new Date().toISOString(),
       };
 
