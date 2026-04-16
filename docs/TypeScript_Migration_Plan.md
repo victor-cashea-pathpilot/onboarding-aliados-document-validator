@@ -416,10 +416,18 @@ Status on this branch:
   - unauthorized token rejection
   - missing job handling
   - transition from `PENDING` to initial `PROCESSING` progress state
+- ported the first real processing slice:
+  - document bucket expansion from the stored request payload
+  - URL scheme validation
+  - MIME type validation
+  - document-level intake result persistence
+  - structured intake logging
 - added worker tests for:
   - token enforcement
   - missing job behavior
   - initial progress updates
+  - document intake service behavior
+  - persistence of document-level intake results
 - validated worker tests with:
   - `npm run test:ts:worker`
 

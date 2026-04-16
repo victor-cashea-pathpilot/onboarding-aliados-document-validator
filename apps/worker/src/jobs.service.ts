@@ -7,6 +7,7 @@ import {
 import type { JobRecord } from '@domain';
 import type { JobRepository, LoggerLike } from '@infrastructure';
 import { formatUnknownError } from '@infrastructure';
+import { DocumentIntakeService } from './document-intake.service';
 import { JOB_REPOSITORY, WORKER_AUTH_TOKEN } from './worker.tokens';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class JobsService {
     @Inject(JOB_REPOSITORY) private readonly repository: JobRepository,
     @Inject(WORKER_AUTH_TOKEN) private readonly workerAuthToken: string | null,
     @Inject('WORKER_LOGGER') private readonly logger: LoggerLike,
+    private readonly documentIntake: DocumentIntakeService,
   ) {}
 
   async processJob(jobId: string, providedWorkerToken?: string | null) {
@@ -72,14 +74,27 @@ export class JobsService {
 
   private async markInitialProcessingState(record: JobRecord): Promise<JobRecord> {
     if (record.status === 'PENDING') {
-      const updatedRecord: JobRecord = {
+      const processingRecord: JobRecord = {
         ...record,
         status: 'PROCESSING',
         progress: {
           stage: 'document_intake',
-          percentage: 10,
-          message: 'TypeScript worker accepted the job and is preparing intake.',
+          percentage: 25,
+          message: 'Validando acceso y formato de documentos.',
         },
+        updatedAt: new Date().toISOString(),
+      };
+      await this.repository.update(processingRecord);
+
+      const documents = await this.documentIntake.buildDocumentsResult(processingRecord);
+      const updatedRecord: JobRecord = {
+        ...processingRecord,
+        progress: {
+          stage: 'document_intake',
+          percentage: 30,
+          message: 'Document intake completado en worker TypeScript.',
+        },
+        documents,
         updatedAt: new Date().toISOString(),
       };
 

@@ -41,6 +41,7 @@ test('JobsService raises not found when the job is missing', async () => {
     },
     null,
     createLogger(),
+    { buildDocumentsResult: async () => ({}) },
   );
 
   await assert.rejects(() => service.processJob('missing-job', null), NotFoundException);
@@ -67,7 +68,24 @@ test('JobsService marks pending jobs as processing with initial progress', async
     },
   };
 
-  const service = new JobsService(repository, 'expected-token', createLogger());
+  const intakeService = {
+    async buildDocumentsResult() {
+      return {
+        rif: [],
+        cedula: [],
+        certificado_emprendimiento: [],
+        acta_constitutiva: [],
+        acta_mercantil: [],
+      };
+    },
+  };
+
+  const service = new JobsService(
+    repository,
+    'expected-token',
+    createLogger(),
+    intakeService,
+  );
   const response = await service.processJob('job-123', 'expected-token');
 
   assert.deepEqual(response, {
@@ -78,7 +96,7 @@ test('JobsService marks pending jobs as processing with initial progress', async
 
   assert.equal(updatedRecord.status, 'PROCESSING');
   assert.equal(updatedRecord.progress.stage, 'document_intake');
-  assert.equal(updatedRecord.progress.percentage, 10);
+  assert.equal(updatedRecord.progress.percentage, 30);
 });
 
 test('JobsService leaves non-pending jobs unchanged', async () => {
@@ -109,7 +127,12 @@ test('JobsService leaves non-pending jobs unchanged', async () => {
     },
   };
 
-  const service = new JobsService(repository, null, createLogger());
+  const service = new JobsService(
+    repository,
+    null,
+    createLogger(),
+    { buildDocumentsResult: async () => ({}) },
+  );
   const response = await service.processJob('job-234', null);
 
   assert.equal(updateCalled, false);
@@ -118,4 +141,78 @@ test('JobsService leaves non-pending jobs unchanged', async () => {
     status: 'accepted',
     message: 'TypeScript worker accepted the job and updated the initial processing state.',
   });
+});
+
+test('JobsService persists intake document results', async () => {
+  const updates = [];
+  const repository = {
+    async get() {
+      return {
+        jobId: 'job-345',
+        merchantId: 'merchant-3',
+        requestId: 'request-3',
+        status: 'PENDING',
+        pollCount: 0,
+        request: {},
+        createdAt: '2026-04-16T21:00:00.000Z',
+        updatedAt: '2026-04-16T21:00:00.000Z',
+      };
+    },
+    async update(record) {
+      updates.push(record);
+      return record;
+    },
+  };
+
+  const intakeDocuments = {
+    rif: [
+      {
+        document_id: 'rif-1',
+        status: 'APPROVED',
+        confidence: 90,
+        extracted_data: {
+          document_type: 'rif',
+          source_url: 'https://example.com/rif.pdf',
+          content_type: 'application/pdf',
+          content_length: 123,
+        },
+        errors: [],
+      },
+    ],
+    cedula: [
+      {
+        document_id: 'ced-1',
+        status: 'REJECTED',
+        confidence: 100,
+        extracted_data: {
+          document_type: 'cedula',
+          source_url: 'https://example.com/cedula.jpg',
+          content_type: null,
+          content_length: null,
+        },
+        errors: [
+          {
+            error_code: 'DOCUMENT_DOWNLOAD_FAILED',
+            message: 'download failed',
+          },
+        ],
+      },
+    ],
+    certificado_emprendimiento: [],
+    acta_constitutiva: [],
+    acta_mercantil: [],
+  };
+
+  const service = new JobsService(
+    repository,
+    null,
+    createLogger(),
+    { buildDocumentsResult: async () => intakeDocuments },
+  );
+  await service.processJob('job-345', null);
+
+  assert.equal(updates.length, 2);
+  assert.deepEqual(updates[1].documents, intakeDocuments);
+  assert.equal(updates[1].progress.stage, 'document_intake');
+  assert.equal(updates[1].progress.percentage, 30);
 });
