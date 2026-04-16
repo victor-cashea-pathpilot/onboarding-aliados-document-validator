@@ -203,6 +203,7 @@ Deliverables:
 - minimal Nest apps for `api`, `worker`, and `case-explorer`
 - initial `contracts` and `domain` packages
 - CI job for install/build/test of TS workspace
+- phase 1 validation path for local Docker build and parallel Cloud Run deployment
 
 Status on this branch:
 
@@ -218,6 +219,42 @@ Status on this branch:
 - validated with:
   - `npm install`
   - `npm run build`
+
+### Phase 1 validation: parallel deployment checkpoint
+
+Goal:
+- prove the TypeScript scaffold can be built, containerized, and deployed in GCP without replacing the Python stack
+
+Tasks:
+- add Dockerfiles for:
+  - `apps/api`
+  - `apps/worker`
+  - `apps/case-explorer`
+- add GCP deploy scripts for parallel validation services
+- use distinct Cloud Run service names and Artifact Registry images so validation does not interfere with Python services
+- validate:
+  - `npm run build`
+  - local Docker builds
+  - optional Cloud Run deployment in the current GCP project
+
+Deliverables:
+- deployable container images for the TS scaffold
+- parallel deploy scripts for TS validation
+- documented path to run health checks in GCP
+
+Status on this branch:
+
+- completed local Docker validation for:
+  - `apps/api`
+  - `apps/worker`
+  - `apps/case-explorer`
+- added parallel GCP deploy scripts for the TS scaffold:
+  - `deploy_ts_api.sh`
+  - `deploy_ts_worker.sh`
+  - `deploy_ts_case_explorer.sh`
+  - `deploy_ts_phase1_validation.sh`
+- documented validation flow in `infra/gcp/README.md`
+- next checkpoint is optional parallel deploy in the current GCP project
 
 ### Phase 2: Contracts and domain model port
 
@@ -327,7 +364,7 @@ Tasks:
 Deliverables:
 - deployable TS Case Explorer
 
-### Phase 7: Cutover and cleanup
+### Phase 7: Cutover
 
 Goal:
 - switch GCP deploys from Python services to TypeScript services
@@ -342,7 +379,22 @@ Tasks:
 
 Deliverables:
 - TypeScript stack as source of truth
+
+### Phase 8: Cleanup
+
+Goal:
+- remove transitional duplication after cutover and leave a clean TypeScript-first codebase
+
+Tasks:
+- archive or remove Python deploy paths no longer needed
+- retire legacy Dockerfiles and scripts once the TS stack is the source of truth
+- clean feature flags and migration-only compatibility shims
+- update docs, diagrams, and operational runbooks to remove Python references
+- confirm CI/CD only builds and deploys the TypeScript stack
+
+Deliverables:
 - Python stack retired or archived
+- deployment and documentation cleanup completed
 
 ## What should be migrated first
 
@@ -472,6 +524,7 @@ Mitigation:
 - TS workspace scaffold
 - apps and shared packages created
 - base standards from `ms-template` adopted
+- local/GCP validation path defined for the scaffold
 
 ### Milestone 2
 - TS workspace scaffold
@@ -491,6 +544,9 @@ Mitigation:
 
 ### Milestone 6
 - cutover from Python to TypeScript
+
+### Milestone 7
+- cleanup of transitional Python assets and deploy paths
 
 ## Access needed
 

@@ -48,6 +48,12 @@ require_base_env() {
   : "${OBSERVABILITY_JOB_METRIC_PREFIX:=onboarding_job}"
   : "${OBSERVABILITY_LLM_METRIC_PREFIX:=onboarding_llm}"
   : "${OBSERVABILITY_EXTRACTION_METRIC_PREFIX:=onboarding_extraction}"
+  : "${TS_IMAGE_TAG:=${IMAGE_TAG}}"
+  : "${TS_API_SERVICE_NAME:=${API_SERVICE_NAME}-ts}"
+  : "${TS_WORKER_SERVICE_NAME:=${WORKER_SERVICE_NAME}-ts}"
+  : "${TS_CASE_EXPLORER_SERVICE_NAME:=${CASE_EXPLORER_SERVICE_NAME}-ts}"
+  : "${TS_API_ALLOW_UNAUTHENTICATED:=false}"
+  : "${TS_CASE_EXPLORER_ALLOW_UNAUTHENTICATED:=false}"
 }
 
 project_number() {
@@ -74,6 +80,18 @@ case_explorer_image() {
   echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-case-explorer:${IMAGE_TAG}"
 }
 
+ts_worker_image() {
+  echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-worker-ts:${TS_IMAGE_TAG}"
+}
+
+ts_api_image() {
+  echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api-ts:${TS_IMAGE_TAG}"
+}
+
+ts_case_explorer_image() {
+  echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-case-explorer-ts:${TS_IMAGE_TAG}"
+}
+
 worker_url() {
   gcloud run services describe "$WORKER_SERVICE_NAME" \
     --project "$PROJECT_ID" \
@@ -90,6 +108,27 @@ api_url() {
 
 case_explorer_url() {
   gcloud run services describe "$CASE_EXPLORER_SERVICE_NAME" \
+    --project "$PROJECT_ID" \
+    --region "$REGION" \
+    --format='value(status.url)'
+}
+
+ts_worker_url() {
+  gcloud run services describe "$TS_WORKER_SERVICE_NAME" \
+    --project "$PROJECT_ID" \
+    --region "$REGION" \
+    --format='value(status.url)'
+}
+
+ts_api_url() {
+  gcloud run services describe "$TS_API_SERVICE_NAME" \
+    --project "$PROJECT_ID" \
+    --region "$REGION" \
+    --format='value(status.url)'
+}
+
+ts_case_explorer_url() {
+  gcloud run services describe "$TS_CASE_EXPLORER_SERVICE_NAME" \
     --project "$PROJECT_ID" \
     --region "$REGION" \
     --format='value(status.url)'

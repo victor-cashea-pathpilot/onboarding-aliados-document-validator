@@ -51,6 +51,98 @@ Notas:
 - el contexto de build excluye archivos pesados o no necesarios como `.git`, `.venv`, `tests`, `.private_docs` y exportes temporales de documentación
 - los deploys de GCP siguen publicando `linux/amd64` para compatibilidad con Cloud Run
 
+## Validación de Fase 1 del scaffold TypeScript
+
+Además del stack Python actual, el repo ahora incluye un scaffold TypeScript/Nest en:
+
+- `apps/api`
+- `apps/worker`
+- `apps/case-explorer`
+
+Esta validación de Fase 1 no reemplaza el runtime actual. Sirve para comprobar que el scaffold TS:
+
+- compila
+- se containeriza
+- puede desplegarse en Cloud Run
+- responde en endpoints básicos de salud
+
+Dockerfiles TypeScript:
+
+- API TS: `apps/api/Dockerfile`
+- Worker TS: `apps/worker/Dockerfile`
+- Case Explorer TS: `apps/case-explorer/Dockerfile`
+
+Builds locales de validación:
+
+```bash
+docker build -f apps/api/Dockerfile -t onboarding-api-ts:local .
+docker build -f apps/worker/Dockerfile -t onboarding-worker-ts:local .
+docker build -f apps/case-explorer/Dockerfile -t onboarding-case-explorer-ts:local .
+```
+
+Run local de validación:
+
+```bash
+docker run --rm -p 9080:8080 onboarding-api-ts:local
+docker run --rm -p 9081:8080 onboarding-worker-ts:local
+docker run --rm -p 9082:8080 onboarding-case-explorer-ts:local
+```
+
+Endpoints esperados:
+
+- API TS:
+  - `GET /health`
+  - `GET /api/docs`
+- Worker TS:
+  - `GET /health`
+  - `POST /internal/process-job`
+- Case Explorer TS:
+  - `GET /`
+
+### Deploy paralelo en GCP
+
+Los scripts de validación TS despliegan servicios separados para no interferir con el stack Python:
+
+- `deploy_ts_api.sh`
+- `deploy_ts_worker.sh`
+- `deploy_ts_case_explorer.sh`
+- `deploy_ts_phase1_validation.sh`
+
+Variables nuevas relevantes:
+
+- `TS_API_SERVICE_NAME`
+- `TS_WORKER_SERVICE_NAME`
+- `TS_CASE_EXPLORER_SERVICE_NAME`
+- `TS_IMAGE_TAG`
+- `TS_API_ALLOW_UNAUTHENTICATED`
+- `TS_CASE_EXPLORER_ALLOW_UNAUTHENTICATED`
+
+Imágenes TS en Artifact Registry:
+
+- `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api-ts:${TS_IMAGE_TAG}`
+- `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-worker-ts:${TS_IMAGE_TAG}`
+- `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-case-explorer-ts:${TS_IMAGE_TAG}`
+
+Ejemplo de deploy:
+
+```bash
+source infra/gcp/.env.dev
+bash infra/gcp/deploy_ts_phase1_validation.sh
+```
+
+Qué valida esta fase:
+
+- build de imágenes TS
+- push a Artifact Registry
+- deploy paralelo en Cloud Run
+- health checks básicos
+
+Qué no valida todavía:
+
+- paridad funcional completa con Python
+- integración real con Firestore / Cloud Tasks / Vertex AI
+- comportamiento de negocio end-to-end
+
 ## Imágenes publicadas en GCP
 
 Los scripts de deploy no usan imágenes guardadas en el repo. Construyen y publican imágenes en `Artifact Registry`.
