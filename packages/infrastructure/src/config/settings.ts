@@ -1,0 +1,64 @@
+export interface InfrastructureSettings {
+  environment: string;
+  logLevel: string;
+  gcpProjectId?: string;
+  firestoreDatabase: string;
+  firestoreCollection: string;
+  gcpRegion?: string;
+  cloudTasksQueueId?: string;
+  cloudTasksServiceAccountEmail?: string;
+  workerBaseUrl?: string;
+  workerAudience?: string;
+  workerAuthToken?: string;
+  geminiLocation: string;
+  geminiModelSimple: string;
+  geminiModelComplex: string;
+}
+
+function env(name: string, fallback?: string): string {
+  const value = process.env[name];
+  if (value === undefined || value === null || value === '') {
+    if (fallback !== undefined) {
+      return fallback;
+    }
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+export function getInfrastructureSettings(): InfrastructureSettings {
+  return {
+    environment: process.env.ENVIRONMENT ?? 'development',
+    logLevel: process.env.LOG_LEVEL ?? 'INFO',
+    gcpProjectId: process.env.GCP_PROJECT_ID ?? undefined,
+    firestoreDatabase: process.env.FIRESTORE_DATABASE ?? '(default)',
+    firestoreCollection: process.env.FIRESTORE_COLLECTION ?? 'validation_jobs',
+    gcpRegion: process.env.GCP_REGION ?? undefined,
+    cloudTasksQueueId: process.env.CLOUD_TASKS_QUEUE_ID ?? undefined,
+    cloudTasksServiceAccountEmail:
+      process.env.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL ?? undefined,
+    workerBaseUrl: process.env.WORKER_BASE_URL ?? undefined,
+    workerAudience: process.env.WORKER_AUDIENCE ?? undefined,
+    workerAuthToken: process.env.WORKER_AUTH_TOKEN ?? undefined,
+    geminiLocation: process.env.GEMINI_LOCATION ?? 'global',
+    geminiModelSimple: process.env.GEMINI_MODEL_SIMPLE ?? 'gemini-2.5-flash',
+    geminiModelComplex: process.env.GEMINI_MODEL_COMPLEX ?? 'gemini-2.5-pro',
+  };
+}
+
+export function requireCloudTasksSettings(
+  settings: InfrastructureSettings,
+): InfrastructureSettings & {
+  gcpProjectId: string;
+  gcpRegion: string;
+  cloudTasksQueueId: string;
+  workerBaseUrl: string;
+} {
+  return {
+    ...settings,
+    gcpProjectId: settings.gcpProjectId ?? env('GCP_PROJECT_ID'),
+    gcpRegion: settings.gcpRegion ?? env('GCP_REGION'),
+    cloudTasksQueueId: settings.cloudTasksQueueId ?? env('CLOUD_TASKS_QUEUE_ID'),
+    workerBaseUrl: settings.workerBaseUrl ?? env('WORKER_BASE_URL'),
+  };
+}

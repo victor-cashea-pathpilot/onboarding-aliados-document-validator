@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node",
     "target": "ES2021",
     "declaration": true,
     "removeComments": true,
@@ -22,6 +23,9 @@
       ],
       "@domain/*": [
         "packages/domain/src/*"
+      ],
+      "@infrastructure/*": [
+        "packages/infrastructure/src/*"
       ],
       "@api/*": [
         "apps/api/src/*"

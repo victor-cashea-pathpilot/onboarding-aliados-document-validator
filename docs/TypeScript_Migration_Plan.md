@@ -306,6 +306,22 @@ Deliverables:
 - working TS infrastructure package
 - isolated tests for Firestore, Cloud Tasks, and Gemini wrappers
 
+Status on this branch:
+
+- started
+- created `packages/infrastructure`
+- added shared TypeScript infrastructure building blocks for:
+  - config loading
+  - structured logging
+  - repository interfaces
+  - dispatcher interfaces
+  - Gemini client interface
+- implemented first real GCP adapters for:
+  - Firestore job repository
+  - Cloud Tasks job dispatcher
+- validated compile compatibility with:
+  - `npm run build`
+
 ### Phase 4: API migration
 
 Goal:

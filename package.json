@@ -13,7 +13,7 @@
     "build:api": "nest build api",
     "build:worker": "nest build worker",
     "build:case-explorer": "nest build case-explorer",
-    "build:packages": "tsc -p packages/contracts/tsconfig.json && tsc -p packages/domain/tsconfig.json",
+    "build:packages": "tsc -p packages/contracts/tsconfig.json && tsc -p packages/domain/tsconfig.json && tsc -p packages/infrastructure/tsconfig.json",
     "lint": "biome check --write \"apps/**/*.ts\" \"packages/**/*.ts\"",
     "format": "biome format --write \"apps/**/*.ts\" \"packages/**/*.ts\"",
     "start:api:dev": "nest start api --watch",
@@ -21,6 +21,8 @@
     "start:case-explorer:dev": "nest start case-explorer --watch"
   },
   "dependencies": {
+    "@google-cloud/firestore": "^8.5.0",
+    "@google-cloud/tasks": "^6.2.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^10.0.0",
