@@ -350,6 +350,26 @@ Deliverables:
 - deployable NestJS API
 - contract tests comparing Python vs TS behavior
 
+Status on this branch:
+
+- started
+- implemented the real TypeScript API flow for:
+  - `POST /validate`
+  - `POST /status`
+- added minimal internal API endpoints for:
+  - `GET /internal/jobs/{job_id}`
+  - `GET /internal/jobs`
+- wired the API to the current infrastructure adapters:
+  - Firestore repository
+  - Cloud Tasks dispatcher
+- validated compile compatibility with:
+  - `npm run build`
+- added basic API service tests for:
+  - submit job creation and dispatch
+  - status lookup for missing jobs
+- validated API tests with:
+  - `npm run test:ts:api`
+
 ### Phase 5: Worker migration
 
 Goal:

@@ -7,7 +7,7 @@ export class HealthController {
     return {
       service: 'api',
       status: 'ok',
-      phase: 'typescript-migration-scaffold',
+      phase: 'typescript-migration-api',
     };
   }
 }

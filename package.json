@@ -16,6 +16,7 @@
     "build:packages": "tsc -p packages/contracts/tsconfig.json && tsc -p packages/domain/tsconfig.json && tsc -p packages/infrastructure/tsconfig.json",
     "test:ts": "npm run build && node --test packages/**/*.test.js apps/**/*.test.js",
     "test:ts:infrastructure": "npm run build && node --test packages/infrastructure/test/**/*.test.js",
+    "test:ts:api": "npm run build && node --test apps/api/test/**/*.test.js",
     "lint": "biome check --write \"apps/**/*.ts\" \"packages/**/*.ts\"",
     "format": "biome format --write \"apps/**/*.ts\" \"packages/**/*.ts\"",
     "start:api:dev": "nest start api --watch",
