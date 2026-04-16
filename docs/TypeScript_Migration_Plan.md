@@ -434,6 +434,11 @@ Status on this branch:
   - field-level mercantile precedence
   - cédula expiration policy metadata in normalized snapshot
   - normalization result persistence in the worker
+- ported the next processing slice:
+  - deterministic cross-validation rules
+  - deterministic final `overallResult`
+  - `crossValidation` persistence in the worker
+  - final completion transition to `COMPLETED`
 - added worker tests for:
   - token enforcement
   - missing job behavior
@@ -441,6 +446,7 @@ Status on this branch:
   - document intake service behavior
   - document extraction service behavior
   - document normalization service behavior
+  - deterministic cross-validation service behavior
   - persistence of document-level intake results
 - validated worker tests with:
   - `npm run test:ts:worker`

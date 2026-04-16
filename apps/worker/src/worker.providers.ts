@@ -8,6 +8,7 @@ import {
 import { DocumentExtractionService } from './document-extraction.service';
 import { DocumentIntakeService } from './document-intake.service';
 import { DocumentNormalizationService } from './document-normalization.service';
+import { CrossValidationService } from './cross-validation.service';
 import { JobsService } from './jobs.service';
 import { JOB_REPOSITORY, WORKER_AUTH_TOKEN } from './worker.tokens';
 
@@ -39,5 +40,6 @@ export const workerProviders: Provider[] = [
     inject: [VertexGeminiClient],
   },
   DocumentNormalizationService,
+  CrossValidationService,
   JobsService,
 ];

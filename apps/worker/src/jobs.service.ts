@@ -10,6 +10,7 @@ import { formatUnknownError } from '@infrastructure';
 import { DocumentExtractionService } from './document-extraction.service';
 import { DocumentIntakeService } from './document-intake.service';
 import { DocumentNormalizationService } from './document-normalization.service';
+import { CrossValidationService } from './cross-validation.service';
 import { JOB_REPOSITORY, WORKER_AUTH_TOKEN } from './worker.tokens';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class JobsService {
     private readonly documentIntake: DocumentIntakeService,
     private readonly documentExtraction: DocumentExtractionService,
     private readonly documentNormalization: DocumentNormalizationService,
+    private readonly crossValidation: CrossValidationService,
   ) {}
 
   async processJob(jobId: string, providedWorkerToken?: string | null) {
@@ -125,15 +127,59 @@ export class JobsService {
         extractedDocuments,
       );
 
-      const updatedRecord: JobRecord = {
+      const crossValidationRecord: JobRecord = {
         ...normalizationRecord,
         progress: {
-          stage: 'document_normalization',
-          percentage: 85,
-          message: 'Document normalization completado en worker TypeScript.',
+          stage: 'cross_validation',
+          percentage: 90,
+          message: 'Ejecutando validaciones cruzadas sobre datos normalizados.',
         },
         documents: extractedDocuments,
         normalizedSnapshot,
+        updatedAt: new Date().toISOString(),
+      };
+      await this.repository.update(crossValidationRecord);
+
+      const checks = this.crossValidation.validate(normalizedSnapshot);
+      const failedChecks = checks.filter((check) => check.status === 'FAILED');
+      const overallResult =
+        failedChecks.length > 0
+          ? {
+              status: 'REQUIRES_REVIEW',
+              confidence: 78,
+              summary: failedChecks.some((check) =>
+                ['HAS_RIF', 'HAS_CEDULA', 'HAS_CONSTITUTIVE_DOC'].includes(check.code),
+              )
+                ? 'El caso requiere revisión manual porque faltan documentos obligatorios.'
+                : 'El caso requiere revisión manual porque una o más validaciones cruzadas fallaron.',
+              error_codes: failedChecks.map((check) => check.code),
+            }
+          : {
+              status: 'APPROVED',
+              confidence: 91,
+              summary:
+                'El caso pasó las validaciones técnicas, de extracción y las validaciones cruzadas actuales.',
+              error_codes: [],
+            };
+
+      const updatedRecord: JobRecord = {
+        ...crossValidationRecord,
+        status: 'COMPLETED',
+        progress: {
+          stage: 'completed',
+          percentage: 100,
+          message: 'Job completado.',
+        },
+        documents: extractedDocuments,
+        normalizedSnapshot,
+        crossValidation: {
+          legal_mode: normalizedSnapshot.legalMode,
+          checks,
+          findings: [],
+          llm_cross_validation: null,
+          llm_legal_assessment: null,
+        },
+        overallResult,
         updatedAt: new Date().toISOString(),
       };
 

@@ -27,6 +27,7 @@ test('JobsService rejects invalid worker token when one is configured', async ()
     { buildDocumentsResult: async () => ({}) },
     { extractDocuments: async () => ({}) },
     { normalize: () => ({}) },
+    { validate: () => [] },
   );
 
   await assert.rejects(
@@ -47,6 +48,7 @@ test('JobsService raises not found when the job is missing', async () => {
     { buildDocumentsResult: async () => ({}) },
     { extractDocuments: async () => ({}) },
     { normalize: () => ({}) },
+    { validate: () => [] },
   );
 
   await assert.rejects(() => service.processJob('missing-job', null), NotFoundException);
@@ -97,6 +99,7 @@ test('JobsService marks pending jobs as processing with initial progress', async
     intakeService,
     extractionService,
     { normalize: () => ({ legalMode: 'unknown' }) },
+    { validate: () => [] },
   );
   const response = await service.processJob('job-123', 'expected-token');
 
@@ -106,9 +109,9 @@ test('JobsService marks pending jobs as processing with initial progress', async
     message: 'TypeScript worker accepted the job and updated the initial processing state.',
   });
 
-  assert.equal(updatedRecord.status, 'PROCESSING');
-  assert.equal(updatedRecord.progress.stage, 'document_normalization');
-  assert.equal(updatedRecord.progress.percentage, 85);
+  assert.equal(updatedRecord.status, 'COMPLETED');
+  assert.equal(updatedRecord.progress.stage, 'completed');
+  assert.equal(updatedRecord.progress.percentage, 100);
 });
 
 test('JobsService leaves non-pending jobs unchanged', async () => {
@@ -146,6 +149,7 @@ test('JobsService leaves non-pending jobs unchanged', async () => {
     { buildDocumentsResult: async () => ({}) },
     { extractDocuments: async () => ({}) },
     { normalize: () => ({}) },
+    { validate: () => [] },
   );
   const response = await service.processJob('job-234', null);
 
@@ -237,16 +241,31 @@ test('JobsService persists intake document results', async () => {
         };
       },
     },
+    {
+      validate() {
+        return [
+          {
+            code: 'HAS_RIF',
+            status: 'PASSED',
+            message: 'Se recibió al menos un RIF.',
+          },
+        ];
+      },
+    },
   );
   await service.processJob('job-345', null);
 
-  assert.equal(updates.length, 4);
+  assert.equal(updates.length, 5);
   assert.equal(updates[1].progress.stage, 'document_extraction');
   assert.equal(updates[1].progress.percentage, 65);
   assert.equal(updates[2].progress.stage, 'document_normalization');
   assert.equal(updates[2].progress.percentage, 80);
-  assert.deepEqual(updates[3].documents, intakeDocuments);
-  assert.equal(updates[3].progress.stage, 'document_normalization');
-  assert.equal(updates[3].progress.percentage, 85);
-  assert.equal(updates[3].normalizedSnapshot.legalMode, 'sociedad_mercantil');
+  assert.equal(updates[3].progress.stage, 'cross_validation');
+  assert.equal(updates[3].progress.percentage, 90);
+  assert.deepEqual(updates[4].documents, intakeDocuments);
+  assert.equal(updates[4].progress.stage, 'completed');
+  assert.equal(updates[4].progress.percentage, 100);
+  assert.equal(updates[4].normalizedSnapshot.legalMode, 'sociedad_mercantil');
+  assert.equal(updates[4].crossValidation.legal_mode, 'sociedad_mercantil');
+  assert.equal(updates[4].overallResult.status, 'APPROVED');
 });
