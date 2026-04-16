@@ -5,3 +5,6 @@ export * from './repositories/firestore-job-repository';
 export * from './dispatchers/job-dispatcher';
 export * from './dispatchers/cloud-tasks-job-dispatcher';
 export * from './clients/gemini-client';
+export * from './clients/vertex-gemini-client';
+export * from './http/document-downloader';
+export * from './http/sanitize-url';

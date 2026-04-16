@@ -4,6 +4,8 @@ export interface InfrastructureSettings {
   gcpProjectId?: string;
   firestoreDatabase: string;
   firestoreCollection: string;
+  downloadTimeoutSeconds: number;
+  maxDocumentSizeBytes: number;
   gcpRegion?: string;
   cloudTasksQueueId?: string;
   cloudTasksServiceAccountEmail?: string;
@@ -33,6 +35,8 @@ export function getInfrastructureSettings(): InfrastructureSettings {
     gcpProjectId: process.env.GCP_PROJECT_ID ?? undefined,
     firestoreDatabase: process.env.FIRESTORE_DATABASE ?? '(default)',
     firestoreCollection: process.env.FIRESTORE_COLLECTION ?? 'validation_jobs',
+    downloadTimeoutSeconds: Number(process.env.DOWNLOAD_TIMEOUT_SECONDS ?? '20'),
+    maxDocumentSizeBytes: Number(process.env.MAX_DOCUMENT_SIZE_BYTES ?? `${15 * 1024 * 1024}`),
     gcpRegion: process.env.GCP_REGION ?? undefined,
     cloudTasksQueueId: process.env.CLOUD_TASKS_QUEUE_ID ?? undefined,
     cloudTasksServiceAccountEmail:

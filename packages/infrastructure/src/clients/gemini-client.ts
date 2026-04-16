@@ -1,6 +1,6 @@
 export interface GeminiGenerateJsonInput {
   model: string;
-  contents: Array<string | Record<string, unknown>>;
+  contents: unknown[];
 }
 
 export interface GeminiFileExtractionInput {

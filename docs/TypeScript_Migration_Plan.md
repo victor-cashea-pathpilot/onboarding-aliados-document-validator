@@ -319,8 +319,18 @@ Status on this branch:
 - implemented first real GCP adapters for:
   - Firestore job repository
   - Cloud Tasks job dispatcher
+- implemented additional infrastructure adapters for:
+  - Vertex AI Gemini client
+  - document download layer
+- added infrastructure tests for:
+  - Firestore repository behavior
+  - Cloud Tasks dispatch payloads
+  - Gemini JSON parsing
+  - document downloading and size limits
 - validated compile compatibility with:
   - `npm run build`
+- validated adapter tests with:
+  - `npm run test:ts:infrastructure`
 
 ### Phase 4: API migration
 
