@@ -9,6 +9,7 @@ import type { JobRepository, LoggerLike } from '@infrastructure';
 import { formatUnknownError } from '@infrastructure';
 import { DocumentExtractionService } from './document-extraction.service';
 import { DocumentIntakeService } from './document-intake.service';
+import { DocumentNormalizationService } from './document-normalization.service';
 import { JOB_REPOSITORY, WORKER_AUTH_TOKEN } from './worker.tokens';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class JobsService {
     @Inject('WORKER_LOGGER') private readonly logger: LoggerLike,
     private readonly documentIntake: DocumentIntakeService,
     private readonly documentExtraction: DocumentExtractionService,
+    private readonly documentNormalization: DocumentNormalizationService,
   ) {}
 
   async processJob(jobId: string, providedWorkerToken?: string | null) {
@@ -106,14 +108,32 @@ export class JobsService {
         extractionPendingRecord,
       );
 
-      const updatedRecord: JobRecord = {
+      const normalizationRecord: JobRecord = {
         ...extractionPendingRecord,
         progress: {
-          stage: 'document_extraction',
-          percentage: 75,
-          message: 'Document extraction completado en worker TypeScript.',
+          stage: 'document_normalization',
+          percentage: 80,
+          message: 'Normalizando datos extraídos y consolidando snapshot canónico.',
         },
         documents: extractedDocuments,
+        updatedAt: new Date().toISOString(),
+      };
+      await this.repository.update(normalizationRecord);
+
+      const normalizedSnapshot = this.documentNormalization.normalize(
+        normalizationRecord.merchantId,
+        extractedDocuments,
+      );
+
+      const updatedRecord: JobRecord = {
+        ...normalizationRecord,
+        progress: {
+          stage: 'document_normalization',
+          percentage: 85,
+          message: 'Document normalization completado en worker TypeScript.',
+        },
+        documents: extractedDocuments,
+        normalizedSnapshot,
         updatedAt: new Date().toISOString(),
       };
 

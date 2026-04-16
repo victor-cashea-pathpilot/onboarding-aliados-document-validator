@@ -7,6 +7,7 @@ import {
 } from '@infrastructure';
 import { DocumentExtractionService } from './document-extraction.service';
 import { DocumentIntakeService } from './document-intake.service';
+import { DocumentNormalizationService } from './document-normalization.service';
 import { JobsService } from './jobs.service';
 import { JOB_REPOSITORY, WORKER_AUTH_TOKEN } from './worker.tokens';
 
@@ -37,5 +38,6 @@ export const workerProviders: Provider[] = [
       new DocumentExtractionService(undefined, geminiClient),
     inject: [VertexGeminiClient],
   },
+  DocumentNormalizationService,
   JobsService,
 ];

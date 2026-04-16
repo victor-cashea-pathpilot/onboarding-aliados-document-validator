@@ -26,6 +26,7 @@ test('JobsService rejects invalid worker token when one is configured', async ()
     createLogger(),
     { buildDocumentsResult: async () => ({}) },
     { extractDocuments: async () => ({}) },
+    { normalize: () => ({}) },
   );
 
   await assert.rejects(
@@ -45,6 +46,7 @@ test('JobsService raises not found when the job is missing', async () => {
     createLogger(),
     { buildDocumentsResult: async () => ({}) },
     { extractDocuments: async () => ({}) },
+    { normalize: () => ({}) },
   );
 
   await assert.rejects(() => service.processJob('missing-job', null), NotFoundException);
@@ -94,6 +96,7 @@ test('JobsService marks pending jobs as processing with initial progress', async
     createLogger(),
     intakeService,
     extractionService,
+    { normalize: () => ({ legalMode: 'unknown' }) },
   );
   const response = await service.processJob('job-123', 'expected-token');
 
@@ -104,8 +107,8 @@ test('JobsService marks pending jobs as processing with initial progress', async
   });
 
   assert.equal(updatedRecord.status, 'PROCESSING');
-  assert.equal(updatedRecord.progress.stage, 'document_extraction');
-  assert.equal(updatedRecord.progress.percentage, 75);
+  assert.equal(updatedRecord.progress.stage, 'document_normalization');
+  assert.equal(updatedRecord.progress.percentage, 85);
 });
 
 test('JobsService leaves non-pending jobs unchanged', async () => {
@@ -142,6 +145,7 @@ test('JobsService leaves non-pending jobs unchanged', async () => {
     createLogger(),
     { buildDocumentsResult: async () => ({}) },
     { extractDocuments: async () => ({}) },
+    { normalize: () => ({}) },
   );
   const response = await service.processJob('job-234', null);
 
@@ -225,13 +229,24 @@ test('JobsService persists intake document results', async () => {
         return documents;
       },
     },
+    {
+      normalize() {
+        return {
+          legalMode: 'sociedad_mercantil',
+          companyRecord: { companyName: 'Empresa mock' },
+        };
+      },
+    },
   );
   await service.processJob('job-345', null);
 
-  assert.equal(updates.length, 3);
+  assert.equal(updates.length, 4);
   assert.equal(updates[1].progress.stage, 'document_extraction');
   assert.equal(updates[1].progress.percentage, 65);
-  assert.deepEqual(updates[2].documents, intakeDocuments);
-  assert.equal(updates[2].progress.stage, 'document_extraction');
-  assert.equal(updates[2].progress.percentage, 75);
+  assert.equal(updates[2].progress.stage, 'document_normalization');
+  assert.equal(updates[2].progress.percentage, 80);
+  assert.deepEqual(updates[3].documents, intakeDocuments);
+  assert.equal(updates[3].progress.stage, 'document_normalization');
+  assert.equal(updates[3].progress.percentage, 85);
+  assert.equal(updates[3].normalizedSnapshot.legalMode, 'sociedad_mercantil');
 });

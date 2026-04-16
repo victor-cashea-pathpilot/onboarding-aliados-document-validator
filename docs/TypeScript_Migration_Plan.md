@@ -428,12 +428,19 @@ Status on this branch:
   - parallel extraction batching
   - document-level extraction result persistence
   - structured extraction logging
+- ported the next processing slice:
+  - canonical document normalization
+  - company document chronological merge
+  - field-level mercantile precedence
+  - cédula expiration policy metadata in normalized snapshot
+  - normalization result persistence in the worker
 - added worker tests for:
   - token enforcement
   - missing job behavior
   - initial progress updates
   - document intake service behavior
   - document extraction service behavior
+  - document normalization service behavior
   - persistence of document-level intake results
 - validated worker tests with:
   - `npm run test:ts:worker`
