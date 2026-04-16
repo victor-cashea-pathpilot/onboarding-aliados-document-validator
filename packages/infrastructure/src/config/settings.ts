@@ -17,6 +17,8 @@ export interface InfrastructureSettings {
   geminiLocation: string;
   geminiModelSimple: string;
   geminiModelComplex: string;
+  enableLlmCrossValidation: boolean;
+  enableLlmLegalAssessment: boolean;
 }
 
 function env(name: string, fallback?: string): string {
@@ -51,6 +53,8 @@ export function getInfrastructureSettings(): InfrastructureSettings {
     geminiLocation: process.env.GEMINI_LOCATION ?? 'global',
     geminiModelSimple: process.env.GEMINI_MODEL_SIMPLE ?? 'gemini-2.5-flash',
     geminiModelComplex: process.env.GEMINI_MODEL_COMPLEX ?? 'gemini-2.5-pro',
+    enableLlmCrossValidation: process.env.ENABLE_LLM_CROSS_VALIDATION !== 'false',
+    enableLlmLegalAssessment: process.env.ENABLE_LLM_LEGAL_ASSESSMENT !== 'false',
   };
 }
 

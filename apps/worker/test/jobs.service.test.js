@@ -28,6 +28,8 @@ test('JobsService rejects invalid worker token when one is configured', async ()
     { extractDocuments: async () => ({}) },
     { normalize: () => ({}) },
     { validate: () => [] },
+    { review: async () => ({ recommendation: 'APPROVED', confidence: 88, summary: '', findings: [] }) },
+    { assess: async () => ({ recommendation: 'APPROVED', confidence: 89, summary: '', findings: [] }) },
   );
 
   await assert.rejects(
@@ -49,6 +51,8 @@ test('JobsService raises not found when the job is missing', async () => {
     { extractDocuments: async () => ({}) },
     { normalize: () => ({}) },
     { validate: () => [] },
+    { review: async () => ({ recommendation: 'APPROVED', confidence: 88, summary: '', findings: [] }) },
+    { assess: async () => ({ recommendation: 'APPROVED', confidence: 89, summary: '', findings: [] }) },
   );
 
   await assert.rejects(() => service.processJob('missing-job', null), NotFoundException);
@@ -100,6 +104,8 @@ test('JobsService marks pending jobs as processing with initial progress', async
     extractionService,
     { normalize: () => ({ legalMode: 'unknown' }) },
     { validate: () => [] },
+    { review: async () => ({ recommendation: 'APPROVED', confidence: 88, summary: '', findings: [] }) },
+    { assess: async () => ({ recommendation: 'APPROVED', confidence: 89, summary: '', findings: [] }) },
   );
   const response = await service.processJob('job-123', 'expected-token');
 
@@ -150,6 +156,8 @@ test('JobsService leaves non-pending jobs unchanged', async () => {
     { extractDocuments: async () => ({}) },
     { normalize: () => ({}) },
     { validate: () => [] },
+    { review: async () => ({ recommendation: 'APPROVED', confidence: 88, summary: '', findings: [] }) },
+    { assess: async () => ({ recommendation: 'APPROVED', confidence: 89, summary: '', findings: [] }) },
   );
   const response = await service.processJob('job-234', null);
 
@@ -252,6 +260,26 @@ test('JobsService persists intake document results', async () => {
         ];
       },
     },
+    {
+      async review() {
+        return {
+          recommendation: 'APPROVED',
+          confidence: 88,
+          summary: 'Cross validation OK',
+          findings: [],
+        };
+      },
+    },
+    {
+      async assess() {
+        return {
+          recommendation: 'APPROVED',
+          confidence: 89,
+          summary: 'Legal assessment OK',
+          findings: [],
+        };
+      },
+    },
   );
   await service.processJob('job-345', null);
 
@@ -268,4 +296,6 @@ test('JobsService persists intake document results', async () => {
   assert.equal(updates[4].normalizedSnapshot.legalMode, 'sociedad_mercantil');
   assert.equal(updates[4].crossValidation.legal_mode, 'sociedad_mercantil');
   assert.equal(updates[4].overallResult.status, 'APPROVED');
+  assert.equal(updates[4].crossValidation.llm_cross_validation.recommendation, 'APPROVED');
+  assert.equal(updates[4].crossValidation.llm_legal_assessment.recommendation, 'APPROVED');
 });

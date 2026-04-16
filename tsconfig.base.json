@@ -18,6 +18,12 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": false,
     "paths": {
+      "@contracts": [
+        "packages/contracts/src/index"
+      ],
+      "@contracts/*": [
+        "packages/contracts/src/*"
+      ],
       "@domain": [
         "packages/domain/src/index"
       ],

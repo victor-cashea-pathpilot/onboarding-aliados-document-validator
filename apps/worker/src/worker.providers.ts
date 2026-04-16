@@ -9,7 +9,9 @@ import { DocumentExtractionService } from './document-extraction.service';
 import { DocumentIntakeService } from './document-intake.service';
 import { DocumentNormalizationService } from './document-normalization.service';
 import { CrossValidationService } from './cross-validation.service';
+import { CrossValidationLlmService } from './cross-validation-llm.service';
 import { JobsService } from './jobs.service';
+import { LegalAssessmentLlmService } from './legal-assessment-llm.service';
 import { JOB_REPOSITORY, WORKER_AUTH_TOKEN } from './worker.tokens';
 
 export const workerProviders: Provider[] = [
@@ -41,5 +43,17 @@ export const workerProviders: Provider[] = [
   },
   DocumentNormalizationService,
   CrossValidationService,
+  {
+    provide: CrossValidationLlmService,
+    useFactory: (geminiClient: VertexGeminiClient, logger: ReturnType<typeof createLogger>) =>
+      new CrossValidationLlmService(geminiClient, logger),
+    inject: [VertexGeminiClient, 'WORKER_LOGGER'],
+  },
+  {
+    provide: LegalAssessmentLlmService,
+    useFactory: (geminiClient: VertexGeminiClient, logger: ReturnType<typeof createLogger>) =>
+      new LegalAssessmentLlmService(geminiClient, logger),
+    inject: [VertexGeminiClient, 'WORKER_LOGGER'],
+  },
   JobsService,
 ];

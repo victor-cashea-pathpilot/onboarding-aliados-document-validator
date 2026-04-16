@@ -439,6 +439,11 @@ Status on this branch:
   - deterministic final `overallResult`
   - `crossValidation` persistence in the worker
   - final completion transition to `COMPLETED`
+- ported the next processing slice:
+  - `cross_validation_llm`
+  - `legal_assessment_llm`
+  - legal-mode-specific validation prompts
+  - combined deterministic + LLM verdict composition
 - added worker tests for:
   - token enforcement
   - missing job behavior
@@ -447,6 +452,7 @@ Status on this branch:
   - document extraction service behavior
   - document normalization service behavior
   - deterministic cross-validation service behavior
+  - LLM validation service behavior
   - persistence of document-level intake results
 - validated worker tests with:
   - `npm run test:ts:worker`

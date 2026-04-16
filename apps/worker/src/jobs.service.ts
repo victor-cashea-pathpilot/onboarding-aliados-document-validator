@@ -1,3 +1,8 @@
+import type {
+  CrossValidationCheck,
+  CrossValidationFinding,
+  LLMValidationReview,
+} from '@contracts';
 import {
   ForbiddenException,
   Inject,
@@ -11,6 +16,8 @@ import { DocumentExtractionService } from './document-extraction.service';
 import { DocumentIntakeService } from './document-intake.service';
 import { DocumentNormalizationService } from './document-normalization.service';
 import { CrossValidationService } from './cross-validation.service';
+import { CrossValidationLlmService } from './cross-validation-llm.service';
+import { LegalAssessmentLlmService } from './legal-assessment-llm.service';
 import { JOB_REPOSITORY, WORKER_AUTH_TOKEN } from './worker.tokens';
 
 @Injectable()
@@ -23,6 +30,8 @@ export class JobsService {
     private readonly documentExtraction: DocumentExtractionService,
     private readonly documentNormalization: DocumentNormalizationService,
     private readonly crossValidation: CrossValidationService,
+    private readonly crossValidationLlm: CrossValidationLlmService,
+    private readonly legalAssessmentLlm: LegalAssessmentLlmService,
   ) {}
 
   async processJob(jobId: string, providedWorkerToken?: string | null) {
@@ -141,26 +150,23 @@ export class JobsService {
       await this.repository.update(crossValidationRecord);
 
       const checks = this.crossValidation.validate(normalizedSnapshot);
+      const [llmCrossValidation, llmLegalAssessment] = await Promise.all([
+        this.crossValidationLlm.review({
+          snapshot: normalizedSnapshot,
+          checks,
+        }),
+        this.legalAssessmentLlm.assess({
+          snapshot: normalizedSnapshot,
+          checks,
+        }),
+      ]);
+
       const failedChecks = checks.filter((check) => check.status === 'FAILED');
-      const overallResult =
-        failedChecks.length > 0
-          ? {
-              status: 'REQUIRES_REVIEW',
-              confidence: 78,
-              summary: failedChecks.some((check) =>
-                ['HAS_RIF', 'HAS_CEDULA', 'HAS_CONSTITUTIVE_DOC'].includes(check.code),
-              )
-                ? 'El caso requiere revisión manual porque faltan documentos obligatorios.'
-                : 'El caso requiere revisión manual porque una o más validaciones cruzadas fallaron.',
-              error_codes: failedChecks.map((check) => check.code),
-            }
-          : {
-              status: 'APPROVED',
-              confidence: 91,
-              summary:
-                'El caso pasó las validaciones técnicas, de extracción y las validaciones cruzadas actuales.',
-              error_codes: [],
-            };
+      const overallResult = this.composeCrossValidationResult({
+        failedChecks,
+        llmCrossValidation,
+        llmLegalAssessment,
+      });
 
       const updatedRecord: JobRecord = {
         ...crossValidationRecord,
@@ -175,9 +181,13 @@ export class JobsService {
         crossValidation: {
           legal_mode: normalizedSnapshot.legalMode,
           checks,
-          findings: [],
-          llm_cross_validation: null,
-          llm_legal_assessment: null,
+          findings: [
+            ...this.buildRuleFindings(checks),
+            ...llmCrossValidation.findings,
+            ...llmLegalAssessment.findings,
+          ],
+          llm_cross_validation: llmCrossValidation,
+          llm_legal_assessment: llmLegalAssessment,
         },
         overallResult,
         updatedAt: new Date().toISOString(),
@@ -194,5 +204,102 @@ export class JobsService {
       Math.round(new Date().getTime() - new Date(record.createdAt).getTime()),
       0,
     );
+  }
+
+  private composeCrossValidationResult(input: {
+    failedChecks: CrossValidationCheck[];
+    llmCrossValidation: LLMValidationReview;
+    llmLegalAssessment: LLMValidationReview;
+  }) {
+    const failedCodes = input.failedChecks.map((check) => check.code);
+    const baseResult =
+      input.failedChecks.length > 0
+        ? {
+            status: 'REQUIRES_REVIEW',
+            confidence: 78,
+            summary: input.failedChecks.some((check) =>
+              ['HAS_RIF', 'HAS_CEDULA', 'HAS_CONSTITUTIVE_DOC'].includes(check.code),
+            )
+              ? 'El caso requiere revisión manual porque faltan documentos obligatorios.'
+              : 'El caso requiere revisión manual porque una o más validaciones cruzadas fallaron.',
+            error_codes: failedCodes,
+          }
+        : {
+            status: 'APPROVED',
+            confidence: 91,
+            summary:
+              'El caso pasó las validaciones técnicas, de extracción y las validaciones cruzadas actuales.',
+            error_codes: [],
+          };
+
+    const candidates = [
+      ['rules', baseResult.status, baseResult.confidence, baseResult.summary] as const,
+      [
+        'llm_cross_validation',
+        input.llmCrossValidation.recommendation,
+        input.llmCrossValidation.confidence,
+        input.llmCrossValidation.summary,
+      ] as const,
+      [
+        'llm_legal_assessment',
+        input.llmLegalAssessment.recommendation,
+        input.llmLegalAssessment.confidence,
+        input.llmLegalAssessment.summary,
+      ] as const,
+    ];
+
+    const severityOrder = {
+      APPROVED: 0,
+      REQUIRES_REVIEW: 1,
+      REJECTED: 2,
+    } as const;
+
+    const [dominantSource, dominantStatus, dominantConfidence, dominantSummary] = candidates.reduce(
+      (best, current) => {
+        const bestRank = severityOrder[best[1]];
+        const currentRank = severityOrder[current[1]];
+        if (currentRank > bestRank) {
+          return current;
+        }
+        if (currentRank === bestRank && current[2] > best[2]) {
+          return current;
+        }
+        return best;
+      },
+    );
+
+    if (dominantSource === 'rules') {
+      return baseResult;
+    }
+
+    const combinedErrorCodes = [...baseResult.error_codes];
+    for (const review of [input.llmCrossValidation, input.llmLegalAssessment]) {
+      for (const finding of review.findings) {
+        for (const relatedCheck of finding.relatedChecks) {
+          if (!combinedErrorCodes.includes(relatedCheck)) {
+            combinedErrorCodes.push(relatedCheck);
+          }
+        }
+      }
+    }
+
+    return {
+      status: dominantStatus,
+      confidence: dominantConfidence,
+      summary: dominantSummary,
+      error_codes: combinedErrorCodes,
+    };
+  }
+
+  private buildRuleFindings(checks: CrossValidationCheck[]): CrossValidationFinding[] {
+    return checks
+      .filter((check) => check.status !== 'PASSED')
+      .map((check) => ({
+        source: 'rules',
+        severity: check.status === 'FAILED' ? 'CRITICAL' : 'WARNING',
+        code: check.code,
+        message: check.message,
+        relatedChecks: [check.code],
+      }));
   }
 }
