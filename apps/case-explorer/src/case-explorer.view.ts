@@ -113,6 +113,15 @@ function shell(title: string, body: string): string {
         padding: 24px;
         margin-bottom: 18px;
       }
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .back-link:hover { color: var(--ink); text-decoration: none; }
       .hero-top, .toolbar, .header-row, .column-top, .workflow-head, .hero-actions {
         display: flex;
         justify-content: space-between;
@@ -128,13 +137,18 @@ function shell(title: string, body: string): string {
         font-weight: 700;
       }
       h1 {
-        margin: 8px 0 10px;
-        font-size: 36px;
+        margin: 6px 0 8px;
+        font-size: 32px;
         line-height: 1.05;
       }
       h2 {
         margin: 8px 0 12px;
-        font-size: 22px;
+        font-size: 20px;
+      }
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.3;
       }
       .hero-copy, .subtle, .summary-copy, .progress-message {
         color: var(--muted);
@@ -153,7 +167,7 @@ function shell(title: string, body: string): string {
         background: var(--accent-soft);
         color: var(--accent);
       }
-      .metrics-grid, .detail-grid, .section-grid, .columns {
+      .metrics-grid, .detail-grid, .section-grid, .columns, .header-grid, .output-grid {
         display: grid;
         gap: 18px;
       }
@@ -325,6 +339,71 @@ function shell(title: string, body: string): string {
         grid-template-columns: 1.25fr 0.85fr;
         margin-bottom: 18px;
       }
+      .header-grid {
+        grid-template-columns: 1.4fr 1fr;
+        margin-top: 18px;
+      }
+      .info-card {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--panel-alt);
+        padding: 18px;
+      }
+      .info-card .header-row {
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      .info-card .summary-copy {
+        font-size: 14px;
+      }
+      .result-tag {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .tab-shell { margin-bottom: 18px; }
+      .tab-strip {
+        display: inline-flex;
+        gap: 8px;
+        padding: 6px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel);
+        margin-bottom: 18px;
+      }
+      .tab-button {
+        border: 0;
+        background: transparent;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .tab-button.active {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .tab-panel { display: block; }
+      .tab-panel.hidden { display: none; }
+      .output-grid {
+        grid-template-columns: 1.1fr 0.9fr;
+        margin-bottom: 18px;
+      }
+      .output-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .json-caption {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
       .section-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         margin-bottom: 18px;
@@ -474,15 +553,17 @@ function shell(title: string, body: string): string {
       }
       .file-item strong { display: block; }
       .empty { color: var(--muted); }
-      .raw-link {
+      .raw-link, .download-link {
         display: inline-flex;
         align-items: center;
         gap: 8px;
       }
       @media (max-width: 1180px) {
-        .metrics-grid, .detail-grid, .columns, .section-grid, .document-grid { grid-template-columns: 1fr; }
+        .metrics-grid, .detail-grid, .columns, .section-grid, .document-grid, .header-grid, .output-grid { grid-template-columns: 1fr; }
         .stats-grid { grid-template-columns: 1fr; }
         .chart-card { grid-template-columns: 1fr; }
+        .tab-strip { width: 100%; justify-content: stretch; }
+        .tab-button { flex: 1; }
       }
     </style>
   </head>
@@ -1054,9 +1135,16 @@ function renderJobPage(job: CaseExplorerResponse): string {
       getBucket(documents, 'certificadoEmprendimiento', 'certificado_emprendimiento'),
     ),
   ];
+  const outputJson = {
+    overallResult: job.overallResult ?? {},
+    normalizedSnapshot: job.normalizedSnapshot ?? {},
+    crossValidation: job.crossValidation ?? {},
+  };
+  const decisionTagClass = statusClass(undefined, overall.status);
 
   const body = `
     <section class="hero">
+      <a class="back-link" href="/">← Back to cases</a>
       <div class="hero-top">
         <div>
           <div class="eyebrow">Onboarding Case Explorer</div>
@@ -1065,37 +1153,57 @@ function renderJobPage(job: CaseExplorerResponse): string {
             job.requestId ?? '—',
           )}</div>
         </div>
-        <div class="hero-actions">
-          <span class="status-pill ${statusClass(job.status, overall.status)}">${escapeHtml(
-            overall.status ?? job.status,
-          )}</span>
-          <a class="ghost-button" href="/">Back to cases</a>
-          <a class="ghost-button raw-link" href="/jobs/${escapeHtml(job.jobId)}/json">Raw JSON</a>
-        </div>
       </div>
 
-      <div class="detail-grid">
-        <div class="summary-grid">
-          <article class="summary-card">
-            <strong>${escapeHtml(overall.status ?? '—')}</strong>
-            <span>Overall result</span>
-          </article>
-          <article class="summary-card">
-            <strong>${escapeHtml(asString(normalizedSnapshot.legalMode) ?? '—')}</strong>
-            <span>Legal mode</span>
-          </article>
-          <article class="summary-card">
-            <strong>${escapeHtml(`${progress.percentage ?? 0}%`)}</strong>
-            <span>Current progress</span>
-          </article>
-          <article class="summary-card">
-            <strong>${escapeHtml(progress.stage ?? '—')}</strong>
-            <span>Current stage</span>
-          </article>
-        </div>
-        <div class="section-card panel">
-          <div class="eyebrow">Timestamps</div>
+      <div class="header-grid">
+        <section class="info-card">
+          <div class="header-row">
+            <div>
+              <div class="eyebrow">Merchant</div>
+              <h2>Merchant information</h2>
+            </div>
+            <span class="result-tag ${decisionTagClass}">${escapeHtml(overall.status ?? job.status)}</span>
+          </div>
           <div class="kv-grid">
+            <article class="kv-item">
+              <strong>${escapeHtml(job.merchantId)}</strong>
+              <span>Merchant ID</span>
+            </article>
+            <article class="kv-item">
+              <strong>${escapeHtml(job.requestId ?? '—')}</strong>
+              <span>Request ID</span>
+            </article>
+            <article class="kv-item">
+              <strong>${escapeHtml(asString(normalizedSnapshot.legalMode) ?? '—')}</strong>
+              <span>Legal mode</span>
+            </article>
+            <article class="kv-item">
+              <strong>${escapeHtml(String(documentSummaries.reduce((sum, item) => sum + item.count, 0)))}</strong>
+              <span>Documents</span>
+            </article>
+          </div>
+          <div class="hero-copy" style="margin-top:14px;">${escapeHtml(
+            overall.summary ?? 'No overall summary available yet.',
+          )}</div>
+        </section>
+
+        <section class="info-card">
+          <div class="header-row">
+            <div>
+              <div class="eyebrow">Process</div>
+              <h2>Process information</h2>
+            </div>
+            <span class="status-pill ${statusClass(job.status, overall.status)}">${escapeHtml(job.status)}</span>
+          </div>
+          <div class="kv-grid">
+            <article class="kv-item">
+              <strong>${escapeHtml(`${progress.percentage ?? 0}%`)}</strong>
+              <span>Progress</span>
+            </article>
+            <article class="kv-item">
+              <strong>${escapeHtml(progress.stage ?? '—')}</strong>
+              <span>Current stage</span>
+            </article>
             <article class="kv-item">
               <strong>${escapeHtml(formatDate(job.createdAt))}</strong>
               <span>Created</span>
@@ -1105,201 +1213,253 @@ function renderJobPage(job: CaseExplorerResponse): string {
               <span>Updated</span>
             </article>
           </div>
-        </div>
+          <div class="progress-track" style="margin-top:14px;"><div class="progress-fill" style="width:${
+            progress.percentage ?? 0
+          }%;"></div></div>
+          <div class="progress-message" style="margin-top:10px;">${escapeHtml(progress.message ?? 'No progress metadata available.')}</div>
+        </section>
       </div>
-
-      <div class="hero-copy">${escapeHtml(
-        overall.summary ?? 'No overall summary available yet.',
-      )}</div>
-
-      <div class="progress-track"><div class="progress-fill" style="width:${
-        progress.percentage ?? 0
-      }%;"></div></div>
-      <div class="progress-message">${escapeHtml(progress.message ?? 'No progress metadata available.')}</div>
     </section>
 
-    <section class="section-grid">
-      <section class="card section-card"><div class="panel">
-        <div class="header-row">
-          <div>
-            <div class="eyebrow">Cedula Policy</div>
-            <h2>Cédula policy</h2>
-          </div>
-          <span class="status-pill ${cedulaPolicy.policyOutcome === 'expired_over_10_years' ? 'status-failed' : cedulaPolicy.policyOutcome === 'unknown' ? 'status-pending' : 'status-approved'}">${escapeHtml(
-            cedulaPolicy.policyLabel,
-          )}</span>
-        </div>
-        <div class="kv-grid">
-          <article class="kv-item"><strong>${escapeHtml(cedulaPolicy.idNumber)}</strong><span>Cédula</span></article>
-          <article class="kv-item"><strong>${escapeHtml(cedulaPolicy.expirationDate)}</strong><span>Expiration date</span></article>
-          <article class="kv-item"><strong>${escapeHtml(
-            cedulaPolicy.isExpired == null ? '—' : cedulaPolicy.isExpired ? 'Sí' : 'No',
-          )}</strong><span>Is expired</span></article>
-          <article class="kv-item"><strong>${escapeHtml(
-            cedulaPolicy.expirationYears == null ? '—' : cedulaPolicy.expirationYears,
-          )}</strong><span>Years since expiration</span></article>
-        </div>
-      </div></section>
-
-      <section class="card section-card"><div class="panel">
-        <div class="eyebrow">Validation summary</div>
-        <h2>Decision checks</h2>
-        ${renderChecks(checks)}
-        <h2 style="margin-top:18px;">Findings</h2>
-        ${renderFindings(findings)}
-      </div></section>
-    </section>
-
-    <section class="card section-card"><div class="panel">
-      <div class="header-row">
-        <div>
-          <div class="eyebrow">Document evidence</div>
-          <h2>Documents</h2>
-        </div>
-        <div class="pill">${escapeHtml(
-          `${documentSummaries.reduce((sum, item) => sum + item.count, 0)} document(s)`,
-        )}</div>
+    <section class="tab-shell">
+      <div class="tab-strip" role="tablist" aria-label="Case detail sections">
+        <button type="button" class="tab-button active" data-tab="output" aria-selected="true">Output</button>
+        <button type="button" class="tab-button" data-tab="explorer" aria-selected="false">Explorer</button>
+        <button type="button" class="tab-button" data-tab="extras" aria-selected="false">Extras</button>
       </div>
-      <div class="document-grid">
-        ${documentSummaries
-          .map(
-            (summary) => `
-            <article class="document-card">
-              <div class="header-row">
-                <h3>${escapeHtml(summary.title)}</h3>
-                <span class="status-pill ${summary.status === 'APPROVED' ? 'status-approved' : summary.status === 'REJECTED' ? 'status-failed' : summary.status === 'REQUIRES_REVIEW' ? 'status-review' : 'status-pending'}">${escapeHtml(
-                  summary.status,
-                )}</span>
+
+      <section class="tab-panel" data-panel="output">
+        <section class="output-grid">
+          <section class="card section-card"><div class="panel">
+            <div class="header-row">
+              <div>
+                <div class="eyebrow">Decision</div>
+                <h2>Result</h2>
               </div>
-              <div class="subtle">${escapeHtml(summary.count)} file(s) · confidence ${escapeHtml(
-                summary.confidenceLabel,
-              )}</div>
-              <ul>
-                ${summary.bulletPoints
-                  .map((bullet) => `<li>${escapeHtml(bullet)}</li>`)
-                  .join('')}
-              </ul>
-            </article>`,
-          )
-          .join('')}
-      </div>
-    </div></section>
+              <span class="result-tag ${decisionTagClass}">${escapeHtml(overall.status ?? job.status)}</span>
+            </div>
+            <div class="hero-copy">${escapeHtml(
+              overall.summary ?? 'No overall summary available yet.',
+            )}</div>
+            <div class="output-summary-grid">
+              <article class="summary-card">
+                <strong>${escapeHtml(asString(normalizedSnapshot.legalMode) ?? '—')}</strong>
+                <span>Legal mode</span>
+              </article>
+              <article class="summary-card">
+                <strong>${escapeHtml(`${progress.percentage ?? 0}%`)}</strong>
+                <span>Progress</span>
+              </article>
+              <article class="summary-card">
+                <strong>${escapeHtml(String(checks.length))}</strong>
+                <span>Checks</span>
+              </article>
+              <article class="summary-card">
+                <strong>${escapeHtml(String(findings.length))}</strong>
+                <span>Findings</span>
+              </article>
+            </div>
+          </div></section>
 
-    <section class="card workflow-card">
-      <div class="panel">
-        <div class="workflow-head">
-          <div>
-            <div class="eyebrow">Monitor</div>
-            <h2>Workflow</h2>
-          </div>
-          <div class="progress-message">Selecciona un nodo para revisar input, prompt y output.</div>
-        </div>
-      </div>
-      <div class="node-rail">
-        ${workflowNodes
-          .map(
-            (node, index) => `
-            <button class="node-button ${index === 0 ? 'active' : ''}" type="button" data-node-id="${escapeHtml(
-              node.id,
-            )}">
-              <span class="node-kind">${escapeHtml(node.kind)}</span>
-              <h3>${escapeHtml(node.title)}</h3>
-              <span class="status-pill ${statusClass(
-                node.status === 'processing'
-                  ? 'PROCESSING'
-                  : node.status === 'pending'
-                    ? 'PENDING'
-                    : node.status === 'failed'
-                      ? 'FAILED'
-                      : 'COMPLETED',
-              )}">${escapeHtml(node.status)}</span>
-              <div class="node-copy">${escapeHtml(node.subtitle)}</div>
-              <div class="node-meta">
-                <span><strong>Stage:</strong> ${escapeHtml(node.stage)}</span>
-                <span><strong>Model:</strong> ${escapeHtml(node.model ?? '—')}</span>
-                <span><strong>Files:</strong> ${escapeHtml(node.files.length)}</span>
+          <section class="card section-card"><div class="panel">
+            <div class="header-row">
+              <div>
+                <div class="eyebrow">Output</div>
+                <h2>Structured result</h2>
               </div>
-            </button>`,
-          )
-          .join('')}
-      </div>
-    </section>
+              <a class="ghost-button raw-link" href="/jobs/${escapeHtml(job.jobId)}/json">Download API JSON</a>
+            </div>
+            <div class="json-caption">This is the final structured payload returned by the processing pipeline.</div>
+            <div class="json-shell"><pre>${escapeHtml(
+              JSON.stringify(outputJson, null, 2),
+            )}</pre></div>
+          </div></section>
+        </section>
 
-    <section class="columns">
-      <section class="card"><div class="panel">
-        <div class="column-top">
-          <div>
-            <div class="eyebrow">Node Input</div>
-            <h2 id="input-title">Input</h2>
-          </div>
-          <div class="column-actions">
-            <button type="button" class="copy-button" data-copy-target="input-json">⧉ Copy</button>
-            <span id="input-copy-feedback" class="copy-feedback"></span>
-          </div>
-        </div>
-        <div id="file-list" class="file-list"></div>
-        <div class="json-shell"><pre id="input-json"></pre></div>
-      </div></section>
+        <section class="section-grid">
+          <section class="card section-card"><div class="panel">
+            <div class="eyebrow">Validation summary</div>
+            <h2>Decision checks</h2>
+            ${renderChecks(checks)}
+            <h2 style="margin-top:18px;">Findings</h2>
+            ${renderFindings(findings)}
+          </div></section>
 
-      <section class="card"><div class="panel">
-        <div class="column-top">
-          <div>
-            <div class="eyebrow">Prompt</div>
-            <h2 id="prompt-title">Prompt</h2>
-          </div>
-          <div class="column-actions">
-            <button type="button" class="copy-button" data-copy-target="prompt-text">⧉ Copy</button>
-            <span id="prompt-copy-feedback" class="copy-feedback"></span>
-          </div>
-        </div>
-        <div class="json-shell"><pre id="prompt-text"></pre></div>
-      </div></section>
+          <section class="card section-card"><div class="panel">
+            <div class="header-row">
+              <div>
+                <div class="eyebrow">Final analysis</div>
+                <h2>Cross-validation</h2>
+              </div>
+              <span class="status-pill ${statusClass(undefined, asString(llmCrossValidation?.recommendation))}">${escapeHtml(
+                asString(llmCrossValidation?.recommendation) ?? '—',
+              )}</span>
+            </div>
+            <div class="json-shell"><pre>${escapeHtml(
+              JSON.stringify(llmCrossValidation ?? {}, null, 2),
+            )}</pre></div>
+          </div></section>
+        </section>
+      </section>
 
-      <section class="card"><div class="panel">
-        <div class="column-top">
-          <div>
-            <div class="eyebrow">Node Output</div>
-            <h2 id="output-title">Output</h2>
+      <section class="tab-panel hidden" data-panel="explorer">
+        <section class="card workflow-card">
+          <div class="panel">
+            <div class="workflow-head">
+              <div>
+                <div class="eyebrow">Monitor</div>
+                <h2>Workflow explorer</h2>
+              </div>
+              <div class="progress-message">Select a node to inspect input, prompt and output.</div>
+            </div>
           </div>
-          <div class="column-actions">
-            <button type="button" class="copy-button" data-copy-target="output-json">⧉ Copy</button>
-            <span id="output-copy-feedback" class="copy-feedback"></span>
+          <div class="node-rail">
+            ${workflowNodes
+              .map(
+                (node, index) => `
+                <button class="node-button ${index === 0 ? 'active' : ''}" type="button" data-node-id="${escapeHtml(
+                  node.id,
+                )}">
+                  <span class="node-kind">${escapeHtml(node.kind)}</span>
+                  <h3>${escapeHtml(node.title)}</h3>
+                  <span class="status-pill ${statusClass(
+                    node.status === 'processing'
+                      ? 'PROCESSING'
+                      : node.status === 'pending'
+                        ? 'PENDING'
+                        : node.status === 'failed'
+                          ? 'FAILED'
+                          : 'COMPLETED',
+                  )}">${escapeHtml(node.status)}</span>
+                  <div class="node-copy">${escapeHtml(node.subtitle)}</div>
+                  <div class="node-meta">
+                    <span><strong>Stage:</strong> ${escapeHtml(node.stage)}</span>
+                    <span><strong>Model:</strong> ${escapeHtml(node.model ?? '—')}</span>
+                    <span><strong>Files:</strong> ${escapeHtml(node.files.length)}</span>
+                  </div>
+                </button>`,
+              )
+              .join('')}
           </div>
-        </div>
-        <div class="json-shell"><pre id="output-json"></pre></div>
-      </div></section>
-    </section>
+        </section>
 
-    <section class="section-grid">
-      <section class="card section-card"><div class="panel">
-        <div class="header-row">
-          <div>
-            <div class="eyebrow">Final analysis</div>
-            <h2>Cross-validation</h2>
-          </div>
-          <span class="status-pill ${statusClass(undefined, asString(llmCrossValidation?.recommendation))}">${escapeHtml(
-            asString(llmCrossValidation?.recommendation) ?? '—',
-          )}</span>
-        </div>
-        <div class="json-shell"><pre>${escapeHtml(
-          JSON.stringify(llmCrossValidation ?? {}, null, 2),
-        )}</pre></div>
-      </div></section>
+        <section class="columns">
+          <section class="card"><div class="panel">
+            <div class="column-top">
+              <div>
+                <div class="eyebrow">Node Input</div>
+                <h2 id="input-title">Input</h2>
+              </div>
+              <div class="column-actions">
+                <button type="button" class="copy-button" data-copy-target="input-json">⧉ Copy</button>
+                <span id="input-copy-feedback" class="copy-feedback"></span>
+              </div>
+            </div>
+            <div id="file-list" class="file-list"></div>
+            <div class="json-shell"><pre id="input-json"></pre></div>
+          </div></section>
 
-      <section class="card section-card"><div class="panel">
-        <div class="header-row">
-          <div>
-            <div class="eyebrow">Final analysis</div>
-            <h2>Legal assessment</h2>
+          <section class="card"><div class="panel">
+            <div class="column-top">
+              <div>
+                <div class="eyebrow">Prompt</div>
+                <h2 id="prompt-title">Prompt</h2>
+              </div>
+              <div class="column-actions">
+                <button type="button" class="copy-button" data-copy-target="prompt-text">⧉ Copy</button>
+                <span id="prompt-copy-feedback" class="copy-feedback"></span>
+              </div>
+            </div>
+            <div class="json-shell"><pre id="prompt-text"></pre></div>
+          </div></section>
+
+          <section class="card"><div class="panel">
+            <div class="column-top">
+              <div>
+                <div class="eyebrow">Node Output</div>
+                <h2 id="output-title">Output</h2>
+              </div>
+              <div class="column-actions">
+                <button type="button" class="copy-button" data-copy-target="output-json">⧉ Copy</button>
+                <span id="output-copy-feedback" class="copy-feedback"></span>
+              </div>
+            </div>
+            <div class="json-shell"><pre id="output-json"></pre></div>
+          </div></section>
+        </section>
+      </section>
+
+      <section class="tab-panel hidden" data-panel="extras">
+        <section class="section-grid">
+          <section class="card section-card"><div class="panel">
+            <div class="header-row">
+              <div>
+                <div class="eyebrow">Cedula Policy</div>
+                <h2>Cédula policy</h2>
+              </div>
+              <span class="status-pill ${cedulaPolicy.policyOutcome === 'expired_over_10_years' ? 'status-failed' : cedulaPolicy.policyOutcome === 'unknown' ? 'status-pending' : 'status-approved'}">${escapeHtml(
+                cedulaPolicy.policyLabel,
+              )}</span>
+            </div>
+            <div class="kv-grid">
+              <article class="kv-item"><strong>${escapeHtml(cedulaPolicy.idNumber)}</strong><span>Cédula</span></article>
+              <article class="kv-item"><strong>${escapeHtml(cedulaPolicy.expirationDate)}</strong><span>Expiration date</span></article>
+              <article class="kv-item"><strong>${escapeHtml(
+                cedulaPolicy.isExpired == null ? '—' : cedulaPolicy.isExpired ? 'Sí' : 'No',
+              )}</strong><span>Is expired</span></article>
+              <article class="kv-item"><strong>${escapeHtml(
+                cedulaPolicy.expirationYears == null ? '—' : cedulaPolicy.expirationYears,
+              )}</strong><span>Years since expiration</span></article>
+            </div>
+          </div></section>
+
+          <section class="card section-card"><div class="panel">
+            <div class="eyebrow">Metadata</div>
+            <h2>Process metadata</h2>
+            <div class="kv-grid">
+              <article class="kv-item"><strong>${escapeHtml(formatDate(job.createdAt))}</strong><span>Created</span></article>
+              <article class="kv-item"><strong>${escapeHtml(formatDate(job.updatedAt))}</strong><span>Updated</span></article>
+              <article class="kv-item"><strong>${escapeHtml(job.jobId)}</strong><span>Job ID</span></article>
+              <article class="kv-item"><strong>${escapeHtml(job.status)}</strong><span>Status</span></article>
+            </div>
+          </div></section>
+        </section>
+
+        <section class="card section-card"><div class="panel">
+          <div class="header-row">
+            <div>
+              <div class="eyebrow">Document evidence</div>
+              <h2>Documents</h2>
+            </div>
+            <div class="pill">${escapeHtml(
+              `${documentSummaries.reduce((sum, item) => sum + item.count, 0)} document(s)`,
+            )}</div>
           </div>
-          <span class="status-pill ${statusClass(undefined, asString(llmLegalAssessment?.recommendation))}">${escapeHtml(
-            asString(llmLegalAssessment?.recommendation) ?? '—',
-          )}</span>
-        </div>
-        <div class="json-shell"><pre>${escapeHtml(
-          JSON.stringify(llmLegalAssessment ?? {}, null, 2),
-        )}</pre></div>
-      </div></section>
+          <div class="document-grid">
+            ${documentSummaries
+              .map(
+                (summary) => `
+                <article class="document-card">
+                  <div class="header-row">
+                    <h3>${escapeHtml(summary.title)}</h3>
+                    <span class="status-pill ${summary.status === 'APPROVED' ? 'status-approved' : summary.status === 'REJECTED' ? 'status-failed' : summary.status === 'REQUIRES_REVIEW' ? 'status-review' : 'status-pending'}">${escapeHtml(
+                      summary.status,
+                    )}</span>
+                  </div>
+                  <div class="subtle">${escapeHtml(summary.count)} file(s) · confidence ${escapeHtml(
+                    summary.confidenceLabel,
+                  )}</div>
+                  <ul>
+                    ${summary.bulletPoints
+                      .map((bullet) => `<li>${escapeHtml(bullet)}</li>`)
+                      .join('')}
+                  </ul>
+                </article>`,
+              )
+              .join('')}
+          </div>
+        </div></section>
+      </section>
     </section>
   `;
 
@@ -1349,6 +1509,18 @@ function renderJobPage(job: CaseExplorerResponse): string {
     }
     for (const button of document.querySelectorAll('.node-button')) {
       button.addEventListener('click', () => selectNode(button.dataset.nodeId));
+    }
+    for (const button of document.querySelectorAll('.tab-button')) {
+      button.addEventListener('click', () => {
+        const tab = button.dataset.tab;
+        for (const item of document.querySelectorAll('.tab-button')) {
+          item.classList.toggle('active', item.dataset.tab === tab);
+          item.setAttribute('aria-selected', String(item.dataset.tab === tab));
+        }
+        for (const panel of document.querySelectorAll('.tab-panel')) {
+          panel.classList.toggle('hidden', panel.dataset.panel !== tab);
+        }
+      });
     }
     for (const button of document.querySelectorAll('.copy-button')) {
       button.addEventListener('click', () => copyBlock(button.dataset.copyTarget));
