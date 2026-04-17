@@ -1102,7 +1102,9 @@ function renderJobsPage(payload: CaseExplorerListResponse, query = ''): string {
   return shell('Onboarding Case Explorer', body);
 }
 
-function renderJobPage(job: CaseExplorerResponse): string {
+function renderJobPage(job: CaseExplorerResponse, requestedTab?: string): string {
+  const activeTab =
+    requestedTab === 'explorer' || requestedTab === 'extras' ? requestedTab : 'output';
   const overall: Partial<OverallResult> = job.overallResult ?? {};
   const progress: ProgressState = job.progress ?? {
     stage: 'pending',
@@ -1223,12 +1225,18 @@ function renderJobPage(job: CaseExplorerResponse): string {
 
     <section class="tab-shell">
       <div class="tab-strip" role="tablist" aria-label="Case detail sections">
-        <button type="button" class="tab-button active" data-tab="output" aria-selected="true">Output</button>
-        <button type="button" class="tab-button" data-tab="explorer" aria-selected="false">Explorer</button>
-        <button type="button" class="tab-button" data-tab="extras" aria-selected="false">Extras</button>
+        <a class="tab-button ${activeTab === 'output' ? 'active' : ''}" href="/jobs/${escapeHtml(
+          job.jobId,
+        )}?tab=output" data-tab="output" aria-selected="${activeTab === 'output'}">Output</a>
+        <a class="tab-button ${activeTab === 'explorer' ? 'active' : ''}" href="/jobs/${escapeHtml(
+          job.jobId,
+        )}?tab=explorer" data-tab="explorer" aria-selected="${activeTab === 'explorer'}">Explorer</a>
+        <a class="tab-button ${activeTab === 'extras' ? 'active' : ''}" href="/jobs/${escapeHtml(
+          job.jobId,
+        )}?tab=extras" data-tab="extras" aria-selected="${activeTab === 'extras'}">Extras</a>
       </div>
 
-      <section class="tab-panel" data-panel="output">
+      <section class="tab-panel ${activeTab !== 'output' ? 'hidden' : ''}" data-panel="output">
         <section class="output-grid">
           <section class="card section-card"><div class="panel">
             <div class="header-row">
@@ -1302,7 +1310,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
         </section>
       </section>
 
-      <section class="tab-panel hidden" data-panel="explorer">
+      <section class="tab-panel ${activeTab !== 'explorer' ? 'hidden' : ''}" data-panel="explorer">
         <section class="card workflow-card">
           <div class="panel">
             <div class="workflow-head">
@@ -1389,7 +1397,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
         </section>
       </section>
 
-      <section class="tab-panel hidden" data-panel="extras">
+      <section class="tab-panel ${activeTab !== 'extras' ? 'hidden' : ''}" data-panel="extras">
         <section class="section-grid">
           <section class="card section-card"><div class="panel">
             <div class="header-row">

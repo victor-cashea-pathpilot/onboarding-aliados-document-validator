@@ -14,10 +14,14 @@ export class CaseExplorerController {
   }
 
   @Get('/jobs/:jobId')
-  async getJob(@Param('jobId') jobId: string, @Res() response: Response) {
+  async getJob(
+    @Param('jobId') jobId: string,
+    @Query('tab') tab: string | undefined,
+    @Res() response: Response,
+  ) {
     try {
       const job = await this.caseExplorerService.getJob(jobId);
-      response.type('html').send(renderJobPage(job));
+      response.type('html').send(renderJobPage(job, tab));
     } catch (error) {
       if (error instanceof Error && error.message.includes(': 404')) {
         throw new NotFoundException(`Job '${jobId}' was not found.`);
