@@ -7,6 +7,15 @@ import type {
   OverallResult,
   ProgressState,
 } from '@contracts';
+import {
+  buildActaConstitutivaPrompt,
+  buildActaMercantilPrompt,
+  buildCedulaPrompt,
+  buildCertificadoEmprendimientoPrompt,
+  buildCrossValidationLlmPrompt,
+  buildLegalAssessmentPrompt,
+  buildRifPrompt,
+} from '@domain';
 
 type WorkflowNode = {
   id: string;
@@ -592,6 +601,13 @@ function summarizeDocumentBucket(
 function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
   const requestDocuments = asObject(job.request?.documents as unknown) ?? {};
   const documents = asObject(job.documents as unknown) ?? {};
+  const extractionPromptBuilders: Record<string, () => string> = {
+    rif: buildRifPrompt,
+    cedula: buildCedulaPrompt,
+    acta_constitutiva: buildActaConstitutivaPrompt,
+    acta_mercantil: buildActaMercantilPrompt,
+    certificado_emprendimiento: buildCertificadoEmprendimientoPrompt,
+  };
   const nodes: WorkflowNode[] = [
     {
       id: 'request',
@@ -675,8 +691,7 @@ function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
             : 'completed',
       stage: 'document_extraction',
       model: mapping.model,
-      prompt:
-        'Prompt capture is not yet persisted by the TypeScript stack. This node shows the exact input files and the structured extraction output returned by the worker.',
+      prompt: extractionPromptBuilders[mapping.documentType]?.() ?? null,
       files: requestFiles,
       inputPayload: { files: requestFiles, bucket: mapping.documentType },
       outputPayload: results,
@@ -703,6 +718,10 @@ function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
   });
 
   const crossValidation = asObject(job.crossValidation as unknown) ?? {};
+  const legalMode =
+    asString(crossValidation.legalMode) ??
+    asString(asObject(job.normalizedSnapshot)?.legalMode) ??
+    'unknown';
   nodes.push({
     id: 'rules',
     title: 'Deterministic cross-validation',
@@ -730,10 +749,13 @@ function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
     status: crossValidation.llmCrossValidation ? 'completed' : 'pending',
     stage: 'cross_validation',
     model: 'Gemini 2.5 Pro',
-    prompt:
-      'Prompt capture is not yet persisted by the TypeScript stack. This node shows the normalized input and the resulting LLM review payload.',
+    prompt: buildCrossValidationLlmPrompt(legalMode),
     files: [],
-    inputPayload: job.normalizedSnapshot ?? {},
+    inputPayload: {
+      snapshot: job.normalizedSnapshot ?? {},
+      checks: crossValidation.checks ?? [],
+      legal_mode: legalMode,
+    },
     outputPayload: crossValidation.llmCrossValidation ?? {},
   });
 
@@ -745,10 +767,13 @@ function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
     status: crossValidation.llmLegalAssessment ? 'completed' : 'pending',
     stage: 'cross_validation',
     model: 'Gemini 2.5 Pro',
-    prompt:
-      'Prompt capture is not yet persisted by the TypeScript stack. This node shows the normalized input and the resulting legal assessment payload.',
+    prompt: buildLegalAssessmentPrompt(legalMode),
     files: [],
-    inputPayload: job.normalizedSnapshot ?? {},
+    inputPayload: {
+      snapshot: job.normalizedSnapshot ?? {},
+      checks: crossValidation.checks ?? [],
+      legal_mode: legalMode,
+    },
     outputPayload: crossValidation.llmLegalAssessment ?? {},
   });
 

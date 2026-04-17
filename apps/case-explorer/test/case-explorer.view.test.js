@@ -115,4 +115,7 @@ test('renderJobPage includes workflow monitor and document evidence panels', () 
   assert.match(html, /Final analysis/);
   assert.match(html, /Cédula policy/);
   assert.match(html, /Case submission/);
+  assert.match(html, /Extrae la siguiente información del RIF/);
+  assert.match(html, /Actúa como un Auditor Senior de Cumplimiento Legal/);
+  assert.doesNotMatch(html, /Prompt capture is not yet persisted/);
 });
