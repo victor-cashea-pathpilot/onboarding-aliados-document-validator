@@ -456,6 +456,13 @@ Status on this branch:
   - persistence of document-level intake results
 - validated worker tests with:
   - `npm run test:ts:worker`
+- validated the TypeScript backend stack in GCP with:
+  - TS worker deployed to Cloud Run
+  - TS API redeployed to target the TS worker
+  - authenticated `POST /validate`
+  - Cloud Tasks dispatch into the TS worker
+  - authenticated `POST /status`
+  - final `COMPLETED` result persisted in Firestore
 
 ### Phase 6: Case Explorer migration
 
