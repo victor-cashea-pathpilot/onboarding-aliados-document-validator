@@ -68,6 +68,16 @@ if [[ "${CASE_EXPLORER_ENABLE_IAP}" == "true" ]]; then
   grant_service_invoker "$TS_CASE_EXPLORER_SERVICE_NAME" "serviceAccount:$(iap_service_agent)"
 
   if [[ -n "${CASE_EXPLORER_IAP_MEMBERS}" ]]; then
+    OLD_IFS="$IFS"
+    IFS=','
+    read -r -a IAP_MEMBERS_ARRAY <<<"${CASE_EXPLORER_IAP_MEMBERS}"
+    IFS="$OLD_IFS"
+    for member in "${IAP_MEMBERS_ARRAY[@]}"; do
+      member="$(echo "$member" | xargs)"
+      [[ -z "$member" ]] && continue
+      grant_service_invoker "$TS_CASE_EXPLORER_SERVICE_NAME" "$member"
+    done
+
     IAP_POLICY_RESOURCE="https://iap.googleapis.com/v1/projects/${PROJECT_NUMBER_VALUE}/iap_web/cloud_run-${REGION}/services/${TS_CASE_EXPLORER_SERVICE_NAME}"
     CURRENT_POLICY_FILE="$(mktemp)"
     UPDATED_POLICY_FILE="$(mktemp)"
