@@ -49,6 +49,8 @@ test('renderJobsPage includes live job rows', () => {
   assert.match(html, /TypeScript Case Explorer/);
   assert.match(html, /val_123/);
   assert.match(html, /document_extraction/);
+  assert.match(html, /role="link"/);
+  assert.match(html, /Open/);
 });
 
 test('renderJobPage includes request and cross-validation panels', () => {

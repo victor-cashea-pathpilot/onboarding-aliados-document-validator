@@ -49,6 +49,8 @@ function shell(title: string, body: string): string {
       th, td { text-align:left; padding: 14px 16px; border-bottom:1px solid #edf1f7; vertical-align:top; }
       th { color:#526071; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
       tr:hover { background:#fafcff; }
+      .job-row { cursor: pointer; }
+      .job-row:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
       .status { display:inline-flex; align-items:center; gap:8px; font-weight:600; }
       .dot { width:10px; height:10px; border-radius:999px; display:inline-block; }
       .status-approved .dot { background:#1bbf6b; }
@@ -60,7 +62,8 @@ function shell(title: string, body: string): string {
       .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; }
       .search { border:1px solid #d7dfea; border-radius:12px; padding:12px 14px; width:280px; background:white; }
       .table-card { overflow:hidden; }
-      .job-link { color: inherit; text-decoration:none; display:block; }
+      .job-link { color: inherit; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+      .job-link::after { content: 'Open'; color:#2563eb; font-size:11px; font-weight:600; text-transform: uppercase; letter-spacing:.04em; }
       .section { margin-bottom:24px; }
       .detail-grid { display:grid; grid-template-columns: 1.2fr .8fr; gap: 20px; }
       .panel { padding: 20px; }
@@ -140,7 +143,13 @@ export function renderJobsPage(payload: CaseExplorerListResponse, query?: string
           ${items
             .map(
               (item) => `
-                <tr>
+                <tr
+                  class="job-row"
+                  role="link"
+                  tabindex="0"
+                  onclick="window.location.href='/jobs/${escapeHtml(item.jobId)}'"
+                  onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href='/jobs/${escapeHtml(item.jobId)}'}"
+                >
                   <td><a class="job-link mono" href="/jobs/${escapeHtml(item.jobId)}">${escapeHtml(item.jobId)}</a></td>
                   <td><span class="status ${statusClass(item.status, item.overallStatus)}"><span class="dot"></span>${escapeHtml(item.overallStatus ?? item.status)}</span></td>
                   <td>${escapeHtml(item.stage ?? '—')}</td>
