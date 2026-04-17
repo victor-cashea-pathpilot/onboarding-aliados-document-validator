@@ -153,6 +153,12 @@ INSTRUCCIONES ESPECÍFICAS:
 - Busca el periodo de vigencia de los cargos.
 - Calcula fecha_vencimiento_junta sumando ese periodo a la fecha de la asamblea.
 - Determina el estatus_junta comparándolo con la fecha de hoy.
+- Usa ÚNICAMENTE información explícita del documento actual. No infieras asambleas futuras, reelecciones futuras ni documentos no presentes.
+- Si el periodo de vigencia de los cargos NO está explícito en el documento actual, entonces:
+  - "expiration_date" = "NO_ENCONTRADO"
+  - "status" = "NO_ENCONTRADO"
+  - "statutory_term" = "NO_ENCONTRADO"
+- No copies ni deduzcas vigencia desde otro documento fuera del acta actual.
 - Determina si esta acta MODIFICA EXPRESAMENTE la cláusula de representación legal o firma.
 - Si la acta solo nombra junta/directiva pero NO cambia la cláusula de firma/representación, entonces:
   - "representation_clause_modified" = "NO"

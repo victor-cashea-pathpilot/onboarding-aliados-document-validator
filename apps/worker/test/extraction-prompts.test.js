@@ -29,6 +29,8 @@ test('buildActaMercantilPrompt includes clause modification fields and board sch
   assert.match(prompt, /"validity_observation"/);
   assert.match(prompt, /"representatives"/);
   assert.match(prompt, /"NO_ENCONTRADO"/);
+  assert.match(prompt, /No infieras asambleas futuras/);
+  assert.match(prompt, /"status" = "NO_ENCONTRADO"/);
 });
 
 test('buildCertificadoEmprendimientoPrompt includes structured validity and representative schema', () => {
