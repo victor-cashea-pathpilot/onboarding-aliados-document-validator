@@ -80,7 +80,59 @@ INSTRUCCIONES DE ANÁLISIS:
   - LCB: licorería o venta de licores
   - LP: todo lo demás
 
-Responde ÚNICAMENTE con un JSON válido. No incluyas markdown.
+Responde ÚNICAMENTE con un JSON válido en este formato:
+{
+  "razon_social": "",
+  "registro_mercantil": {
+    "nombre_registro": "",
+    "estado_registro": "",
+    "numero": "",
+    "tomo": "",
+    "fecha_registro": "",
+    "fecha_dia": "",
+    "fecha_mes": "",
+    "fecha_ano": ""
+  },
+  "company_validity": {
+    "duration_years": "",
+    "expiration_date": "",
+    "status": "VIGENTE / VENCIDA"
+  },
+  "business_classification": {
+    "business_summary": "",
+    "line_code": "LP / LC / LCR / LCB",
+    "justification": ""
+  },
+  "corporate_structure": {
+    "shareholders": "",
+    "board": {
+      "members_and_roles": "",
+      "expiration_date": "",
+      "status": "VIGENTE / VENCIDA / N/A (FIRMA PERSONAL)",
+      "statutory_term": ""
+    },
+    "legal_representative": {
+      "signature_type": "CONJUNTA / SEPARADA",
+      "signature_quote": "",
+      "authority_details": "",
+      "representatives": [
+        {
+          "full_name": "",
+          "id_number": "",
+          "specific_role": "",
+          "signature_validity_probability": ""
+        }
+      ]
+    }
+  },
+  "locations": {
+    "fiscal_address": "",
+    "store_addresses": ""
+  }
+}
+
+Si un dato no existe, usa "NO_ENCONTRADO".
+No incluyas bloques de código markdown.
   `.trim();
 }
 
@@ -113,8 +165,64 @@ INSTRUCCIONES ESPECÍFICAS:
 - Si no puedes determinarlo con certeza:
   - "representation_clause_modified" = "UNKNOWN"
   - "signature_clause_status" = "AMBIGUOUS"
+- Resume cambios relevantes de capital, razón social, domicilio u objeto.
 
-Responde ÚNICAMENTE con un JSON válido. No incluyas markdown.
+Responde ÚNICAMENTE con un JSON válido en este formato:
+{
+  "razon_social": "",
+  "registro_mercantil": {
+    "nombre_registro": "",
+    "estado_registro": "",
+    "numero": "",
+    "tomo": "",
+    "fecha_registro": "",
+    "fecha_dia": "",
+    "fecha_mes": "",
+    "fecha_ano": ""
+  },
+  "corporate_structure": {
+    "shareholders": "",
+    "relevant_changes": "",
+    "board": {
+      "members_and_roles": "",
+      "expiration_date": "",
+      "status": "VIGENTE / VENCIDA / N/A (FIRMA PERSONAL)",
+      "statutory_term": ""
+    },
+    "legal_representative": {
+      "representation_clause_modified": "YES / NO / UNKNOWN",
+      "signature_clause_status": "EXPLICIT / NOT_MODIFIED / AMBIGUOUS / NO_ENCONTRADO",
+      "signature_type": "CONJUNTA / SEPARADA",
+      "signature_quote": "",
+      "authority_details": "",
+      "representatives": [
+        {
+          "full_name": "",
+          "id_number": "",
+          "specific_role": "",
+          "signature_validity_probability": ""
+        }
+      ]
+    }
+  },
+  "company_validity": {
+    "statutory_duration_years": "",
+    "expiration_date": "",
+    "status": "VIGENTE / VENCIDA / POR VENCER",
+    "validity_observation": ""
+  },
+  "business_classification": {
+    "business_summary": "",
+    "line_code": "LP / LC / LCR / LCB"
+  },
+  "locations": {
+    "fiscal_address": "",
+    "store_addresses": ""
+  }
+}
+
+Si un dato no existe o no cambió, usa "NO_ENCONTRADO".
+No incluyas bloques de código markdown.
   `.trim();
 }
 
@@ -135,7 +243,54 @@ INSTRUCCIONES DE EXTRACCIÓN Y ANÁLISIS:
 - Calcula vigencia legal de 2 años desde la inscripción.
 - Identifica representación y facultad de firma.
 - Clasifica la línea de negocio en LC / LCR / LCB / LP.
+- En emprendimientos usualmente la firma es SEPARADA.
+- Extrae la dirección fiscal completa y cualquier sucursal si existe.
 
-Responde ÚNICAMENTE con un JSON válido. No incluyas markdown.
+Responde ÚNICAMENTE con un JSON válido en este formato:
+{
+  "razon_social": "",
+  "document_type": "CERTIFICADO_EMPRENDIMIENTO",
+  "registro_mercantil": {
+    "nombre_registro": "",
+    "estado_registro": "",
+    "numero": "",
+    "tomo": "",
+    "fecha_registro": "",
+    "fecha_dia": "",
+    "fecha_mes": "",
+    "fecha_ano": ""
+  },
+  "company_validity": {
+    "duration_years": "",
+    "calculated_expiration_date": "",
+    "current_status": "VIGENTE / VENCIDA"
+  },
+  "business_classification": {
+    "business_summary": "",
+    "line_code": "LP / LC / LCR / LCB",
+    "justification": ""
+  },
+  "corporate_structure": {
+    "shareholders": "",
+    "relevant_changes": "",
+    "legal_representative": {
+      "full_name": "",
+      "id_number": "",
+      "current_role": "",
+      "signature_type": "CONJUNTA / SEPARADA",
+      "signature_quote": "",
+      "authority_details": "",
+      "signature_validity_probability": "",
+      "board_status": "VIGENTE / VENCIDA"
+    }
+  },
+  "locations": {
+    "fiscal_address": "",
+    "store_addresses": ""
+  }
+}
+
+Si un dato no existe, usa cadena vacía o "NO_ENCONTRADO" solo cuando sea realmente necesario.
+No incluyas bloques de código markdown.
   `.trim();
 }
