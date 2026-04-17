@@ -97,7 +97,7 @@ export class CaseExplorerClient {
   private async authHeaders(): Promise<Record<string, string>> {
     const client = await this.auth.getIdTokenClient(this.audience);
     const headers = await client.getRequestHeaders();
-    const headersRecord = headers as Record<string, string> & {
+    const headersRecord = headers as unknown as Record<string, string> & {
       get?: (name: string) => string | null | undefined;
     };
     const authorization =
