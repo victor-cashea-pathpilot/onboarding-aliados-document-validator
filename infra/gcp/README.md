@@ -107,6 +107,8 @@ Los scripts de validación TS despliegan servicios separados para no interferir 
 - `deploy_ts_worker.sh`
 - `deploy_ts_case_explorer.sh`
 - `deploy_ts_phase1_validation.sh`
+- `deploy_ts_all.sh`
+- `smoke_test_ts.sh`
 
 Variables nuevas relevantes:
 
@@ -130,6 +132,13 @@ source infra/gcp/.env.dev
 bash infra/gcp/deploy_ts_phase1_validation.sh
 ```
 
+Deploy consolidado del stack TS:
+
+```bash
+source infra/gcp/.env.dev
+bash infra/gcp/deploy_ts_all.sh
+```
+
 Qué valida esta fase:
 
 - build de imágenes TS
@@ -142,6 +151,20 @@ Qué no valida todavía:
 - paridad funcional completa con Python
 - integración real con Firestore / Cloud Tasks / Vertex AI
 - comportamiento de negocio end-to-end
+
+Smoke test del stack TS ya funcional:
+
+```bash
+source infra/gcp/.env.dev
+bash infra/gcp/smoke_test_ts.sh
+```
+
+Esto valida:
+
+- salud del API TS
+- `POST /v1/onboarding/validate`
+- polling de `POST /v1/onboarding/status`
+- finalización del job en el stack TS
 
 ## Imágenes publicadas en GCP
 

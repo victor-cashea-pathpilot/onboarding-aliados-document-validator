@@ -28,6 +28,9 @@ El diseño actual parte de una arquitectura Google-native y elimina dependencias
 - Real extraction evals locales: [docs/Real_Extraction_Evals_v1.md](docs/Real_Extraction_Evals_v1.md)
 - Despliegue GCP: [infra/gcp/README.md](infra/gcp/README.md)
 - Docker y builds locales: [infra/gcp/README.md#docker-y-builds-locales](infra/gcp/README.md#docker-y-builds-locales)
+- Plan de migración a TypeScript: [docs/TypeScript_Migration_Plan.md](docs/TypeScript_Migration_Plan.md)
+- Checklist de cutover TS: [docs/TypeScript_Cutover_Checklist.md](docs/TypeScript_Cutover_Checklist.md)
+- Reporte de paridad TS: [docs/TypeScript_Parity_Report.md](docs/TypeScript_Parity_Report.md)
 
 ## Workflow de ramas
 

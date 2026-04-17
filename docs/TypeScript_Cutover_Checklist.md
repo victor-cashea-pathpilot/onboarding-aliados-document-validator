@@ -31,25 +31,25 @@ We should switch only after:
 
 ### 1. Deployment readiness
 
-- TS API deploys successfully to Cloud Run
-- TS Worker deploys successfully to Cloud Run
-- TS Case Explorer deploys successfully to Cloud Run
-- IAP/browser access works for the TS Case Explorer
-- service accounts and IAM bindings are in place
+- [x] TS API deploys successfully to Cloud Run
+- [x] TS Worker deploys successfully to Cloud Run
+- [x] TS Case Explorer deploys successfully to Cloud Run
+- [x] IAP/browser access works for the TS Case Explorer
+- [x] service accounts and IAM bindings are in place
 
 ### 2. API compatibility
 
-- `POST /v1/onboarding/validate` works in the TS stack
-- `POST /v1/onboarding/status` works in the TS stack
-- internal case endpoints return case payloads consumable by the TS Case Explorer
+- [x] `POST /v1/onboarding/validate` works in the TS stack
+- [x] `POST /v1/onboarding/status` works in the TS stack
+- [x] internal case endpoints return case payloads consumable by the TS Case Explorer
 
 ### 3. Worker processing compatibility
 
-- TS worker can process real jobs end-to-end
-- extraction works with `MOCK_MODE=false`
-- normalization persists expected canonical fields
-- cross-validation and legal assessment complete
-- final jobs end in `COMPLETED` or `FAILED` with expected structure
+- [x] TS worker can process real jobs end-to-end
+- [x] extraction works with `MOCK_MODE=false`
+- [x] normalization persists expected canonical fields
+- [x] cross-validation and legal assessment complete
+- [x] final jobs end in `COMPLETED` or `FAILED` with expected structure
 
 ### 4. Real-case parity
 
@@ -61,19 +61,19 @@ For each canonical real case:
 
 compare Python vs TS for:
 
-- overall result status
-- legal mode
-- important deterministic checks
-- critical findings
-- normalized snapshot fields that drive the verdict
+- [x] overall result status
+- [x] legal mode
+- [x] important deterministic checks
+- [ ] critical findings
+- [ ] normalized snapshot fields that drive the verdict
 
 ### 5. Explorer readiness
 
-- jobs list works
-- row navigation works
-- detail page works
-- workflow monitor is usable
-- prompts / inputs / outputs are inspectable where available
+- [x] jobs list works
+- [x] row navigation works
+- [x] detail page works
+- [x] workflow monitor is usable
+- [x] prompts / inputs / outputs are inspectable where available
 
 ## Comparison workflow
 
@@ -103,6 +103,6 @@ This script:
 
 At this stage, the most important work is:
 
-- reducing Python vs TS parity gaps in extraction for corporate documents
-- validating the 3 canonical real cases repeatedly after each stage
-- keeping the comparison report current
+- keeping the canonical parity batch green after each logic change
+- finishing cleanup so TS becomes the primary documented deploy path
+- deciding final switch timing for Python retirement

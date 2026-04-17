@@ -28,52 +28,74 @@ Method:
 
 ## Results
 
+### Latest validated comparison batch
+
+Latest completed comparable batch:
+
+- `sociedad_mercantil`
+  - Python: `REJECTED`
+  - TypeScript: `REJECTED`
+- `emprendimiento`
+  - Python: `REQUIRES_REVIEW`
+  - TypeScript: `REQUIRES_REVIEW`
+- `firma_personal`
+  - Python: `REQUIRES_REVIEW`
+  - TypeScript: `REQUIRES_REVIEW`
+
 ### sociedad_mercantil
 
 - Python: `REJECTED`
 - TypeScript: `REJECTED`
 - Status: acceptable high-level parity
 
+Observed behavior:
+
+- both stacks reject because the board of directors is expired
+- both stacks preserve the same legal interpretation:
+  - valid company identity
+  - invalid current representation
+  - no operative board renewal for the case
+
 ### emprendimiento
 
 - Python: `REQUIRES_REVIEW`
-- TypeScript: `REJECTED`
-- Status: parity gap
+- TypeScript: `REQUIRES_REVIEW`
+- Status: acceptable high-level parity
 
 Observed behavior:
 
-- deterministic checks passed in both stacks
-- Python treated the fiscal address discrepancy as a review case
-- TypeScript escalated the same pattern to rejection
+- both stacks keep the fiscal address discrepancy as a review case
+- both stacks preserve the main non-blocking legal interpretation:
+  - identity consistent
+  - principal documents still usable
+  - address discrepancy requires clarification
 
 ### firma_personal
 
-- Python: `APPROVED`
+- Python: `REQUIRES_REVIEW`
 - TypeScript: `REQUIRES_REVIEW`
-- Status: parity gap
+- Status: acceptable high-level parity
 
 Observed behavior:
 
-- deterministic checks passed in both stacks
-- TypeScript still required review because of:
-  - missing cédula expiration metadata
-  - minor fiscal address discrepancy
-- Python treated these as non-blocking and approved the case
+- both stacks preserve the same main pattern:
+  - identity and authority generally supported
+  - cédula expiration date still missing
+  - minor inconsistencies remain review-level, not reject-level
 
 ## Current conclusion
 
-The TypeScript stack is already ready for:
+The TypeScript stack is now ready for:
 
 - deployment validation
 - real technical end-to-end tests
 - explorer validation
+- cutover preparation
 
-It is not yet ready for cutover because some non-blocking LLM findings still produce stricter outcomes than the current Python stack.
+The latest validated comparison batch shows acceptable high-level parity on the three canonical real cases.
 
-## Current remediation focus
+## Remaining work before final cutover
 
-1. downgrade address-only LLM rejections to `REQUIRES_REVIEW` when deterministic checks pass
-2. avoid `REQUIRES_REVIEW` in `firma_personal` when the remaining gaps are limited to:
-   - missing cédula expiration metadata
-   - minor address mismatch
-3. rerun the same comparison batch after each fix
+1. keep rerunning the canonical parity batch after any logic change
+2. continue refining field-level parity where useful for the explorer
+3. complete cleanup so TS becomes the primary documented deploy path

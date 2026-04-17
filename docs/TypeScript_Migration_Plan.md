@@ -498,6 +498,8 @@ Status on this branch:
 - validated locally with:
   - `npm run build`
   - `npm run test:ts:case-explorer`
+- deployed the TS Case Explorer in GCP with IAP-enabled browser access
+- aligned the TS case detail UI closely enough with the Python explorer for real-case review
 
 ### Phase 7: Cutover
 
@@ -517,7 +519,7 @@ Deliverables:
 
 Status on this branch:
 
-- started cutover preparation instead of switching immediately
+- cutover preparation completed enough for real-case validation
 - added a dedicated checklist in `docs/TypeScript_Cutover_Checklist.md`
 - added a parity comparison script:
   - `scripts/compare_python_ts_stacks.py`
@@ -525,12 +527,12 @@ Status on this branch:
   - `sociedad_mercantil`
   - `emprendimiento`
   - `firma_personal`
-- added a first parity report in `docs/TypeScript_Parity_Report.md`
-- first parallel parity run completed with these high-level results:
-  - `sociedad_mercantil`: parity reached at overall verdict level (`REJECTED` on both stacks)
-  - `emprendimiento`: TypeScript is currently stricter than Python on fiscal address mismatch
-  - `firma_personal`: TypeScript is currently stricter than Python on benign cédula metadata gaps and minor address discrepancy handling
-- current cutover work is focused on reducing those parity gaps before any production switch
+- updated the parity report with the latest validated comparison batch:
+  - `sociedad_mercantil`: `REJECTED` in both stacks
+  - `emprendimiento`: `REQUIRES_REVIEW` in both stacks
+  - `firma_personal`: `REQUIRES_REVIEW` in both stacks
+- the TS stack now supports real-case parity review in GCP through the TS Case Explorer
+- the remaining cutover work is operational cleanup and final switch planning, not fundamental parity blocking
 
 ### Phase 8: Cleanup
 
@@ -547,6 +549,16 @@ Tasks:
 Deliverables:
 - Python stack retired or archived
 - deployment and documentation cleanup completed
+
+Status on this branch:
+
+- started
+- added TypeScript-first operational helpers:
+  - `infra/gcp/deploy_ts_all.sh`
+  - `infra/gcp/smoke_test_ts.sh`
+- added a dedicated TypeScript CI workflow:
+  - `.github/workflows/typescript-ci.yml`
+- updated deploy docs so the TS stack is documented as a first-class deploy/test path
 
 ## What should be migrated first
 
