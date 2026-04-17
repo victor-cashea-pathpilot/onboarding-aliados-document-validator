@@ -243,6 +243,7 @@ Templates recomendados:
 - `env.dev.template`: para pruebas internas rápidas o sandboxes
 - `env.staging.template`: para validación operativa pre-piloto
 - `env.prod.template`: base para producción, con `MOCK_MODE=false`
+- `TS_WORKER_MOCK_MODE`: permite correr el worker TypeScript con extracción real aunque el ambiente conserve `MOCK_MODE=true` para otros paths de validación
 
 ## Orden recomendado
 
@@ -370,7 +371,7 @@ Ya se probó exitosamente en GCP:
 1. copiar el template adecuado a un archivo local fuera de git
 2. cambiar `PROJECT_ID`, nombres de servicios, nombres de service accounts y `FIRESTORE_COLLECTION`
 3. ajustar `WORKER_AUTH_TOKEN`
-4. revisar `MOCK_MODE` y modelos Gemini del ambiente destino
+4. revisar `MOCK_MODE`, `TS_WORKER_MOCK_MODE` y modelos Gemini del ambiente destino
 5. correr `bootstrap.sh`
 6. correr `deploy_worker.sh` y `deploy_api.sh`
 7. correr `deploy_observability.sh`
