@@ -1,13 +1,13 @@
 import { Controller, Get } from '@nestjs/common';
 
-@Controller()
-export class AppController {
+@Controller('health')
+export class HealthController {
   @Get()
-  getHome() {
+  getHealth() {
     return {
       service: 'case-explorer',
       status: 'ok',
-      phase: 'typescript-migration-scaffold',
+      phase: 'typescript-migration-case-explorer',
     };
   }
 }

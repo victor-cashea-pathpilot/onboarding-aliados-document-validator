@@ -28,4 +28,4 @@ USER appuser
 
 EXPOSE 8080
 
-CMD ["node", "dist/apps/case-explorer/main.js"]
+CMD ["node", "dist/apps/case-explorer/apps/case-explorer/src/main.js"]

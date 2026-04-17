@@ -483,6 +483,22 @@ Tasks:
 Deliverables:
 - deployable TS Case Explorer
 
+Status on this branch:
+
+- started the TypeScript Case Explorer migration as a Nest-rendered internal app
+- replaced the scaffold JSON home route with:
+  - `GET /health`
+  - `GET /`
+  - `GET /jobs/:jobId`
+- added service-to-service API access using ID tokens
+- added first HTML rendering layer for:
+  - jobs list
+  - job detail
+- updated the GCP deploy script so the TS Case Explorer points to the TS API and receives invoker access
+- validated locally with:
+  - `npm run build`
+  - `npm run test:ts:case-explorer`
+
 ### Phase 7: Cutover
 
 Goal:

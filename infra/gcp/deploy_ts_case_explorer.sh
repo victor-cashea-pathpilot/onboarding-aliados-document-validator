@@ -35,6 +35,10 @@ gcloud run deploy "$TS_CASE_EXPLORER_SERVICE_NAME" \
 ENVIRONMENT="$ENVIRONMENT",\
 LOG_LEVEL="$LOG_LEVEL",\
 TS_MIGRATION_PHASE=1,\
-TS_SERVICE_NAME=case-explorer
+TS_SERVICE_NAME=case-explorer,\
+CASE_EXPLORER_API_URL="${CASE_EXPLORER_API_URL:-$(ts_api_url)}",\
+CASE_EXPLORER_API_AUDIENCE="${CASE_EXPLORER_API_AUDIENCE:-${CASE_EXPLORER_API_URL:-$(ts_api_url)}}" 
+
+grant_service_invoker "$TS_API_SERVICE_NAME" "serviceAccount:${CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL}"
 
 echo "TypeScript Case Explorer URL: $(ts_case_explorer_url)"
