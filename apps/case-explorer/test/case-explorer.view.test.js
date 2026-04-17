@@ -50,27 +50,69 @@ test('renderJobsPage includes live job rows', () => {
   assert.match(html, /val_123/);
   assert.match(html, /document_extraction/);
   assert.match(html, /role="link"/);
-  assert.match(html, /Open/);
+  assert.match(html, /Recent jobs and active processing/);
+  assert.match(html, /Cases last 24h/);
 });
 
-test('renderJobPage includes request and cross-validation panels', () => {
+test('renderJobPage includes workflow monitor and document evidence panels', () => {
   const html = renderJobPage({
     jobId: 'val_abc',
     merchantId: 'merchant-1',
     requestId: 'req-1',
     status: 'COMPLETED',
-    request: { merchantId: 'merchant-1', metadata: {}, documents: {} },
+    request: {
+      merchantId: 'merchant-1',
+      metadata: {},
+      documents: {
+        rif: [{ document_id: 'rif-1', url: 'https://example.com/rif.pdf' }],
+        cedula: [],
+        certificado_emprendimiento: [],
+        acta_constitutiva: [],
+        acta_mercantil: [],
+      },
+    },
     progress: { stage: 'completed', percentage: 100, message: 'Done' },
     overallResult: { status: 'APPROVED', summary: 'Approved' },
-    documents: null,
-    normalizedSnapshot: null,
-    crossValidation: { checks: [] },
+    documents: {
+      rif: [
+        {
+          document_id: 'rif-1',
+          status: 'APPROVED',
+          confidence: 90,
+          extracted_data: {
+            extracted_fields: {
+              rif_number: 'J123',
+              company_name: 'Merchant 1',
+            },
+          },
+          errors: [],
+        },
+      ],
+      cedula: [],
+      certificado_emprendimiento: [],
+      acta_constitutiva: [],
+      acta_mercantil: [],
+    },
+    normalizedSnapshot: {
+      legalMode: 'sociedad_mercantil',
+      primaryCedulaPolicyOutcome: 'valid',
+      primaryCedulaId: 'V-123',
+    },
+    crossValidation: {
+      checks: [{ code: 'HAS_RIF', status: 'PASSED', message: 'RIF found' }],
+      findings: [],
+      llmCrossValidation: { recommendation: 'APPROVED', confidence: 0.9, summary: 'Looks good', findings: [] },
+      llmLegalAssessment: { recommendation: 'APPROVED', confidence: 0.8, summary: 'Legal ok', findings: [] },
+    },
     createdAt: '2026-04-16T10:00:00Z',
     updatedAt: '2026-04-16T10:01:00Z',
   });
 
   assert.match(html, /Back to jobs/);
   assert.match(html, /Approved/);
-  assert.match(html, /Cross validation/);
-  assert.match(html, /Request/);
+  assert.match(html, /Step-by-step workflow/);
+  assert.match(html, /Extraction buckets/);
+  assert.match(html, /LLM Reviews/);
+  assert.match(html, /Cedula Policy/);
+  assert.match(html, /Case submission/);
 });

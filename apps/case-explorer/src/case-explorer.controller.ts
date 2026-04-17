@@ -25,4 +25,17 @@ export class CaseExplorerController {
       throw error;
     }
   }
+
+  @Get('/jobs/:jobId/json')
+  async getJobJson(@Param('jobId') jobId: string, @Res() response: Response) {
+    try {
+      const job = await this.caseExplorerService.getJob(jobId);
+      response.type('application/json').send(job);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes(': 404')) {
+        throw new NotFoundException(`Job '${jobId}' was not found.`);
+      }
+      throw error;
+    }
+  }
 }
