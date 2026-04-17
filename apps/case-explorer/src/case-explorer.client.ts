@@ -97,12 +97,13 @@ export class CaseExplorerClient {
   private async authHeaders(): Promise<Record<string, string>> {
     const client = await this.auth.getIdTokenClient(this.audience);
     const headers = await client.getRequestHeaders();
+    const headersRecord = headers as Record<string, string> & {
+      get?: (name: string) => string | null | undefined;
+    };
     const authorization =
-      headers instanceof Headers
-        ? headers.get('authorization')
-        : ((headers as Record<string, string>).Authorization ??
-            (headers as Record<string, string>).authorization ??
-            '');
+      typeof headersRecord.get === 'function'
+        ? headersRecord.get('authorization') ?? headersRecord.get('Authorization')
+        : (headersRecord.Authorization ?? headersRecord.authorization ?? '');
     return {
       Authorization: String(authorization ?? ''),
     };
