@@ -515,6 +515,23 @@ Tasks:
 Deliverables:
 - TypeScript stack as source of truth
 
+Status on this branch:
+
+- started cutover preparation instead of switching immediately
+- added a dedicated checklist in `docs/TypeScript_Cutover_Checklist.md`
+- added a parity comparison script:
+  - `scripts/compare_python_ts_stacks.py`
+- the comparison flow is based on the same canonical real cases used during validation:
+  - `sociedad_mercantil`
+  - `emprendimiento`
+  - `firma_personal`
+- added a first parity report in `docs/TypeScript_Parity_Report.md`
+- first parallel parity run completed with these high-level results:
+  - `sociedad_mercantil`: parity reached at overall verdict level (`REJECTED` on both stacks)
+  - `emprendimiento`: TypeScript is currently stricter than Python on fiscal address mismatch
+  - `firma_personal`: TypeScript is currently stricter than Python on benign cédula metadata gaps and minor address discrepancy handling
+- current cutover work is focused on reducing those parity gaps before any production switch
+
 ### Phase 8: Cleanup
 
 Goal:

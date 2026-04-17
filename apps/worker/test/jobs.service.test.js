@@ -299,3 +299,210 @@ test('JobsService persists intake document results', async () => {
   assert.equal(updates[4].crossValidation.llm_cross_validation.recommendation, 'APPROVED');
   assert.equal(updates[4].crossValidation.llm_legal_assessment.recommendation, 'APPROVED');
 });
+
+test('JobsService downgrades address-only LLM rejection to review when deterministic checks pass', async () => {
+  const updates = [];
+  const repository = {
+    async get() {
+      return {
+        jobId: 'job-address-review',
+        merchantId: 'merchant-address-review',
+        requestId: 'request-address-review',
+        status: 'PENDING',
+        pollCount: 0,
+        request: {},
+        createdAt: '2026-04-16T21:00:00.000Z',
+        updatedAt: '2026-04-16T21:00:00.000Z',
+      };
+    },
+    async update(record) {
+      updates.push(record);
+      return record;
+    },
+  };
+
+  const service = new JobsService(
+    repository,
+    null,
+    createLogger(),
+    {
+      buildDocumentsResult: async () => ({
+        rif: [],
+        cedula: [],
+        certificado_emprendimiento: [],
+        acta_constitutiva: [],
+        acta_mercantil: [],
+      }),
+    },
+    { extractDocuments: async (documents) => documents },
+    {
+      normalize() {
+        return { legalMode: 'emprendimiento' };
+      },
+    },
+    {
+      validate() {
+        return [
+          { code: 'CEDULA_VALIDITY_POLICY', status: 'SKIPPED', message: 'skip' },
+          { code: 'RIF_VALIDITY', status: 'PASSED', message: 'ok' },
+          {
+            code: 'CEDULA_MATCHES_LEGAL_REPRESENTATIVE',
+            status: 'PASSED',
+            message: 'ok',
+          },
+        ];
+      },
+    },
+    {
+      async review() {
+        return {
+          recommendation: 'REJECTED',
+          confidence: 80,
+          summary: 'reject by address mismatch',
+          findings: [
+            {
+              source: 'llm_cross_validation',
+              severity: 'CRITICAL',
+              code: 'FISCAL_ADDRESS_MISMATCH',
+              message: 'address mismatch',
+              relatedChecks: [],
+            },
+          ],
+        };
+      },
+    },
+    {
+      async assess() {
+        return {
+          recommendation: 'REQUIRES_REVIEW',
+          confidence: 70,
+          summary: 'review by address mismatch',
+          findings: [
+            {
+              source: 'llm_legal_assessment',
+              severity: 'WARNING',
+              code: 'FISCAL_ADDRESS_MISMATCH',
+              message: 'address mismatch',
+              relatedChecks: [],
+            },
+          ],
+        };
+      },
+    },
+  );
+
+  await service.processJob('job-address-review', null);
+
+  assert.equal(updates.at(-1).overallResult.status, 'REQUIRES_REVIEW');
+});
+
+test('JobsService approves firma personal when only benign metadata warnings remain', async () => {
+  const updates = [];
+  const repository = {
+    async get() {
+      return {
+        jobId: 'job-firma-approved',
+        merchantId: 'merchant-firma-approved',
+        requestId: 'request-firma-approved',
+        status: 'PENDING',
+        pollCount: 0,
+        request: {},
+        createdAt: '2026-04-16T21:00:00.000Z',
+        updatedAt: '2026-04-16T21:00:00.000Z',
+      };
+    },
+    async update(record) {
+      updates.push(record);
+      return record;
+    },
+  };
+
+  const service = new JobsService(
+    repository,
+    null,
+    createLogger(),
+    {
+      buildDocumentsResult: async () => ({
+        rif: [],
+        cedula: [],
+        certificado_emprendimiento: [],
+        acta_constitutiva: [],
+        acta_mercantil: [],
+      }),
+    },
+    { extractDocuments: async (documents) => documents },
+    {
+      normalize() {
+        return { legalMode: 'firma_personal' };
+      },
+    },
+    {
+      validate() {
+        return [
+          { code: 'CEDULA_VALIDITY_POLICY', status: 'SKIPPED', message: 'skip' },
+          { code: 'RIF_VALIDITY', status: 'PASSED', message: 'ok' },
+          {
+            code: 'CEDULA_MATCHES_LEGAL_REPRESENTATIVE',
+            status: 'PASSED',
+            message: 'ok',
+          },
+          { code: 'SIGNATURE_AUTHORITY_PRESENT', status: 'PASSED', message: 'ok' },
+        ];
+      },
+    },
+    {
+      async review() {
+        return {
+          recommendation: 'REQUIRES_REVIEW',
+          confidence: 75,
+          summary: 'minor review',
+          findings: [
+            {
+              source: 'llm_cross_validation',
+              severity: 'WARNING',
+              code: 'ADDRESS_MISMATCH',
+              message: 'address mismatch',
+              relatedChecks: [],
+            },
+            {
+              source: 'llm_cross_validation',
+              severity: 'INFO',
+              code: 'INCOMPLETE_ID_DATA',
+              message: 'missing expiration',
+              relatedChecks: ['CEDULA_VALIDITY_POLICY'],
+            },
+          ],
+        };
+      },
+    },
+    {
+      async assess() {
+        return {
+          recommendation: 'REQUIRES_REVIEW',
+          confidence: 85,
+          summary: 'minor review',
+          findings: [
+            {
+              source: 'llm_legal_assessment',
+              severity: 'WARNING',
+              code: 'INCOMPLETE_IDENTITY_DATA',
+              message: 'missing expiration',
+              relatedChecks: ['CEDULA_VALIDITY_POLICY'],
+            },
+            {
+              source: 'llm_legal_assessment',
+              severity: 'INFO',
+              code: 'INCONSISTENT_ADDRESS_MINOR',
+              message: 'minor address mismatch',
+              relatedChecks: [],
+            },
+          ],
+        };
+      },
+    },
+  );
+
+  await service.processJob('job-firma-approved', null);
+
+  assert.equal(updates.at(-1).overallResult.status, 'APPROVED');
+});

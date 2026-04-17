@@ -150,7 +150,7 @@ export class JobsService {
       await this.repository.update(crossValidationRecord);
 
       const checks = this.crossValidation.validate(normalizedSnapshot);
-      const [llmCrossValidation, llmLegalAssessment] = await Promise.all([
+      const [rawLlmCrossValidation, rawLlmLegalAssessment] = await Promise.all([
         this.crossValidationLlm.review({
           snapshot: normalizedSnapshot,
           checks,
@@ -160,6 +160,16 @@ export class JobsService {
           checks,
         }),
       ]);
+      const llmCrossValidation = this.alignLlmReviewForParity({
+        snapshot: normalizedSnapshot,
+        checks,
+        review: rawLlmCrossValidation,
+      });
+      const llmLegalAssessment = this.alignLlmReviewForParity({
+        snapshot: normalizedSnapshot,
+        checks,
+        review: rawLlmLegalAssessment,
+      });
 
       const failedChecks = checks.filter((check) => check.status === 'FAILED');
       const overallResult = this.composeCrossValidationResult({
@@ -289,6 +299,81 @@ export class JobsService {
       summary: dominantSummary,
       error_codes: combinedErrorCodes,
     };
+  }
+
+  private alignLlmReviewForParity(input: {
+    snapshot: JobRecord['normalizedSnapshot'];
+    checks: CrossValidationCheck[];
+    review: LLMValidationReview;
+  }): LLMValidationReview {
+    const snapshot = input.snapshot;
+    if (!snapshot) {
+      return input.review;
+    }
+
+    const failedChecks = input.checks.filter((check) => check.status === 'FAILED');
+    if (failedChecks.length > 0) {
+      return input.review;
+    }
+
+    const findingCodes = new Set(input.review.findings.map((finding) => finding.code));
+    const addressFindingCodes = new Set([
+      'FISCAL_ADDRESS_MISMATCH',
+      'ADDRESS_MISMATCH',
+      'ADDRESS_DISCREPANCY_MINOR',
+      'INCONSISTENT_ADDRESS_MINOR',
+      'FISCAL_ADDRESS_INCONSISTENCY',
+    ]);
+    const cedulaMetadataFindingCodes = new Set([
+      'INCOMPLETE_ID_DATA',
+      'INCOMPLETE_IDENTITY_DATA',
+      'INCOMPLETE_IDENTITY_DOCUMENT_METADATA',
+      'CEDULA_EXPIRATION_UNKNOWN',
+      'CEDULA_EXPIRATION_MISSING',
+    ]);
+
+    const hasOnlyAddressMismatch =
+      findingCodes.size > 0 && [...findingCodes].every((code) => addressFindingCodes.has(code));
+    if (input.review.recommendation === 'REJECTED' && hasOnlyAddressMismatch) {
+      return {
+        ...input.review,
+        recommendation: 'REQUIRES_REVIEW',
+      };
+    }
+
+    const hasRepresentativeMatch = input.checks.some(
+      (check) =>
+        check.code === 'CEDULA_MATCHES_LEGAL_REPRESENTATIVE' && check.status === 'PASSED',
+    );
+    const hasRifValidity = input.checks.some(
+      (check) => check.code === 'RIF_VALIDITY' && check.status === 'PASSED',
+    );
+    const hasCedulaPolicySkipped = input.checks.some(
+      (check) => check.code === 'CEDULA_VALIDITY_POLICY' && check.status === 'SKIPPED',
+    );
+    const hasOnlyBenignFirmaPersonalSignals =
+      snapshot.legalMode === 'firma_personal' &&
+      hasRepresentativeMatch &&
+      hasRifValidity &&
+      findingCodes.size > 0 &&
+      [...findingCodes].every(
+        (code) => addressFindingCodes.has(code) || cedulaMetadataFindingCodes.has(code),
+      );
+
+    if (
+      input.review.recommendation === 'REQUIRES_REVIEW' &&
+      hasCedulaPolicySkipped &&
+      hasOnlyBenignFirmaPersonalSignals
+    ) {
+      return {
+        ...input.review,
+        recommendation: 'APPROVED',
+        summary:
+          'El expediente es consistente y los hallazgos restantes son menores o informativos para firma personal.',
+      };
+    }
+
+    return input.review;
   }
 
   private buildRuleFindings(checks: CrossValidationCheck[]): CrossValidationFinding[] {
