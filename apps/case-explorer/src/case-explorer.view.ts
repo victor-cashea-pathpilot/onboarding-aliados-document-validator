@@ -67,6 +67,15 @@ function escapeHtml(value: unknown): string {
     .replaceAll("'", '&#39;');
 }
 
+function serializeForInlineScript(value: unknown): string {
+  return JSON.stringify(value)
+    .replaceAll('<', '\\u003c')
+    .replaceAll('>', '\\u003e')
+    .replaceAll('&', '\\u0026')
+    .replaceAll('\u2028', '\\u2028')
+    .replaceAll('\u2029', '\\u2029');
+}
+
 function shell(title: string, body: string): string {
   return `<!doctype html>
 <html lang="en">
@@ -1118,7 +1127,7 @@ function renderJobPage(job: CaseExplorerResponse, requestedTab?: string): string
   const llmCrossValidation = asObject(crossValidation.llmCrossValidation);
   const llmLegalAssessment = asObject(crossValidation.llmLegalAssessment);
   const workflowNodes = buildWorkflowNodes(job);
-  const workflowNodesJson = escapeHtml(JSON.stringify(workflowNodes));
+  const workflowNodesJson = serializeForInlineScript(workflowNodes);
   const cedulaPolicy = buildCedulaPolicy(normalizedSnapshot);
   const documents = asObject(job.documents as unknown) ?? {};
   const documentSummaries = [
