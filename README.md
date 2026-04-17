@@ -1,441 +1,129 @@
-# Onboarding Aliados Document Validator
+# AI Legal Document Validation
 
-Servicio asíncrono en Google Cloud con Gemini para validar documentos legales de onboarding y cruzar información de aliados para Cashea.
+TypeScript platform for Cashea legal document validation and onboarding decisioning.
 
-## Resumen
+## Overview
 
-Este repositorio define el MVP de un validador documental para onboarding de aliados. El sistema recibe URLs de documentos ya tipados por Cashea, extrae información estructurada según el tipo de documento, normaliza los datos y ejecuta validaciones cruzadas para determinar si el caso puede aprobarse, rechazarse o requiere revisión manual.
+The system receives typed document URLs, extracts structured evidence with Gemini, normalizes the case, runs deterministic and LLM-based validation, and returns an operational verdict:
 
-El diseño actual parte de una arquitectura Google-native y elimina dependencias del prototipo que ya no aplican al MVP, como la integración con HubSpot y la clasificación automática del tipo de documento.
+- `APPROVED`
+- `REQUIRES_REVIEW`
+- `REJECTED`
 
-## Objetivo del MVP
+## Runtime architecture
 
-- recibir documentos legales mediante una API asíncrona
-- descargar y validar archivos desde URLs provistas por Cashea
-- extraer datos con Gemini según el tipo documental
-- normalizar campos legales y fiscales a un modelo interno común
-- cruzar la información entre documentos
-- retornar un veredicto con evidencia y motivos claros
+- `Cloud Run — API Service`
+- `Cloud Run — Worker Service`
+- `Cloud Run — Case Explorer`
+- `Firestore`
+- `Cloud Tasks`
+- `Vertex AI Gemini 2.5 Flash / Pro`
+- `Cloud Logging / Monitoring`
+- `IAP` for browser access to the Case Explorer
 
-## Documentación
+## Repository structure
 
-- Plan por etapas: [docs/Stages_Plan_v1.md](docs/Stages_Plan_v1.md)
-- Especificación de API: [docs/API_Spec_v2.md](docs/API_Spec_v2.md)
-- Arquitectura implementada y requerimientos infra/security: [docs/Architecture_v2.md](docs/Architecture_v2.md)
-- Arquitectura actual vs target Cashea: [docs/Architecture_Current_vs_Target.md](docs/Architecture_Current_vs_Target.md)
-- Casos reales de prueba y política de uso: [docs/Real_Test_Cases_v1.md](docs/Real_Test_Cases_v1.md)
-- Estrategia de evals: [docs/Evals_Strategy_v1.md](docs/Evals_Strategy_v1.md)
-- Real extraction evals locales: [docs/Real_Extraction_Evals_v1.md](docs/Real_Extraction_Evals_v1.md)
-- Despliegue GCP: [infra/gcp/README.md](infra/gcp/README.md)
-- Docker y builds locales: [infra/gcp/README.md#docker-y-builds-locales](infra/gcp/README.md#docker-y-builds-locales)
-- Plan de migración a TypeScript: [docs/TypeScript_Migration_Plan.md](docs/TypeScript_Migration_Plan.md)
-- Checklist de cutover TS: [docs/TypeScript_Cutover_Checklist.md](docs/TypeScript_Cutover_Checklist.md)
-- Reporte de paridad TS: [docs/TypeScript_Parity_Report.md](docs/TypeScript_Parity_Report.md)
-
-## Workflow de ramas
-
-- Los branches de trabajo pueden salir de `develop` salvo que se necesite otra base por una razón puntual.
-- Los pull requests de este repositorio deben abrirse contra `develop` por defecto.
-- Solo se debe usar otra base de PR si se acuerda explícitamente para una entrega particular.
-
-## Estado del plan
-
-- [x] Etapa 1: base desplegable
-- [x] Etapa 2: jobs y ejecución local
-- [x] Etapa 3: descarga y validación técnica de archivos
-- [x] Etapa 4: extracción por tipo documental
-- [x] Etapa 5: normalización de datos
-- [x] Etapa 6: validación cruzada base
-- [x] Etapa 7: evals lógicos, de extracción y comprehensive en CI/CD
-- [x] Etapa 8: profundización de reglas y semántica del resultado
-- [x] Etapa 9: infraestructura async real en GCP
-- [ ] Etapa 10: arquitectura completa Cashea post-MVP
-- [ ] Etapa 11: staging, observabilidad y piloto
-- [x] Etapa 12: case explorer y trazabilidad por job
-
-Estado actual:
-- Etapa 7 ya cubre `unit tests`, `logic evals`, `extraction evals` y `comprehensive evals` en GitHub Actions.
-- Etapa 8 ya dejó una validación híbrida funcional:
-  - reglas determinísticas
-  - `CrossValidationLLMService`
-  - `LegalAssessmentLLMService`
-- Etapa 9 ya quedó probada en GCP:
-  - `Cloud Run API`
-  - `Cloud Run Worker`
-  - `Firestore`
-  - `Cloud Tasks`
-  - worker privado invocado con `OIDC`
-  - scripts operativos en `infra/gcp/`
-  - 3 casos reales ejecutados end-to-end en GCP con polling de status:
-    - `sociedad_mercantil`
-    - `emprendimiento`
-    - `firma_personal`
-- La observabilidad ya tiene base operativa:
-  - logs JSON estructurados en `api` y `worker`
-  - eventos por etapa del pipeline
-  - scripts dedicados en `infra/gcp/` para crear métricas de logs y dashboards
-- La siguiente etapa de arquitectura es la **Etapa 10**:
-  - mover el stack al GCP de Cashea
-  - decidir qué piezas del diagrama objetivo se activan post-MVP
-  - endurecer la topología enterprise por ambiente
-  - agregar componentes enterprise como siguiente paso, no como bloqueo del MVP probado
-  - ya se investigó y corrigió el cuello de botella principal de concurrencia en GCP:
-    - issue de tracking: [#9 Investigate serialized job execution in GCP](https://github.com/victor-cashea-pathpilot/onboarding-aliados-document-validator/issues/9)
-    - hallazgo actual: el worker estaba bloqueando el handler async y forzando una ejecución efectivamente secuencial por instancia
-    - fix validado en esta rama: al mover `/internal/process-job` a un handler síncrono, los 3 jobs arrancaron en paralelo y la cola bajó de ~98.5s promedio a ~3s por job
-    - optimización adicional validada en esta rama: al paralelizar `CrossValidationLLMService` y `LegalAssessmentLLMService`, el tiempo total E2E de los 3 casos reales bajó a un rango aproximado de `27s - 42s` por job, con promedio de `~33.4s`
-- La **Etapa 12** ya está activa y operativa:
-  - `Case Explorer` interno por `job_id`
-  - webapp interna en `webapp/` para explorar casos desde browser
-  - home paginada con jobs recientes y metadata operacional relevante
-  - sección de jobs activos con auto-refresh
-  - vista saneada de input y output por caso
-  - snapshot normalizado y validaciones en una sola respuesta para debugging y operación
-- Los `real extraction evals` siguen como track manual/posterior mientras se termina de definir la estrategia final de hosting y acceso a documentos.
-
-## Alcance actual
-
-Incluido:
-
-- API asíncrona para crear jobs y consultar estado
-- validación técnica de documentos por URL
-- procesamiento local `inline` para pruebas
-- extracción real con Gemini vía Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
-- extracción paralela por documento
-- normalización a snapshot canónico interno
-- validaciones cruzadas híbridas sobre datos normalizados:
-  - checks determinísticos
-  - validación contextual con LLM
-  - assessment legal con LLM
-- cobertura real validada para `sociedad mercantil`, `emprendimiento` y `firma personal`
-- prompts reutilizados del workflow original de `n8n`, adaptados al contrato del backend
-
-Excluido del MVP:
-
-- integración con HubSpot
-- clasificación automática de documentos
-- generación de contratos
-- backoffice de revisión manual
-
-## Flujo propuesto
-
-1. Cashea envía un `merchant_id` y un conjunto de documentos tipados.
-2. La API crea un `job` y lo encola para procesamiento.
-3. Un worker descarga los archivos y ejecuta extracción estructurada con Gemini.
-4. Los resultados se normalizan a un esquema interno canónico.
-5. El motor de validación cruzada compara identidad, RIF, razón social, vigencia, precedencia y facultades.
-6. Una capa LLM contextualiza inconsistencias y una capa LLM legal recomienda el veredicto operativo.
-7. El sistema persiste el resultado y lo expone a través del endpoint de estado.
-
-## Estado del repositorio
-
-Actualmente este repositorio ya contiene una base funcional del MVP:
-
-- API pública para crear jobs y consultar estado
-- endpoint interno de detalle por caso: `GET /internal/jobs/{job_id}`
-- endpoint interno paginado de casos: `GET /internal/jobs?page=1&page_size=20`
-- vista HTML simple del expediente: `GET /internal/jobs/{job_id}/view`
-- webapp interna en `webapp/` para explorar casos en browser, protegible con Google login vía IAP
-- home de la webapp con tabla paginada de jobs recientes enlazando al detalle por caso
-- worker con flujo de intake técnico y extracción
-- extracción real validada contra Vertex AI para `rif`, `cedula`, `acta_constitutiva`, `acta_mercantil` y `certificado_emprendimiento`
-- normalización canónica y validación cruzada híbrida
-- tres flujos reales probados end-to-end: `sociedad mercantil`, `emprendimiento` y `firma personal`
-- framework base de evals por capas con fixtures sanitizados para regresión en CI/CD
-- runner local para `real extraction evals`, todavía fuera del CI estándar
-- scripts operativos para bootstrap y despliegue de `Cloud Run + Firestore + Cloud Tasks`
-- scripts operativos para observabilidad:
-  - `create_log_metrics.sh`
-  - `create_dashboards.sh`
-  - `deploy_observability.sh`
-- visibilidad E2E en GCP con logs y dashboard para seguir el lifecycle de jobs reales
-- `case explorer` desplegado en Cloud Run con IAP directo para login de Google sobre la `run.app` URL
-- webapp interna desplegable a Cloud Run para explorar expedientes en browser
-
-Todavía falta implementar:
-
-- cierre de arquitectura completa alineada al diagrama del cliente (`Apigee`, storage, analytics, OCR complementario si aplica)
-- ampliar los evals lógicos, de extracción y comprehensive con más fixtures y expected outputs
-- endurecimiento por ambiente (`dev`, `staging`, `prod`)
-- observabilidad y analytics operativos completos
-- visibilidad operacional por caso con un `Case Explorer` interno
-- seguir optimizando el runtime del worker y la semántica final de las validaciones LLM
-
-## Arquitectura actual vs target
-
-### Arquitectura GCP actual
-
-```mermaid
-flowchart LR
-    A["Caller autenticado"] --> B["Cloud Run API"]
-    B --> C["Firestore<br/>job state + results"]
-    B --> D["Cloud Tasks"]
-    D -. "OIDC" .-> E["Cloud Run Worker (privado)"]
-    E --> C
-    E --> F["Document intake"]
-    F --> G["Parallel extraction per document"]
-    G --> H["Vertex AI Gemini"]
-    H --> I["Normalization"]
-    I --> J["Cross-validation<br/>rules + LLM review"]
-    J --> C
+```text
+apps/
+  api/
+  worker/
+  case-explorer/
+packages/
+  contracts/
+  domain/
+  infrastructure/
+infra/
+  gcp/
+docs/
+scripts/
+eval_cases/
 ```
 
-### Arquitectura objetivo
+## Services
 
-```mermaid
-flowchart TD
-    A["Onboarding svc"] --> B["Apigee / API Gateway"]
-    A2["n8n enterprise"] --> B
-    B --> C["Cloud Run API"]
-    C --> D["Firestore<br/>job state + metadata"]
-    C --> E["Cloud Tasks o Pub/Sub"]
-    C --> F["Cloud Storage<br/>staging opcional"]
-    E --> G["Cloud Run Workers"]
-    G --> D
-    G --> F
-    G --> H["Document AI<br/>OCR opcional"]
-    G --> I["Vertex AI Gemini Flash"]
-    G --> J["Vertex AI Gemini Pro"]
-    I --> K["Normalization + cross-validation"]
-    J --> K
-    H --> K
-    K --> D
-    K --> L["BigQuery<br/>logs + analytics"]
-    L --> M["Vertex AI Experiments / eval tracking"]
-```
+### API
 
-### Gap actual
+Main endpoints:
 
-- Ya implementado:
-  - `Cloud Run API`
-  - `Cloud Run Worker`
-  - `Firestore`
-  - `Cloud Tasks`
-  - `Vertex AI Gemini`
-  - worker privado con `OIDC`
-- Pendiente para acercarnos al target final:
-  - `Apigee` o gateway equivalente
-  - `Cloud Storage` como staging real de documentos, si aplica
-  - `Document AI` como OCR complementario, si aplica
-  - `BigQuery` para logs/evals/analytics
-  - endurecimiento por ambiente más allá del primer slice ya implementado
-
-La diferencia completa y el rationale post-MVP están detallados en [docs/Architecture_Current_vs_Target.md](docs/Architecture_Current_vs_Target.md).
-
-## Cómo fluyen los evals locales
-
-### Logic Evals
-
-```mermaid
-flowchart LR
-    A["Fixture logic_evals/*.json"] --> B["DocumentsResult"]
-    B --> C["DocumentNormalizationService"]
-    C --> D["CanonicalMerchantSnapshot<br/>+ legal_mode"]
-    D --> E["CrossValidationService"]
-    E --> F["Checks determinísticos"]
-    F --> G["Assertions de expected outputs"]
-```
-
-### Comprehensive Evals
-
-```mermaid
-flowchart LR
-    A["Fixture comprehensive_evals/*.json"] --> B["SubmitValidationRequest"]
-    A --> C["Intake controlado"]
-    A --> D["Mock extraction controlada"]
-    B --> E["JobProcessor"]
-    C --> E
-    D --> E
-    E --> F["DocumentNormalizationService"]
-    F --> G["CanonicalMerchantSnapshot<br/>+ legal_mode"]
-    G --> H["CrossValidationService"]
-    H --> I["CrossValidationLLMService"]
-    I --> J["LegalAssessmentLLMService"]
-    J --> K["OverallResult + CrossValidationResult"]
-    K --> L["Assertions de comprehensive evals"]
-```
-
-### Qué valida cada capa
-
-- `logic evals`: reglas puras sobre datos ya extraídos.
-- `extraction evals`: contratos de prompts, extractores y selección de modelo.
-- `comprehensive evals`: composición interna completa del pipeline sin depender de Vertex AI.
-- `real extraction evals`: regresión manual/local del extractor real con documentos aprobados.
-
-### Comandos de eval locales
-
-```bash
-pytest -q tests/test_logic_evals.py
-pytest -q tests/test_extraction_evals.py
-pytest -q tests/test_comprehensive_evals.py
-pytest -q tests/test_llm_validation_services.py
-pytest -q tests
-```
-
-## Probar localmente
-
-### API pública
-
-1. Instala dependencias:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-```
-
-2. Configura entorno local:
-
-```bash
-cp backend/.env.example backend/.env
-```
-
-Para prueba local simple, usa:
-
-```bash
-JOB_REPOSITORY_MODE=inmemory
-JOB_QUEUE_MODE=inline
-MOCK_MODE=true
-```
-
-Para probar la fase de infraestructura con persistencia compartida local:
-
-```bash
-export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
-JOB_REPOSITORY_MODE=firestore
-JOB_QUEUE_MODE=inline
-MOCK_MODE=true
-```
-
-Ese modo permite validar:
-
-- repositorio real de jobs en `Firestore`
-- API y worker compartiendo el mismo estado
-- flujo async lógico sin depender todavía de `Cloud Tasks` remoto
-
-Para prueba real con Vertex AI, además necesitas:
-
-```bash
-GCP_PROJECT_ID=onboarding-agent-491322
-GCP_REGION=us-central1
-GEMINI_LOCATION=global
-GEMINI_MODEL_SIMPLE=gemini-2.5-flash
-GEMINI_MODEL_COMPLEX=gemini-2.5-pro
-MAX_EXTRACTION_CONCURRENCY=4
-MOCK_MODE=false
-```
-
-Y autenticación local de Google:
-
-```bash
-gcloud auth login
-gcloud auth application-default login
-gcloud config set project onboarding-agent-491322
-```
-
-Además, el proyecto debe tener:
-
-- `aiplatform.googleapis.com` habilitado
-- billing habilitado
-
-3. Levanta la API:
-
-```bash
-uvicorn backend.api.main:app --reload
-```
-
-4. Verifica healthcheck:
-
-```bash
-curl http://127.0.0.1:8000/health
-```
-
-5. Crea un job:
-
-```bash
-curl -X POST http://127.0.0.1:8000/v1/onboarding/validate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "merchant_id": "98765",
-    "request_id": "local-test-001",
-    "documents": {
-      "rif": [{"url": "https://example.com/rif.pdf", "document_id": "rif-1"}],
-      "cedula": [{"url": "https://example.com/cedula.jpg", "document_id": "ced-1"}],
-      "certificado_emprendimiento": [],
-      "acta_constitutiva": [{"url": "https://example.com/acta.pdf", "document_id": "acta-1"}],
-      "acta_mercantil": []
-    }
-  }'
-```
-
-6. Consulta status:
-
-Primera llamada:
-
-```bash
-curl -X POST http://127.0.0.1:8000/v1/onboarding/status \
-  -H "Content-Type: application/json" \
-  -d '{"job_ids":["val_REPLACE_ME"]}'
-```
-
-Segunda llamada:
-
-```bash
-curl -X POST http://127.0.0.1:8000/v1/onboarding/status \
-  -H "Content-Type: application/json" \
-  -d '{"job_ids":["val_REPLACE_ME"]}'
-```
-
-Con `JOB_QUEUE_MODE=inline`, el worker se ejecuta dentro del mismo proceso y el job usualmente aparecerá como `COMPLETED` en el primer status poll.
-
-En `MOCK_MODE=true`, la extracción devuelve datos mock.
-
-En `MOCK_MODE=false`, hoy ya se validó extracción real con Vertex AI para:
-
-- `rif`
-- `cedula`
-- `acta_constitutiva`
-- `acta_mercantil`
-- `certificado_emprendimiento`
-
-Además, el pipeline ya ejecuta:
-
-- normalización a snapshot canónico
-- checks cruzados de razón social, cédula, vigencia de RIF, vigencia de junta, precedencia documental y facultad de firma
-- validación cruzada contextual con `CrossValidationLLMService`
-- assessment legal con `LegalAssessmentLLMService`
-- lógica de matching por identidad para casos de `emprendimiento` y `firma personal`
-
-Para habilitar la capa híbrida completa en local, agrega además:
-
-```bash
-ENABLE_LLM_CROSS_VALIDATION=true
-ENABLE_LLM_LEGAL_ASSESSMENT=true
-```
+- `POST /validate`
+- `POST /status`
+- `GET /internal/jobs/:jobId`
+- `GET /internal/jobs`
 
 ### Worker
 
-Si quieres levantar el worker localmente:
+Responsible for:
+
+- document intake
+- extraction
+- normalization
+- cross-validation
+- legal assessment
+- final persistence to Firestore
+
+### Case Explorer
+
+Internal webapp for:
+
+- browsing cases
+- reviewing final outcomes
+- inspecting workflow steps
+- inspecting `Input / Prompt / Output` per node
+
+## Local development
+
+Install dependencies:
 
 ```bash
-uvicorn backend.worker.main:app --reload --port 8001
+npm ci
 ```
 
-### Estado actual de implementación
+Build:
 
-Por ahora el API:
+```bash
+npm run build
+```
 
-- crea jobs
-- puede despachar inline para prueba local
-- valida técnicamente URLs y tipos de archivo antes de seguir
-- extrae en paralelo por documento
-- normaliza resultados a un modelo interno común
-- ejecuta validaciones cruzadas híbridas
-- devuelve resultado consistente con el contrato base
+Run tests:
 
-Todavía no hace:
+```bash
+npm run test:ts:infrastructure
+npm run test:ts:api
+npm run test:ts:worker
+npm run test:ts:case-explorer
+```
 
-- persistencia real en `Firestore`
-- procesamiento real con `Cloud Tasks` en un entorno GCP configurado
-- validación legal completa para todos los escenarios finos del negocio
-- cobertura completa de validación cruzada y reglas de negocio
+Run locally in watch mode:
+
+```bash
+npm run start:api:dev
+npm run start:worker:dev
+npm run start:case-explorer:dev
+```
+
+## GCP deployment
+
+See:
+
+- [`/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/infra/gcp/README.md`](/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/infra/gcp/README.md)
+
+Main scripts:
+
+- `infra/gcp/bootstrap.sh`
+- `infra/gcp/deploy_api.sh`
+- `infra/gcp/deploy_worker.sh`
+- `infra/gcp/deploy_case_explorer.sh`
+- `infra/gcp/deploy_all.sh`
+- `infra/gcp/smoke_test.sh`
+
+## Documentation
+
+- [`/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/API_Spec_v2.md`](/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/API_Spec_v2.md)
+- [`/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/Architecture_v2.md`](/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/Architecture_v2.md)
+- [`/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/Architecture_Current_vs_Target.md`](/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/Architecture_Current_vs_Target.md)
+- [`/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/Stages_Plan_v1.md`](/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/docs/Stages_Plan_v1.md)
+
+## Git workflow
+
+- feature branches should normally branch off `develop`
+- pull requests should target `develop` by default

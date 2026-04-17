@@ -9,9 +9,8 @@ on:
     paths:
       - "apps/**"
       - "packages/**"
-      - "docs/TypeScript_*.md"
-      - "infra/gcp/deploy_ts*.sh"
-      - "infra/gcp/smoke_test_ts.sh"
+      - "docs/**"
+      - "infra/gcp/*.sh"
       - "package.json"
       - "package-lock.json"
       - "tsconfig.base.json"
@@ -24,9 +23,8 @@ on:
     paths:
       - "apps/**"
       - "packages/**"
-      - "docs/TypeScript_*.md"
-      - "infra/gcp/deploy_ts*.sh"
-      - "infra/gcp/smoke_test_ts.sh"
+      - "docs/**"
+      - "infra/gcp/*.sh"
       - "package.json"
       - "package-lock.json"
       - "tsconfig.base.json"

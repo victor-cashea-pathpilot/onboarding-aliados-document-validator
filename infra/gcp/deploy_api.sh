@@ -10,7 +10,7 @@ gcloud_auth_healthcheck
 WORKER_URL="$(worker_url)"
 IMAGE="$(api_image)"
 echo "Building API image: $IMAGE"
-build_and_push_image "$ROOT_DIR/backend/Dockerfile.api" "$IMAGE"
+build_and_push_image "$ROOT_DIR/apps/api/Dockerfile" "$IMAGE"
 
 ALLOW_FLAG="--no-allow-unauthenticated"
 if [[ "${API_ALLOW_UNAUTHENTICATED}" == "true" ]]; then
@@ -53,6 +53,7 @@ GEMINI_MODEL_SIMPLE="$GEMINI_MODEL_SIMPLE",\
 GEMINI_MODEL_COMPLEX="$GEMINI_MODEL_COMPLEX",\
 MAX_EXTRACTION_CONCURRENCY="$MAX_EXTRACTION_CONCURRENCY",\
 ENABLE_LLM_CROSS_VALIDATION="$ENABLE_LLM_CROSS_VALIDATION",\
-ENABLE_LLM_LEGAL_ASSESSMENT="$ENABLE_LLM_LEGAL_ASSESSMENT"
+ENABLE_LLM_LEGAL_ASSESSMENT="$ENABLE_LLM_LEGAL_ASSESSMENT",\
+TS_SERVICE_NAME=api
 
 echo "API URL: $(api_url)"

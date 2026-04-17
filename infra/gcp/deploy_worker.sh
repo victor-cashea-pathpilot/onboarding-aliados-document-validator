@@ -9,7 +9,7 @@ gcloud_auth_healthcheck
 
 IMAGE="$(worker_image)"
 echo "Building worker image: $IMAGE"
-build_and_push_image "$ROOT_DIR/backend/Dockerfile.worker" "$IMAGE"
+build_and_push_image "$ROOT_DIR/apps/worker/Dockerfile" "$IMAGE"
 
 echo "Deploying worker..."
 gcloud run deploy "$WORKER_SERVICE_NAME" \
@@ -43,7 +43,8 @@ GEMINI_MODEL_SIMPLE="$GEMINI_MODEL_SIMPLE",\
 GEMINI_MODEL_COMPLEX="$GEMINI_MODEL_COMPLEX",\
 MAX_EXTRACTION_CONCURRENCY="$MAX_EXTRACTION_CONCURRENCY",\
 ENABLE_LLM_CROSS_VALIDATION="$ENABLE_LLM_CROSS_VALIDATION",\
-ENABLE_LLM_LEGAL_ASSESSMENT="$ENABLE_LLM_LEGAL_ASSESSMENT"
+ENABLE_LLM_LEGAL_ASSESSMENT="$ENABLE_LLM_LEGAL_ASSESSMENT",\
+TS_SERVICE_NAME=worker
 
 grant_service_invoker "$WORKER_SERVICE_NAME" "serviceAccount:${CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL}"
 

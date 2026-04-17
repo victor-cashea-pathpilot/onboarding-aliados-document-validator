@@ -2,7 +2,7 @@
   "name": "ai-legal-doc-validation",
   "version": "0.1.0",
   "private": true,
-  "description": "TypeScript migration scaffold for the Cashea AI legal document validation platform",
+  "description": "Cashea AI legal document validation platform",
   "license": "UNLICENSED",
   "workspaces": [
     "apps/*",

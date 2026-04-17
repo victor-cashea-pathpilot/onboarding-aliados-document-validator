@@ -25,6 +25,8 @@ require_base_env() {
   required_env API_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL
+  required_env CASE_EXPLORER_SERVICE_NAME
+  required_env CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env WORKER_AUTH_TOKEN
   required_env IMAGE_TAG
   : "${CLOUD_TASKS_MAX_DISPATCHES_PER_SECOND:=10}"
@@ -48,12 +50,6 @@ require_base_env() {
   : "${OBSERVABILITY_JOB_METRIC_PREFIX:=onboarding_job}"
   : "${OBSERVABILITY_LLM_METRIC_PREFIX:=onboarding_llm}"
   : "${OBSERVABILITY_EXTRACTION_METRIC_PREFIX:=onboarding_extraction}"
-  : "${TS_IMAGE_TAG:=${IMAGE_TAG}}"
-  : "${TS_API_SERVICE_NAME:=${API_SERVICE_NAME}-ts}"
-  : "${TS_WORKER_SERVICE_NAME:=${WORKER_SERVICE_NAME}-ts}"
-  : "${TS_CASE_EXPLORER_SERVICE_NAME:=${CASE_EXPLORER_SERVICE_NAME}-ts}"
-  : "${TS_API_ALLOW_UNAUTHENTICATED:=false}"
-  : "${TS_CASE_EXPLORER_ALLOW_UNAUTHENTICATED:=false}"
 }
 
 project_number() {
@@ -80,18 +76,6 @@ case_explorer_image() {
   echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-case-explorer:${IMAGE_TAG}"
 }
 
-ts_worker_image() {
-  echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-worker-ts:${TS_IMAGE_TAG}"
-}
-
-ts_api_image() {
-  echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api-ts:${TS_IMAGE_TAG}"
-}
-
-ts_case_explorer_image() {
-  echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-case-explorer-ts:${TS_IMAGE_TAG}"
-}
-
 worker_url() {
   gcloud run services describe "$WORKER_SERVICE_NAME" \
     --project "$PROJECT_ID" \
@@ -113,30 +97,7 @@ case_explorer_url() {
     --format='value(status.url)'
 }
 
-ts_worker_url() {
-  gcloud run services describe "$TS_WORKER_SERVICE_NAME" \
-    --project "$PROJECT_ID" \
-    --region "$REGION" \
-    --format='value(status.url)'
-}
-
-ts_api_url() {
-  gcloud run services describe "$TS_API_SERVICE_NAME" \
-    --project "$PROJECT_ID" \
-    --region "$REGION" \
-    --format='value(status.url)'
-}
-
-ts_case_explorer_url() {
-  gcloud run services describe "$TS_CASE_EXPLORER_SERVICE_NAME" \
-    --project "$PROJECT_ID" \
-    --region "$REGION" \
-    --format='value(status.url)'
-}
-
 require_case_explorer_env() {
-  required_env CASE_EXPLORER_SERVICE_NAME
-  required_env CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env WEBAPP_SESSION_SECRET
   : "${CASE_EXPLORER_AUTH_MODE:=disabled}"
   : "${CASE_EXPLORER_ENABLE_IAP:=false}"
