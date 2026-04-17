@@ -46,11 +46,11 @@ test('renderJobsPage includes live job rows', () => {
     '',
   );
 
-  assert.match(html, /TypeScript Case Explorer/);
+  assert.match(html, /Onboarding Case Explorer/);
   assert.match(html, /val_123/);
   assert.match(html, /document_extraction/);
   assert.match(html, /role="link"/);
-  assert.match(html, /Recent jobs and active processing/);
+  assert.match(html, /Recent jobs/);
   assert.match(html, /Cases last 24h/);
 });
 
@@ -108,11 +108,11 @@ test('renderJobPage includes workflow monitor and document evidence panels', () 
     updatedAt: '2026-04-16T10:01:00Z',
   });
 
-  assert.match(html, /Back to jobs/);
+  assert.match(html, /Back to cases/);
   assert.match(html, /Approved/);
-  assert.match(html, /Step-by-step workflow/);
-  assert.match(html, /Extraction buckets/);
-  assert.match(html, /LLM Reviews/);
-  assert.match(html, /Cedula Policy/);
+  assert.match(html, /Workflow/);
+  assert.match(html, /Documents/);
+  assert.match(html, /Final analysis/);
+  assert.match(html, /Cédula policy/);
   assert.match(html, /Case submission/);
 });

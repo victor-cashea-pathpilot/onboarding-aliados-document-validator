@@ -847,16 +847,11 @@ function renderJobsPage(payload: CaseExplorerListResponse, query = ''): string {
     <section class="hero">
       <div class="hero-top">
         <div>
-          <div class="eyebrow">Internal Operations</div>
-          <h1>TypeScript Case Explorer</h1>
+          <div class="eyebrow">Onboarding Case Explorer</div>
+          <h1>Cases</h1>
           <p class="hero-copy">
-            Navega jobs del stack TypeScript, inspecciona la evidencia extraída y revisa cómo avanza el workflow por etapa.
+            Navega jobs recientes, inspecciona la evidencia extraída y revisa cómo avanza cada caso por etapa.
           </p>
-        </div>
-        <div class="hero-actions">
-          <span class="pill">TS stack validation</span>
-          <span class="pill">API-backed data</span>
-          <span class="pill">Phase 6 in progress</span>
         </div>
       </div>
 
@@ -898,7 +893,7 @@ function renderJobsPage(payload: CaseExplorerListResponse, query = ''): string {
     <div class="toolbar">
       <div>
         <div class="eyebrow">Case Explorer</div>
-        <h2>Recent jobs and active processing</h2>
+        <h2>Recent jobs</h2>
       </div>
       <div class="table-tools">
         <form class="search-form" method="GET" action="/">
@@ -998,7 +993,7 @@ function renderJobsPage(payload: CaseExplorerListResponse, query = ''): string {
     </section>
   `;
 
-  return shell('TypeScript Case Explorer', body);
+  return shell('Onboarding Case Explorer', body);
 }
 
 function renderJobPage(job: CaseExplorerResponse): string {
@@ -1039,7 +1034,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
     <section class="hero">
       <div class="hero-top">
         <div>
-          <div class="eyebrow">Internal Case Explorer</div>
+          <div class="eyebrow">Onboarding Case Explorer</div>
           <h1>${escapeHtml(job.merchantId)}</h1>
           <div class="progress-message">${escapeHtml(job.jobId)} · ${escapeHtml(
             job.requestId ?? '—',
@@ -1049,7 +1044,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
           <span class="status-pill ${statusClass(job.status, overall.status)}">${escapeHtml(
             overall.status ?? job.status,
           )}</span>
-          <a class="ghost-button" href="/">Back to jobs</a>
+          <a class="ghost-button" href="/">Back to cases</a>
           <a class="ghost-button raw-link" href="/jobs/${escapeHtml(job.jobId)}/json">Raw JSON</a>
         </div>
       </div>
@@ -1074,7 +1069,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
           </article>
         </div>
         <div class="section-card panel">
-          <div class="eyebrow">Case timing</div>
+          <div class="eyebrow">Timestamps</div>
           <div class="kv-grid">
             <article class="kv-item">
               <strong>${escapeHtml(formatDate(job.createdAt))}</strong>
@@ -1088,7 +1083,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
         </div>
       </div>
 
-      <div class="progress-message">${escapeHtml(
+      <div class="hero-copy">${escapeHtml(
         overall.summary ?? 'No overall summary available yet.',
       )}</div>
 
@@ -1103,7 +1098,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
         <div class="header-row">
           <div>
             <div class="eyebrow">Cedula Policy</div>
-            <h2>Policy outcome</h2>
+            <h2>Cédula policy</h2>
           </div>
           <span class="status-pill ${cedulaPolicy.policyOutcome === 'expired_over_10_years' ? 'status-failed' : cedulaPolicy.policyOutcome === 'unknown' ? 'status-pending' : 'status-approved'}">${escapeHtml(
             cedulaPolicy.policyLabel,
@@ -1123,7 +1118,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
 
       <section class="card section-card"><div class="panel">
         <div class="eyebrow">Validation summary</div>
-        <h2>Checks and findings</h2>
+        <h2>Decision checks</h2>
         ${renderChecks(checks)}
         <h2 style="margin-top:18px;">Findings</h2>
         ${renderFindings(findings)}
@@ -1134,7 +1129,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
       <div class="header-row">
         <div>
           <div class="eyebrow">Document evidence</div>
-          <h2>Extraction buckets</h2>
+          <h2>Documents</h2>
         </div>
         <div class="pill">${escapeHtml(
           `${documentSummaries.reduce((sum, item) => sum + item.count, 0)} document(s)`,
@@ -1170,7 +1165,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
         <div class="workflow-head">
           <div>
             <div class="eyebrow">Monitor</div>
-            <h2>Step-by-step workflow</h2>
+            <h2>Workflow</h2>
           </div>
           <div class="progress-message">Selecciona un nodo para revisar input, prompt y output.</div>
         </div>
@@ -1254,7 +1249,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
       <section class="card section-card"><div class="panel">
         <div class="header-row">
           <div>
-            <div class="eyebrow">LLM Reviews</div>
+            <div class="eyebrow">Final analysis</div>
             <h2>Cross-validation</h2>
           </div>
           <span class="status-pill ${statusClass(undefined, asString(llmCrossValidation?.recommendation))}">${escapeHtml(
@@ -1269,7 +1264,7 @@ function renderJobPage(job: CaseExplorerResponse): string {
       <section class="card section-card"><div class="panel">
         <div class="header-row">
           <div>
-            <div class="eyebrow">LLM Reviews</div>
+            <div class="eyebrow">Final analysis</div>
             <h2>Legal assessment</h2>
           </div>
           <span class="status-pill ${statusClass(undefined, asString(llmLegalAssessment?.recommendation))}">${escapeHtml(
