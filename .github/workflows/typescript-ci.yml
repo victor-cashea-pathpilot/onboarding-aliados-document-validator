@@ -1,0 +1,71 @@
+name: TypeScript CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "codex/**"
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "docs/**"
+      - "infra/gcp/*.sh"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.base.json"
+      - "nest-cli.json"
+      - ".github/workflows/typescript-ci.yml"
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "docs/**"
+      - "infra/gcp/*.sh"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.base.json"
+      - "nest-cli.json"
+      - ".github/workflows/typescript-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: typescript-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and Test TypeScript Stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run infrastructure tests
+        run: npm run test:ts:infrastructure
+
+      - name: Run API tests
+        run: npm run test:ts:api
+
+      - name: Run worker tests
+        run: npm run test:ts:worker
+
+      - name: Run case explorer tests
+        run: npm run test:ts:case-explorer

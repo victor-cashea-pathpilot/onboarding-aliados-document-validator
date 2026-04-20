@@ -1,0 +1,7 @@
+{
+  "name": "@onboarding-agent/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "main": "../../dist/packages/contracts/index.js",
+  "types": "../../dist/packages/contracts/index.d.ts"
+}

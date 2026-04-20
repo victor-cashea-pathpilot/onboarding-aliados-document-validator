@@ -19,8 +19,8 @@ SUBMIT_RESPONSE="$(
     -H "Authorization: Bearer ${TOKEN}" \
     -H "Content-Type: application/json" \
     -d "{
-      \"merchant_id\": \"smoke-test-merchant\",
-      \"request_id\": \"smoke-test-$(date +%s)\",
+      \"merchant_id\": \"ts-smoke-test-merchant\",
+      \"request_id\": \"ts-smoke-test-$(date +%s)\",
       \"documents\": {
         \"rif\": [{\"url\": \"${SMOKE_TEST_PDF_URL}\", \"document_id\": \"rif-1\"}],
         \"cedula\": [{\"url\": \"${SMOKE_TEST_IMAGE_URL}\", \"document_id\": \"ced-1\"}],
@@ -42,7 +42,7 @@ PY
 )"
 
 echo "Polling status for job: $JOB_ID"
-for _ in 1 2 3 4 5 6 7 8; do
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
   STATUS_RESPONSE="$(
     curl -sS -X POST "${API_URL}/v1/onboarding/status" \
       -H "Authorization: Bearer ${TOKEN}" \
@@ -64,7 +64,7 @@ PY
     exit 0
   fi
 
-  sleep 3
+  sleep 5
 done
 
 echo "Smoke test timed out before completion." >&2

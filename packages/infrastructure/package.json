@@ -1,0 +1,7 @@
+{
+  "name": "@onboarding-agent/infrastructure",
+  "version": "0.1.0",
+  "private": true,
+  "main": "../../dist/packages/infrastructure/index.js",
+  "types": "../../dist/packages/infrastructure/index.d.ts"
+}

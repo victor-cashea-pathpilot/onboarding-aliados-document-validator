@@ -25,6 +25,8 @@ require_base_env() {
   required_env API_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL
+  required_env CASE_EXPLORER_SERVICE_NAME
+  required_env CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env WORKER_AUTH_TOKEN
   required_env IMAGE_TAG
   : "${CLOUD_TASKS_MAX_DISPATCHES_PER_SECOND:=10}"
@@ -96,8 +98,6 @@ case_explorer_url() {
 }
 
 require_case_explorer_env() {
-  required_env CASE_EXPLORER_SERVICE_NAME
-  required_env CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env WEBAPP_SESSION_SECRET
   : "${CASE_EXPLORER_AUTH_MODE:=disabled}"
   : "${CASE_EXPLORER_ENABLE_IAP:=false}"

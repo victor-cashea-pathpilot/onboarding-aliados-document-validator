@@ -1,0 +1,56 @@
+{
+  "name": "ai-legal-doc-validation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cashea AI legal document validation platform",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build:packages && npm run build:api && npm run build:worker && npm run build:case-explorer",
+    "build:api": "nest build api && tsc-alias -p apps/api/tsconfig.json",
+    "build:worker": "nest build worker && tsc-alias -p apps/worker/tsconfig.json",
+    "build:case-explorer": "nest build case-explorer && tsc-alias -p apps/case-explorer/tsconfig.json",
+    "build:packages": "tsc -p packages/contracts/tsconfig.json && tsc -p packages/domain/tsconfig.json && tsc -p packages/infrastructure/tsconfig.json",
+    "test:ts": "npm run build && node --test packages/**/*.test.js apps/**/*.test.js",
+    "test:ts:infrastructure": "npm run build && node --test packages/infrastructure/test/**/*.test.js",
+    "test:ts:api": "npm run build && node --test apps/api/test/**/*.test.js",
+    "test:ts:worker": "npm run build && node --test apps/worker/test/**/*.test.js",
+    "test:ts:case-explorer": "npm run build && node --test apps/case-explorer/test/**/*.test.js",
+    "lint": "biome check --write \"apps/**/*.ts\" \"packages/**/*.ts\"",
+    "format": "biome format --write \"apps/**/*.ts\" \"packages/**/*.ts\"",
+    "start:api:dev": "nest start api --watch",
+    "start:worker:dev": "nest start worker --watch",
+    "start:case-explorer:dev": "nest start case-explorer --watch"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^8.5.0",
+    "@google-cloud/tasks": "^6.2.1",
+    "@google/genai": "^1.50.1",
+    "google-auth-library": "^10.4.1",
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/swagger": "^8.1.1",
+    "@nestjs/terminus": "^11.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.11",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^10.0.0",
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.3.1",
+    "source-map-support": "^0.5.21",
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.2.0",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.1.3"
+  }
+}

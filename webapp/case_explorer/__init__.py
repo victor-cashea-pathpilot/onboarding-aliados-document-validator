@@ -1,1 +1,0 @@
-"""Internal case explorer webapp."""

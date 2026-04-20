@@ -1,0 +1,2 @@
+export const JOB_REPOSITORY = Symbol('WORKER_JOB_REPOSITORY');
+export const WORKER_AUTH_TOKEN = Symbol('WORKER_AUTH_TOKEN');
