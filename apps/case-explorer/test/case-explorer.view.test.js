@@ -80,6 +80,7 @@ test('renderJobPage includes workflow monitor and document evidence panels', () 
           status: 'APPROVED',
           confidence: 90,
           extracted_data: {
+            extraction_prompt: 'RUNTIME RIF PROMPT',
             extracted_fields: {
               rif_number: 'J123',
               company_name: 'Merchant 1',
@@ -101,8 +102,20 @@ test('renderJobPage includes workflow monitor and document evidence panels', () 
     crossValidation: {
       checks: [{ code: 'HAS_RIF', status: 'PASSED', message: 'RIF found' }],
       findings: [],
-      llmCrossValidation: { recommendation: 'APPROVED', confidence: 0.9, summary: 'Looks good', findings: [] },
-      llmLegalAssessment: { recommendation: 'APPROVED', confidence: 0.8, summary: 'Legal ok', findings: [] },
+      llm_cross_validation: {
+        recommendation: 'APPROVED',
+        confidence: 0.9,
+        summary: 'Looks good',
+        prompt: 'RUNTIME CROSS VALIDATION PROMPT',
+        findings: [],
+      },
+      llm_legal_assessment: {
+        recommendation: 'APPROVED',
+        confidence: 0.8,
+        summary: 'Legal ok',
+        prompt: 'RUNTIME LEGAL PROMPT',
+        findings: [],
+      },
     },
     createdAt: '2026-04-16T10:00:00Z',
     updatedAt: '2026-04-16T10:01:00Z',
@@ -115,8 +128,9 @@ test('renderJobPage includes workflow monitor and document evidence panels', () 
   assert.match(html, /Final analysis/);
   assert.match(html, /Cédula policy/);
   assert.match(html, /Case submission/);
-  assert.match(html, /Extrae la siguiente información del RIF/);
-  assert.match(html, /Actúa como un Auditor Senior de Cumplimiento Legal/);
+  assert.match(html, /RUNTIME RIF PROMPT/);
+  assert.match(html, /RUNTIME CROSS VALIDATION PROMPT/);
+  assert.match(html, /RUNTIME LEGAL PROMPT/);
   assert.match(html, /const nodes = \[\{"id":"request"/);
   assert.doesNotMatch(html, /Prompt capture is not yet persisted/);
 });

@@ -4,8 +4,17 @@ const assert = require('node:assert/strict');
 const {
   buildActaConstitutivaPrompt,
   buildActaMercantilPrompt,
+  buildRifPrompt,
   buildCertificadoEmprendimientoPrompt,
 } = require('../../../dist/apps/worker/apps/worker/src/extraction-prompts.js');
+
+test('buildRifPrompt preserves legal name symbols verbatim', () => {
+  const prompt = buildRifPrompt();
+
+  assert.match(prompt, /Preserva EXACTAMENTE los caracteres visibles del nombre legal/);
+  assert.match(prompt, /No normalices, no corrijas y no elimines símbolos/);
+  assert.match(prompt, /\+RPM MULTISERVICIOS C\.A\./);
+});
 
 test('buildActaConstitutivaPrompt includes full corporate extraction schema', () => {
   const prompt = buildActaConstitutivaPrompt();

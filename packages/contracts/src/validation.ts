@@ -32,6 +32,8 @@ export interface LLMValidationReview {
   confidence: number;
   summary: string;
   findings: CrossValidationFinding[];
+  prompt?: string | null;
+  model?: string | null;
 }
 
 export interface CrossValidationResult {

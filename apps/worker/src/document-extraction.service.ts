@@ -150,6 +150,8 @@ export class DocumentExtractionService {
         confidence: this.settings.mockMode ? 90 : item.confidence,
         extracted_data: {
           ...item.extracted_data,
+          extraction_model: definition.model,
+          extraction_prompt: definition.prompt,
           extraction_status: 'completed',
           extracted_fields: extractedFields,
         },

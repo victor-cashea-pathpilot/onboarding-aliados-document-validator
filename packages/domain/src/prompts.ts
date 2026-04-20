@@ -43,6 +43,10 @@ Fecha actual de referencia: ${todayDdMmYyyy()}.
 
 1. Número de RIF: formato completo con prefijo (J-, V-, G-, E-) y dígitos.
 2. Razón Social: nombre completo de la empresa tal como aparece en el RIF.
+   - Preserva EXACTAMENTE los caracteres visibles del nombre legal.
+   - No normalices, no corrijas y no elimines símbolos, prefijos o puntuación del nombre.
+   - Si la razón social comienza con un símbolo como "+", "&" o similar, inclúyelo.
+   - Ejemplo: si el documento dice "+RPM MULTISERVICIOS C.A.", responde exactamente "+RPM MULTISERVICIOS C.A.".
 3. Dirección Fiscal: dirección completa que aparece después de "DOMICILIO FISCAL".
 4. Fecha de Vencimiento: fecha de vencimiento del RIF en formato DD/MM/AAAA.
 

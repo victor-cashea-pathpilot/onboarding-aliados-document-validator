@@ -24,6 +24,7 @@ export class CrossValidationLlmService {
     checks: CrossValidationCheck[];
   }): Promise<LLMValidationReview> {
     const startedAt = Date.now();
+    const prompt = buildCrossValidationLlmPrompt(input.snapshot.legalMode);
 
     if (!this.settings.enableLlmCrossValidation) {
       return {
@@ -31,11 +32,13 @@ export class CrossValidationLlmService {
         confidence: 0,
         summary: 'La validación cruzada asistida por LLM está deshabilitada.',
         findings: [],
+        prompt,
+        model: this.modelName,
       };
     }
 
     if (this.settings.mockMode) {
-      const review = this.mockReview(input);
+      const review = this.mockReview(input, prompt);
       this.logger.info('cross_validation.llm.completed', {
         event: 'cross_validation.llm.completed',
         mode: 'mock',
@@ -49,13 +52,13 @@ export class CrossValidationLlmService {
 
     const response = await this.geminiClient.analyzeJson({
       model: this.modelName,
-      prompt: buildCrossValidationLlmPrompt(input.snapshot.legalMode),
+      prompt,
       payload: {
         snapshot: input.snapshot as unknown as Record<string, unknown>,
         checks: input.checks as unknown as Record<string, unknown>,
       },
     });
-    const review = this.parseResponse(response, 'llm_cross_validation');
+    const review = this.parseResponse(response, 'llm_cross_validation', prompt);
     this.logger.info('cross_validation.llm.completed', {
       event: 'cross_validation.llm.completed',
       mode: 'vertex_ai',
@@ -71,7 +74,7 @@ export class CrossValidationLlmService {
   private mockReview(input: {
     snapshot: CanonicalMerchantSnapshot;
     checks: CrossValidationCheck[];
-  }): LLMValidationReview {
+  }, prompt: string): LLMValidationReview {
     const failedCodes = new Set(
       input.checks.filter((check) => check.status === 'FAILED').map((check) => check.code),
     );
@@ -138,6 +141,8 @@ export class CrossValidationLlmService {
         summary:
           'La revisión contextual detectó inconsistencias materiales o vacíos de soporte jurídico.',
         findings,
+        prompt,
+        model: this.modelName,
       };
     }
 
@@ -156,12 +161,15 @@ export class CrossValidationLlmService {
           relatedChecks: ['LEGAL_MODE_DETECTED'],
         },
       ],
+      prompt,
+      model: this.modelName,
     };
   }
 
   private parseResponse(
     response: Record<string, unknown>,
     source: CrossValidationFinding['source'],
+    prompt: string,
   ): LLMValidationReview {
     const items = Array.isArray(response.findings) ? response.findings : [];
     const findings: CrossValidationFinding[] = items.map((item) => {
@@ -184,6 +192,8 @@ export class CrossValidationLlmService {
       confidence: Number(response.confidence ?? 0),
       summary: String(response.summary ?? '').trim(),
       findings,
+      prompt,
+      model: this.modelName,
     };
   }
 }

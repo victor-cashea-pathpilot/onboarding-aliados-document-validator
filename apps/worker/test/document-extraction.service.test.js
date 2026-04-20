@@ -62,6 +62,8 @@ test('DocumentExtractionService extracts approved simple documents', async () =>
 
   assert.equal(updated.rif[0].status, 'APPROVED');
   assert.equal(updated.rif[0].extracted_data.extraction_status, 'completed');
+  assert.equal(updated.rif[0].extracted_data.extraction_model, 'gemini-simple-test');
+  assert.match(updated.rif[0].extracted_data.extraction_prompt, /Registro de Información Fiscal/);
   assert.deepEqual(updated.rif[0].extracted_data.extracted_fields, {
     rif_number: 'J-12345678-0',
     company_name: 'ALIADO MOCK RIF',
