@@ -440,12 +440,6 @@ function shell(title: string, body: string): string {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
       .workflow-card, .section-card { margin-bottom: 18px; }
-      .monitor-grid {
-        display: grid;
-        grid-template-columns: 1.1fr 0.9fr;
-        gap: 18px;
-        margin-bottom: 18px;
-      }
       .timeline-list {
         display: grid;
         gap: 14px;
@@ -509,6 +503,106 @@ function shell(title: string, body: string): string {
         font-size: 13px;
         line-height: 1.55;
         margin-top: 10px;
+      }
+      .timeline-shell {
+        display: grid;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+      .timeline-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .trace-axis-row, .trace-row {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+        gap: 14px;
+        align-items: center;
+      }
+      .trace-axis-label, .trace-label {
+        min-width: 0;
+      }
+      .trace-label strong {
+        display: block;
+        font-size: 14px;
+      }
+      .trace-label .timeline-meta {
+        margin-top: 4px;
+      }
+      .trace-axis {
+        position: relative;
+        height: 34px;
+        border-bottom: 1px solid var(--line);
+      }
+      .trace-axis::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 -1px 0;
+        border-radius: 16px 16px 0 0;
+        background:
+          linear-gradient(to right, rgba(148, 163, 184, 0.16) 0, rgba(148, 163, 184, 0.16) 1px, transparent 1px) 0 0 / 25% 100%;
+      }
+      .trace-tick {
+        position: absolute;
+        bottom: -1px;
+        transform: translateX(-50%);
+        display: grid;
+        justify-items: center;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .trace-tick::before {
+        content: "";
+        width: 1px;
+        height: 10px;
+        background: #94a3b8;
+      }
+      .trace-group + .trace-group {
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+      .trace-group-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 12px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      .trace-group-copy {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .trace-rows {
+        display: grid;
+        gap: 12px;
+      }
+      .trace-track {
+        position: relative;
+        height: 24px;
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+        background:
+          linear-gradient(to right, rgba(148, 163, 184, 0.08) 0, rgba(148, 163, 184, 0.08) 1px, transparent 1px) 0 0 / 25% 100%,
+          #f8fafc;
+        overflow: hidden;
+      }
+      .trace-bar {
+        position: absolute;
+        top: 3px;
+        height: calc(100% - 6px);
+        border-radius: 999px;
+        min-width: 10px;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+      }
+      .trace-group-note {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
       }
       .node-rail {
         display: grid;
@@ -657,12 +751,13 @@ function shell(title: string, body: string): string {
         gap: 8px;
       }
       @media (max-width: 1180px) {
-        .metrics-grid, .detail-grid, .columns, .section-grid, .document-grid, .header-grid, .output-grid, .monitor-grid { grid-template-columns: 1fr; }
+        .metrics-grid, .detail-grid, .columns, .section-grid, .document-grid, .header-grid, .output-grid, .timeline-summary-grid { grid-template-columns: 1fr; }
         .stats-grid { grid-template-columns: 1fr; }
         .chart-card { grid-template-columns: 1fr; }
         .tab-strip { width: 100%; justify-content: stretch; }
         .tab-button { flex: 1; }
         .timeline-row { grid-template-columns: 1fr; }
+        .trace-axis-row, .trace-row { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -751,13 +846,17 @@ function getMonitoringSpans(
   return monitoring.spans.filter(predicate);
 }
 
+function spanOffsetMs(span: MonitoringSpanItem, baselineMs: number): number {
+  return Math.max(new Date(span.startedAt).getTime() - baselineMs, 0);
+}
+
 function timelineStyle(
   span: MonitoringSpanItem,
   totalDurationMs: number,
   baselineMs: number,
 ): string {
   const total = Math.max(totalDurationMs, 1);
-  const offsetMs = Math.max(new Date(span.startedAt).getTime() - baselineMs, 0);
+  const offsetMs = spanOffsetMs(span, baselineMs);
   const widthPct = Math.max((span.durationMs / total) * 100, 1.5);
   const offsetPct = Math.max((offsetMs / total) * 100, 0);
   return `left:${offsetPct}%;width:${widthPct}%;`;
@@ -784,6 +883,77 @@ function parallelismFactor(children: MonitoringSpanItem[], parent?: MonitoringSp
   }
   const totalChildDurationMs = children.reduce((sum, item) => sum + item.durationMs, 0);
   return `${(totalChildDurationMs / parent.durationMs).toFixed(2)}x`;
+}
+
+function renderTraceAxis(totalDurationMs: number): string {
+  const tickCount = 5;
+  return Array.from({ length: tickCount }, (_, index) => {
+    const progress = index / (tickCount - 1);
+    const offsetMs = Math.round(totalDurationMs * progress);
+    return `<div class="trace-tick" style="left:${progress * 100}%;">
+      <span>${escapeHtml(formatDurationMs(offsetMs))}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTraceRows(
+  spans: MonitoringSpanItem[],
+  monitoring: MonitoringView,
+  baselineMs: number,
+): string {
+  if (spans.length === 0) {
+    return '<div class="empty">No monitoring spans were captured for this section.</div>';
+  }
+
+  return spans
+    .map((span) => {
+      const offsetMs = spanOffsetMs(span, baselineMs);
+      const meta = [
+        `start +${formatDurationMs(offsetMs)}`,
+        `run ${formatDurationMs(span.durationMs)}`,
+        ...Object.entries(span.metadata)
+          .filter(([, value]) => value != null && String(value).length > 0)
+          .map(([key, value]) => `${key}: ${String(value)}`),
+      ].join(' · ');
+
+      return `<div class="trace-row">
+        <div class="trace-label">
+          <strong>${escapeHtml(span.label)}</strong>
+          <span class="timeline-meta">${escapeHtml(meta)}</span>
+        </div>
+        <div class="trace-track">
+          <div class="trace-bar ${timelineClass(span.kind)}" style="${timelineStyle(
+            span,
+            monitoring.totalDurationMs,
+            baselineMs,
+          )}"></div>
+        </div>
+      </div>`;
+    })
+    .join('');
+}
+
+function renderTraceGroup(
+  title: string,
+  copy: string,
+  spans: MonitoringSpanItem[],
+  monitoring: MonitoringView,
+  baselineMs: number,
+  note?: string,
+): string {
+  return `<section class="trace-group">
+    <div class="trace-group-header">
+      <div>
+        <div class="eyebrow">Trace group</div>
+        <h3>${escapeHtml(title)}</h3>
+      </div>
+      ${note ? `<span class="trace-group-note">${escapeHtml(note)}</span>` : ''}
+    </div>
+    <div class="trace-group-copy">${escapeHtml(copy)}</div>
+    <div class="trace-rows" style="margin-top:12px;">
+      ${renderTraceRows(spans, monitoring, baselineMs)}
+    </div>
+  </section>`;
 }
 
 function statusClass(status?: string | null, overallStatus?: string | null): string {
@@ -1119,42 +1289,6 @@ function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
   return nodes;
 }
 
-function renderTimelineRows(
-  spans: MonitoringSpanItem[],
-  monitoring: MonitoringView,
-  baselineMs: number,
-): string {
-  if (spans.length === 0) {
-    return '<div class="empty">No monitoring spans were captured for this section.</div>';
-  }
-
-  return spans
-    .map((span) => {
-      const meta = [
-        formatDurationMs(span.durationMs),
-        formatDate(span.startedAt),
-        ...Object.entries(span.metadata)
-          .filter(([, value]) => value != null && String(value).length > 0)
-          .map(([key, value]) => `${key}: ${String(value)}`),
-      ].join(' · ');
-
-      return `<div class="timeline-row">
-        <div>
-          <strong>${escapeHtml(span.label)}</strong>
-          <span class="timeline-meta">${escapeHtml(meta)}</span>
-        </div>
-        <div class="timeline-track">
-          <div class="timeline-bar ${timelineClass(span.kind)}" style="${timelineStyle(
-            span,
-            monitoring.totalDurationMs,
-            baselineMs,
-          )}"></div>
-        </div>
-      </div>`;
-    })
-    .join('');
-}
-
 function renderMonitoringSection(
   job: CaseExplorerResponse,
   monitoring: MonitoringView,
@@ -1175,34 +1309,86 @@ function renderMonitoringSection(
   const slowestExtraction = [...extractionChildren].sort(
     (left, right) => right.durationMs - left.durationMs,
   )[0];
+  const longestStage = [...topLevelSpans]
+    .filter((span) => span.id !== 'queue_wait')
+    .sort((left, right) => right.durationMs - left.durationMs)[0];
+  const spanRows = [...monitoring.spans]
+    .sort((left, right) => spanOffsetMs(left, baselineMs) - spanOffsetMs(right, baselineMs))
+    .map((span) => {
+      const offsetMs = spanOffsetMs(span, baselineMs);
+      return `<tr>
+        <td>${escapeHtml(span.label)}</td>
+        <td>${escapeHtml(span.parentId ?? 'root')}</td>
+        <td>${escapeHtml(formatDurationMs(offsetMs))}</td>
+        <td>${escapeHtml(formatDurationMs(span.durationMs))}</td>
+        <td>${escapeHtml(formatDate(span.startedAt))}</td>
+        <td>${escapeHtml(formatDate(span.endedAt))}</td>
+      </tr>`;
+    })
+    .join('');
 
   return `
     <section class="tab-panel ${!isActive ? 'hidden' : ''}" data-panel="monitoring">
-      <div class="monitor-grid">
+      <div class="timeline-shell">
         <section class="card section-card"><div class="panel">
           <div class="header-row">
             <div>
-              <div class="eyebrow">Monitoring</div>
-              <h2>Process timeline</h2>
+              <div class="eyebrow">Timeline</div>
+              <h2>Execution timeline</h2>
             </div>
             <span class="pill">${escapeHtml(formatDurationMs(monitoring.totalDurationMs))}</span>
           </div>
-          <div class="timeline-list">
-            ${renderTimelineRows(topLevelSpans, monitoring, baselineMs)}
-          </div>
           <div class="monitor-note">
-            The bars are aligned to the full job wall-clock time, so overlaps reveal parallel work and gaps reveal sequential transitions.
+            All bars share the same 0 to total duration axis. Overlaps reveal parallel work; gaps reveal sequential transitions.
           </div>
+          <div class="trace-axis-row" style="margin-top:18px;">
+            <div class="trace-axis-label">
+              <strong>Job duration</strong>
+              <span class="timeline-meta">0 to ${escapeHtml(
+                formatDurationMs(monitoring.totalDurationMs),
+              )}</span>
+            </div>
+            <div class="trace-axis">${renderTraceAxis(monitoring.totalDurationMs)}</div>
+          </div>
+
+          ${renderTraceGroup(
+            'Pipeline stages',
+            'Top-level spans define the critical path across queue wait, intake, extraction, normalization, rules, and final LLM reviews.',
+            topLevelSpans,
+            monitoring,
+            baselineMs,
+            longestStage
+              ? `Longest stage: ${longestStage.label} · ${formatDurationMs(longestStage.durationMs)}`
+              : undefined,
+          )}
+
+          ${renderTraceGroup(
+            'Document extraction',
+            'These rows should overlap when per-document extraction is truly parallel.',
+            extractionChildren,
+            monitoring,
+            baselineMs,
+            `Overlap: ${parallelismFactor(extractionChildren, extractionStage)}`,
+          )}
+
+          ${renderTraceGroup(
+            'LLM reviews',
+            'Cross-validation and legal assessment should overlap instead of running one after the other.',
+            llmChildren,
+            monitoring,
+            baselineMs,
+            `Overlap: ${parallelismFactor(llmChildren, llmStage)}`,
+          )}
         </div></section>
 
         <section class="card section-card"><div class="panel">
           <div class="header-row">
             <div>
               <div class="eyebrow">Summary</div>
-              <h2>Where the time went</h2>
+              <h2>Key timing facts</h2>
             </div>
           </div>
-          <div class="output-summary-grid">
+          <div class="timeline-summary-grid">
             <article class="summary-card">
               <strong>${escapeHtml(formatDurationMs(monitoring.totalDurationMs))}</strong>
               <span>Total duration</span>
@@ -1212,8 +1398,10 @@ function renderMonitoringSection(
               <span>Queue wait</span>
             </article>
             <article class="summary-card">
-              <strong>${escapeHtml(formatDurationMs(monitoring.processingDurationMs))}</strong>
-              <span>Worker processing</span>
+              <strong>${escapeHtml(
+                longestStage ? formatDurationMs(longestStage.durationMs) : '—',
+              )}</strong>
+              <span>Longest stage${longestStage ? `: ${escapeHtml(longestStage.label)}` : ''}</span>
             </article>
             <article class="summary-card">
               <strong>${escapeHtml(
@@ -1221,79 +1409,34 @@ function renderMonitoringSection(
               )}</strong>
               <span>Slowest extraction${slowestExtraction ? `: ${escapeHtml(slowestExtraction.label)}` : ''}</span>
             </article>
-            <article class="summary-card">
-              <strong>${escapeHtml(parallelismFactor(extractionChildren, extractionStage))}</strong>
-              <span>Extraction parallelism</span>
-            </article>
-            <article class="summary-card">
-              <strong>${escapeHtml(parallelismFactor(llmChildren, llmStage))}</strong>
-              <span>LLM parallelism</span>
-            </article>
           </div>
           <div class="monitor-note">
-            Parallelism above 1.00x means child work overlapped inside the parent stage instead of running fully one-by-one.
-          </div>
-        </div></section>
-      </div>
-
-      <div class="monitor-grid">
-        <section class="card section-card"><div class="panel">
-          <div class="header-row">
-            <div>
-              <div class="eyebrow">Parallel work</div>
-              <h2>Document extraction</h2>
-            </div>
-          </div>
-          <div class="timeline-list">
-            ${renderTimelineRows(extractionChildren, monitoring, baselineMs)}
+            <code>start +...</code> shows when a span began relative to job creation. <code>run ...</code> is the wall-clock duration of that span.
           </div>
         </div></section>
 
         <section class="card section-card"><div class="panel">
           <div class="header-row">
             <div>
-              <div class="eyebrow">Parallel work</div>
-              <h2>LLM reviews</h2>
+              <div class="eyebrow">Breakdown</div>
+              <h2>Span details</h2>
             </div>
           </div>
-          <div class="timeline-list">
-            ${renderTimelineRows(llmChildren, monitoring, baselineMs)}
-          </div>
+          <table class="monitor-table">
+            <thead>
+              <tr>
+                <th>Span</th>
+                <th>Parent</th>
+                <th>Start offset</th>
+                <th>Run time</th>
+                <th>Started</th>
+                <th>Ended</th>
+              </tr>
+            </thead>
+            <tbody>${spanRows}</tbody>
+          </table>
         </div></section>
       </div>
-
-      <section class="card section-card"><div class="panel">
-        <div class="header-row">
-          <div>
-            <div class="eyebrow">Breakdown</div>
-            <h2>Stage details</h2>
-          </div>
-        </div>
-        <table class="monitor-table">
-          <thead>
-            <tr>
-              <th>Span</th>
-              <th>Kind</th>
-              <th>Duration</th>
-              <th>Started</th>
-              <th>Ended</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${topLevelSpans
-              .map(
-                (span) => `<tr>
-                  <td>${escapeHtml(span.label)}</td>
-                  <td>${escapeHtml(span.kind)}</td>
-                  <td>${escapeHtml(formatDurationMs(span.durationMs))}</td>
-                  <td>${escapeHtml(formatDate(span.startedAt))}</td>
-                  <td>${escapeHtml(formatDate(span.endedAt))}</td>
-                </tr>`,
-              )
-              .join('')}
-          </tbody>
-        </table>
-      </div></section>
     </section>
   `;
 }
@@ -1518,12 +1661,14 @@ function renderJobsPage(payload: CaseExplorerListResponse, query = ''): string {
 }
 
 function renderJobPage(job: CaseExplorerResponse, requestedTab?: string): string {
-  const activeTab =
-    requestedTab === 'explorer' ||
-    requestedTab === 'extras' ||
-    requestedTab === 'monitoring'
-      ? requestedTab
-      : 'output';
+  const normalizedActiveTab =
+    requestedTab === 'timeline'
+      ? 'monitoring'
+      : requestedTab === 'explorer' ||
+          requestedTab === 'extras' ||
+          requestedTab === 'monitoring'
+        ? requestedTab
+        : 'output';
   const overall: Partial<OverallResult> = job.overallResult ?? {};
   const progress: ProgressState = job.progress ?? {
     stage: 'pending',
@@ -1653,21 +1798,21 @@ function renderJobPage(job: CaseExplorerResponse, requestedTab?: string): string
 
     <section class="tab-shell">
       <div class="tab-strip" role="tablist" aria-label="Case detail sections">
-        <a class="tab-button ${activeTab === 'output' ? 'active' : ''}" href="/jobs/${escapeHtml(
+        <a class="tab-button ${normalizedActiveTab === 'output' ? 'active' : ''}" href="/jobs/${escapeHtml(
           job.jobId,
-        )}?tab=output" data-tab="output" aria-selected="${activeTab === 'output'}">Output</a>
-        <a class="tab-button ${activeTab === 'explorer' ? 'active' : ''}" href="/jobs/${escapeHtml(
+        )}?tab=output" data-tab="output" aria-selected="${normalizedActiveTab === 'output'}">Output</a>
+        <a class="tab-button ${normalizedActiveTab === 'explorer' ? 'active' : ''}" href="/jobs/${escapeHtml(
           job.jobId,
-        )}?tab=explorer" data-tab="explorer" aria-selected="${activeTab === 'explorer'}">Explorer</a>
-        <a class="tab-button ${activeTab === 'monitoring' ? 'active' : ''}" href="/jobs/${escapeHtml(
+        )}?tab=explorer" data-tab="explorer" aria-selected="${normalizedActiveTab === 'explorer'}">Explorer</a>
+        <a class="tab-button ${normalizedActiveTab === 'monitoring' ? 'active' : ''}" href="/jobs/${escapeHtml(
           job.jobId,
-        )}?tab=monitoring" data-tab="monitoring" aria-selected="${activeTab === 'monitoring'}">Monitoring</a>
-        <a class="tab-button ${activeTab === 'extras' ? 'active' : ''}" href="/jobs/${escapeHtml(
+        )}?tab=timeline" data-tab="monitoring" aria-selected="${normalizedActiveTab === 'monitoring'}">Timeline</a>
+        <a class="tab-button ${normalizedActiveTab === 'extras' ? 'active' : ''}" href="/jobs/${escapeHtml(
           job.jobId,
-        )}?tab=extras" data-tab="extras" aria-selected="${activeTab === 'extras'}">Extras</a>
+        )}?tab=extras" data-tab="extras" aria-selected="${normalizedActiveTab === 'extras'}">Extras</a>
       </div>
 
-      <section class="tab-panel ${activeTab !== 'output' ? 'hidden' : ''}" data-panel="output">
+      <section class="tab-panel ${normalizedActiveTab !== 'output' ? 'hidden' : ''}" data-panel="output">
         <section class="output-grid">
           <section class="card section-card"><div class="panel">
             <div class="header-row">
@@ -1741,7 +1886,7 @@ function renderJobPage(job: CaseExplorerResponse, requestedTab?: string): string
         </section>
       </section>
 
-      <section class="tab-panel ${activeTab !== 'explorer' ? 'hidden' : ''}" data-panel="explorer">
+      <section class="tab-panel ${normalizedActiveTab !== 'explorer' ? 'hidden' : ''}" data-panel="explorer">
         <section class="card workflow-card">
           <div class="panel">
             <div class="workflow-head">
@@ -1828,9 +1973,9 @@ function renderJobPage(job: CaseExplorerResponse, requestedTab?: string): string
         </section>
       </section>
 
-      ${renderMonitoringSection(job, monitoring, activeTab === 'monitoring')}
+      ${renderMonitoringSection(job, monitoring, normalizedActiveTab === 'monitoring')}
 
-      <section class="tab-panel ${activeTab !== 'extras' ? 'hidden' : ''}" data-panel="extras">
+      <section class="tab-panel ${normalizedActiveTab !== 'extras' ? 'hidden' : ''}" data-panel="extras">
         <section class="section-grid">
           <section class="card section-card"><div class="panel">
             <div class="header-row">

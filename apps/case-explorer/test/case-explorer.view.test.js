@@ -176,10 +176,13 @@ test('renderJobPage includes workflow monitor and document evidence panels', () 
   assert.match(html, /RUNTIME RIF PROMPT/);
   assert.match(html, /RUNTIME CROSS VALIDATION PROMPT/);
   assert.match(html, /RUNTIME LEGAL PROMPT/);
-  assert.match(html, /Process timeline/);
+  assert.match(html, /Execution timeline/);
+  assert.match(html, /Timeline/);
+  assert.match(html, /Pipeline stages/);
   assert.match(html, /Slowest extraction/);
   assert.match(html, /Acta constitutiva extraction/);
   assert.match(html, /Queue wait/);
+  assert.match(html, /Span details/);
   assert.match(html, /const nodes = \[\{"id":"request"/);
   assert.doesNotMatch(html, /Prompt capture is not yet persisted/);
 });
