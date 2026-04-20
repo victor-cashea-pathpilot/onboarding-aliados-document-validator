@@ -688,6 +688,38 @@ function summarizeDocumentBucket(
   };
 }
 
+function getExtractionPrompt(items: DocumentBucketItem[]): string | null {
+  for (const item of items) {
+    const prompt =
+      asString(item.extractedData.extraction_prompt) ??
+      asString(item.extractedData.extractionPrompt);
+    if (prompt) {
+      return prompt;
+    }
+  }
+  return null;
+}
+
+function getExtractionModel(items: DocumentBucketItem[]): string | null {
+  for (const item of items) {
+    const model =
+      asString(item.extractedData.extraction_model) ??
+      asString(item.extractedData.extractionModel);
+    if (model) {
+      return model;
+    }
+  }
+  return null;
+}
+
+function getCrossValidationReview(
+  crossValidation: Record<string, unknown>,
+  camelKey: 'llmCrossValidation' | 'llmLegalAssessment',
+  snakeKey: 'llm_cross_validation' | 'llm_legal_assessment',
+): Record<string, unknown> | null {
+  return asObject(crossValidation[camelKey]) ?? asObject(crossValidation[snakeKey]);
+}
+
 function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
   const requestDocuments = asObject(job.request?.documents as unknown) ?? {};
   const documents = asObject(job.documents as unknown) ?? {};
@@ -765,13 +797,14 @@ function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
     if (requestFiles.length === 0 && results.length === 0) {
       continue;
     }
+    const runtimeModel = getExtractionModel(results) ?? mapping.model;
     nodes.push({
       id: `extract-${mapping.documentType}`,
       title: mapping.title,
       kind: 'Extraction',
       subtitle:
         requestFiles.length > 0
-          ? `${requestFiles.length} file(s) routed through ${mapping.model}.`
+          ? `${requestFiles.length} file(s) routed through ${runtimeModel}.`
           : 'No files found in the request bucket.',
       status:
         job.progress?.stage === 'document_extraction' && requestFiles.length > 0
@@ -780,8 +813,11 @@ function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
             ? 'failed'
             : 'completed',
       stage: 'document_extraction',
-      model: mapping.model,
-      prompt: extractionPromptBuilders[mapping.documentType]?.() ?? null,
+      model: runtimeModel,
+      prompt:
+        getExtractionPrompt(results) ??
+        extractionPromptBuilders[mapping.documentType]?.() ??
+        null,
       files: requestFiles,
       inputPayload: { files: requestFiles, bucket: mapping.documentType },
       outputPayload: results,
@@ -812,6 +848,10 @@ function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
     asString(crossValidation.legalMode) ??
     asString(asObject(job.normalizedSnapshot)?.legalMode) ??
     'unknown';
+  const llmCrossValidation =
+    getCrossValidationReview(crossValidation, 'llmCrossValidation', 'llm_cross_validation') ?? {};
+  const llmLegalAssessment =
+    getCrossValidationReview(crossValidation, 'llmLegalAssessment', 'llm_legal_assessment') ?? {};
   nodes.push({
     id: 'rules',
     title: 'Deterministic cross-validation',
@@ -836,17 +876,17 @@ function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
     title: 'LLM cross-validation',
     kind: 'LLM',
     subtitle: 'Contextual review over normalized evidence.',
-    status: crossValidation.llmCrossValidation ? 'completed' : 'pending',
+    status: Object.keys(llmCrossValidation).length > 0 ? 'completed' : 'pending',
     stage: 'cross_validation',
-    model: 'Gemini 2.5 Pro',
-    prompt: buildCrossValidationLlmPrompt(legalMode),
+    model: asString(llmCrossValidation.model) ?? 'Gemini 2.5 Pro',
+    prompt: asString(llmCrossValidation.prompt) ?? buildCrossValidationLlmPrompt(legalMode),
     files: [],
     inputPayload: {
       snapshot: job.normalizedSnapshot ?? {},
       checks: crossValidation.checks ?? [],
       legal_mode: legalMode,
     },
-    outputPayload: crossValidation.llmCrossValidation ?? {},
+    outputPayload: llmCrossValidation,
   });
 
   nodes.push({
@@ -854,17 +894,17 @@ function buildWorkflowNodes(job: CaseExplorerResponse): WorkflowNode[] {
     title: 'LLM legal assessment',
     kind: 'LLM',
     subtitle: 'Final legal recommendation over the case snapshot.',
-    status: crossValidation.llmLegalAssessment ? 'completed' : 'pending',
+    status: Object.keys(llmLegalAssessment).length > 0 ? 'completed' : 'pending',
     stage: 'cross_validation',
-    model: 'Gemini 2.5 Pro',
-    prompt: buildLegalAssessmentPrompt(legalMode),
+    model: asString(llmLegalAssessment.model) ?? 'Gemini 2.5 Pro',
+    prompt: asString(llmLegalAssessment.prompt) ?? buildLegalAssessmentPrompt(legalMode),
     files: [],
     inputPayload: {
       snapshot: job.normalizedSnapshot ?? {},
       checks: crossValidation.checks ?? [],
       legal_mode: legalMode,
     },
-    outputPayload: crossValidation.llmLegalAssessment ?? {},
+    outputPayload: llmLegalAssessment,
   });
 
   nodes.push({
@@ -1124,8 +1164,16 @@ function renderJobPage(job: CaseExplorerResponse, requestedTab?: string): string
   const crossValidation = asObject(job.crossValidation as unknown) ?? {};
   const checks = asArray(crossValidation.checks) as CrossValidationCheck[];
   const findings = asArray(crossValidation.findings) as CrossValidationFinding[];
-  const llmCrossValidation = asObject(crossValidation.llmCrossValidation);
-  const llmLegalAssessment = asObject(crossValidation.llmLegalAssessment);
+  const llmCrossValidation = getCrossValidationReview(
+    crossValidation,
+    'llmCrossValidation',
+    'llm_cross_validation',
+  );
+  const llmLegalAssessment = getCrossValidationReview(
+    crossValidation,
+    'llmLegalAssessment',
+    'llm_legal_assessment',
+  );
   const workflowNodes = buildWorkflowNodes(job);
   const workflowNodesJson = serializeForInlineScript(workflowNodes);
   const cedulaPolicy = buildCedulaPolicy(normalizedSnapshot);

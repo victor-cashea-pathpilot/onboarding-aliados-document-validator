@@ -24,6 +24,7 @@ export class LegalAssessmentLlmService {
     checks: CrossValidationCheck[];
   }): Promise<LLMValidationReview> {
     const startedAt = Date.now();
+    const prompt = buildLegalAssessmentPrompt(input.snapshot.legalMode);
 
     if (!this.settings.enableLlmLegalAssessment) {
       return {
@@ -31,11 +32,13 @@ export class LegalAssessmentLlmService {
         confidence: 0,
         summary: 'La evaluación legal asistida por LLM está deshabilitada.',
         findings: [],
+        prompt,
+        model: this.modelName,
       };
     }
 
     if (this.settings.mockMode) {
-      const review = this.mockAssessment(input);
+      const review = this.mockAssessment(input, prompt);
       this.logger.info('legal_assessment.llm.completed', {
         event: 'legal_assessment.llm.completed',
         mode: 'mock',
@@ -49,13 +52,13 @@ export class LegalAssessmentLlmService {
 
     const response = await this.geminiClient.analyzeJson({
       model: this.modelName,
-      prompt: buildLegalAssessmentPrompt(input.snapshot.legalMode),
+      prompt,
       payload: {
         snapshot: input.snapshot as unknown as Record<string, unknown>,
         checks: input.checks as unknown as Record<string, unknown>,
       },
     });
-    const review = this.parseResponse(response, 'llm_legal_assessment');
+    const review = this.parseResponse(response, 'llm_legal_assessment', prompt);
     this.logger.info('legal_assessment.llm.completed', {
       event: 'legal_assessment.llm.completed',
       mode: 'vertex_ai',
@@ -71,7 +74,7 @@ export class LegalAssessmentLlmService {
   private mockAssessment(input: {
     snapshot: CanonicalMerchantSnapshot;
     checks: CrossValidationCheck[];
-  }): LLMValidationReview {
+  }, prompt: string): LLMValidationReview {
     const failedCodes = new Set(
       input.checks.filter((check) => check.status === 'FAILED').map((check) => check.code),
     );
@@ -94,6 +97,8 @@ export class LegalAssessmentLlmService {
             ),
           },
         ],
+        prompt,
+        model: this.modelName,
       };
     }
 
@@ -114,6 +119,8 @@ export class LegalAssessmentLlmService {
               failedCodes.size > 0 ? [...failedCodes].sort() : ['LEGAL_MODE_DETECTED'],
           },
         ],
+        prompt,
+        model: this.modelName,
       };
     }
 
@@ -132,12 +139,15 @@ export class LegalAssessmentLlmService {
           relatedChecks: [],
         },
       ],
+      prompt,
+      model: this.modelName,
     };
   }
 
   private parseResponse(
     response: Record<string, unknown>,
     source: CrossValidationFinding['source'],
+    prompt: string,
   ): LLMValidationReview {
     const items = Array.isArray(response.findings) ? response.findings : [];
     const findings: CrossValidationFinding[] = items.map((item) => {
@@ -160,6 +170,8 @@ export class LegalAssessmentLlmService {
       confidence: Number(response.confidence ?? 0),
       summary: String(response.summary ?? '').trim(),
       findings,
+      prompt,
+      model: this.modelName,
     };
   }
 }

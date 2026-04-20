@@ -3,61 +3,61 @@
     {
       "name": "sociedad_rif_stilos",
       "document_type": "rif",
-      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/RIF STILOS.pdf",
+      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/fredlou_stilo_y_belleza_ca/RIF STILOS.pdf",
       "mime_type": "application/pdf"
     },
     {
       "name": "sociedad_cedula_freddy",
       "document_type": "cedula",
-      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/Cedula-1.pdf",
+      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/fredlou_stilo_y_belleza_ca/Cedula-1.pdf",
       "mime_type": "application/pdf"
     },
     {
       "name": "sociedad_acta_constitutiva_fredlou",
       "document_type": "acta_constitutiva",
-      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/Acta Constitutiva.pdf",
+      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/fredlou_stilo_y_belleza_ca/Acta Constitutiva.pdf",
       "mime_type": "application/pdf"
     },
     {
       "name": "sociedad_acta_mercantil_fredlou",
       "document_type": "acta_mercantil",
-      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/ACTA ASAMBLEA  FREDLOU.pdf",
+      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/fredlou_stilo_y_belleza_ca/ACTA ASAMBLEA  FREDLOU.pdf",
       "mime_type": "application/pdf"
     },
     {
       "name": "emprendimiento_rif_raul",
       "document_type": "rif",
-      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/RaulParraRIF.pdf",
+      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/raul_parra/RaulParraRIF.pdf",
       "mime_type": "application/pdf"
     },
     {
       "name": "emprendimiento_cedula_raul",
       "document_type": "cedula",
-      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/Cedula-RaulPArra.jpeg",
+      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/raul_parra/Cedula-RaulPArra.jpeg",
       "mime_type": "image/jpeg"
     },
     {
       "name": "emprendimiento_certificado_raul",
       "document_type": "certificado_emprendimiento",
-      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/RegistroNacionalEmprendimientos.pdf",
+      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/raul_parra/RegistroNacionalEmprendimientos.pdf",
       "mime_type": "application/pdf"
     },
     {
       "name": "firma_personal_rif_mariana",
       "document_type": "rif",
-      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/FirmaPersonal-RIF.pdf",
+      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/las_coqueterias_de_mariana_primera_fp/FirmaPersonal-RIF.pdf",
       "mime_type": "application/pdf"
     },
     {
       "name": "firma_personal_cedula_mariana",
       "document_type": "cedula",
-      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/FirmaPersonal-Cedula.jpg",
+      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/las_coqueterias_de_mariana_primera_fp/FirmaPersonal-Cedula.jpg",
       "mime_type": "image/jpeg"
     },
     {
       "name": "firma_personal_acta_mariana",
       "document_type": "acta_constitutiva",
-      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/FirmaPersonal-Acta.pdf",
+      "file_path": "/Users/vitupro14/Documents/Projects/PathPilot/Cashea/onboarding_agent/.local_test_docs/las_coqueterias_de_mariana_primera_fp/FirmaPersonal-Acta.pdf",
       "mime_type": "application/pdf"
     }
   ]
