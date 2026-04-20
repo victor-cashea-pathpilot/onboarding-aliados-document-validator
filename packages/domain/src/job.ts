@@ -18,6 +18,7 @@ export interface JobRecord {
   documents?: Record<string, unknown> | null;
   normalizedSnapshot?: CanonicalMerchantSnapshot | null;
   crossValidation?: Record<string, unknown> | null;
+  monitoring?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }

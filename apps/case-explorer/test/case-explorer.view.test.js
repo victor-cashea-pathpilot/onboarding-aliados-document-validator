@@ -117,9 +117,54 @@ test('renderJobPage includes workflow monitor and document evidence panels', () 
         findings: [],
       },
     },
+    monitoring: {
+      queue_wait_ms: 800,
+      processing_duration_ms: 59200,
+      total_duration_ms: 60000,
+      spans: [
+        {
+          id: 'queue_wait',
+          label: 'Queue wait',
+          kind: 'queue',
+          started_at: '2026-04-16T10:00:00Z',
+          ended_at: '2026-04-16T10:00:00.800Z',
+          duration_ms: 800,
+        },
+        {
+          id: 'document_extraction',
+          label: 'Document extraction',
+          kind: 'stage',
+          started_at: '2026-04-16T10:00:01Z',
+          ended_at: '2026-04-16T10:00:41Z',
+          duration_ms: 40000,
+        },
+        {
+          id: 'extraction:rif',
+          label: 'RIF extraction',
+          kind: 'document',
+          parent_id: 'document_extraction',
+          parallel_group: 'document_extraction',
+          started_at: '2026-04-16T10:00:01Z',
+          ended_at: '2026-04-16T10:00:05Z',
+          duration_ms: 4000,
+          metadata: { model: 'gemini-2.5-flash' },
+        },
+        {
+          id: 'extraction:acta',
+          label: 'Acta constitutiva extraction',
+          kind: 'document',
+          parent_id: 'document_extraction',
+          parallel_group: 'document_extraction',
+          started_at: '2026-04-16T10:00:01Z',
+          ended_at: '2026-04-16T10:00:39Z',
+          duration_ms: 38000,
+          metadata: { model: 'gemini-2.5-pro' },
+        },
+      ],
+    },
     createdAt: '2026-04-16T10:00:00Z',
     updatedAt: '2026-04-16T10:01:00Z',
-  });
+  }, 'monitoring');
 
   assert.match(html, /Back to cases/);
   assert.match(html, /Approved/);
@@ -131,6 +176,13 @@ test('renderJobPage includes workflow monitor and document evidence panels', () 
   assert.match(html, /RUNTIME RIF PROMPT/);
   assert.match(html, /RUNTIME CROSS VALIDATION PROMPT/);
   assert.match(html, /RUNTIME LEGAL PROMPT/);
+  assert.match(html, /Execution timeline/);
+  assert.match(html, /Timeline/);
+  assert.match(html, /Pipeline stages/);
+  assert.match(html, /Slowest extraction/);
+  assert.match(html, /Acta constitutiva extraction/);
+  assert.match(html, /Queue wait/);
+  assert.match(html, /Span details/);
   assert.match(html, /const nodes = \[\{"id":"request"/);
   assert.doesNotMatch(html, /Prompt capture is not yet persisted/);
 });

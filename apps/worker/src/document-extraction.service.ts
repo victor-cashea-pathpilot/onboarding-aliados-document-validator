@@ -115,7 +115,8 @@ export class DocumentExtractionService {
     const definition = this.getExtractor(documentType);
     const sourceUrl = this.readString(item.extracted_data.source_url);
     const mimeType = this.readString(item.extracted_data.content_type) || 'application/pdf';
-    const startedAt = Date.now();
+    const startedAtMs = Date.now();
+    const startedAt = new Date(startedAtMs).toISOString();
 
     logger.info('document.extraction.started', {
       event: 'document.extraction.started',
@@ -142,8 +143,10 @@ export class DocumentExtractionService {
         documentId: item.document_id ?? null,
         model: definition.model,
         sourceUrl: sanitizeUrl(sourceUrl),
-        durationMs: Date.now() - startedAt,
+        durationMs: Date.now() - startedAtMs,
       });
+
+      const completedAtMs = Date.now();
 
       return {
         ...item,
@@ -153,6 +156,9 @@ export class DocumentExtractionService {
           extraction_model: definition.model,
           extraction_prompt: definition.prompt,
           extraction_status: 'completed',
+          extraction_started_at: startedAt,
+          extraction_completed_at: new Date(completedAtMs).toISOString(),
+          extraction_duration_ms: completedAtMs - startedAtMs,
           extracted_fields: extractedFields,
         },
       };
@@ -167,13 +173,22 @@ export class DocumentExtractionService {
         documentId: item.document_id ?? null,
         model: definition.model,
         sourceUrl: sanitizeUrl(sourceUrl),
-        durationMs: Date.now() - startedAt,
+        durationMs: Date.now() - startedAtMs,
         error: message,
       });
+
+      const completedAtMs = Date.now();
 
       return {
         ...item,
         status: 'REQUIRES_REVIEW',
+        extracted_data: {
+          ...item.extracted_data,
+          extraction_started_at: startedAt,
+          extraction_completed_at: new Date(completedAtMs).toISOString(),
+          extraction_duration_ms: completedAtMs - startedAtMs,
+          extraction_status: 'failed',
+        },
         errors: [
           ...item.errors,
           {

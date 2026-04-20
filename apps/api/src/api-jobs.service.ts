@@ -122,6 +122,7 @@ export class ApiJobsService {
       documents: record.documents ?? null,
       normalized_snapshot: record.normalizedSnapshot ?? null,
       cross_validation: record.crossValidation ?? null,
+      monitoring: record.monitoring ?? null,
       created_at: record.createdAt,
       updated_at: record.updatedAt,
     };

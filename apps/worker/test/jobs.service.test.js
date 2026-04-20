@@ -298,6 +298,11 @@ test('JobsService persists intake document results', async () => {
   assert.equal(updates[4].overallResult.status, 'APPROVED');
   assert.equal(updates[4].crossValidation.llm_cross_validation.recommendation, 'APPROVED');
   assert.equal(updates[4].crossValidation.llm_legal_assessment.recommendation, 'APPROVED');
+  assert.equal(updates[4].monitoring.total_duration_ms >= 0, true);
+  assert.equal(
+    updates[4].monitoring.spans.some((span) => span.id === 'document_extraction'),
+    true,
+  );
 });
 
 test('JobsService downgrades address-only LLM rejection to review when deterministic checks pass', async () => {
