@@ -83,6 +83,7 @@ function mapCaseResponse(raw: unknown): CaseExplorerResponse {
     documents: (asObject(payload.documents) ?? null) as CaseExplorerResponse['documents'],
     normalizedSnapshot: asObject(payload.normalized_snapshot),
     crossValidation: (asObject(payload.cross_validation) ?? null) as CaseExplorerResponse['crossValidation'],
+    monitoring: asObject(payload.monitoring),
     createdAt: asString(payload.created_at) ?? '',
     updatedAt: asString(payload.updated_at) ?? '',
   };

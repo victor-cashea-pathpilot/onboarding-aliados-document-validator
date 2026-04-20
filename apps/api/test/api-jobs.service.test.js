@@ -108,6 +108,10 @@ test('ApiJobsService.getCase sanitizes signed URLs', async () => {
             acta_mercantil: [],
           },
         },
+        monitoring: {
+          total_duration_ms: 1200,
+          spans: [],
+        },
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:01:00.000Z',
       };
@@ -128,6 +132,7 @@ test('ApiJobsService.getCase sanitizes signed URLs', async () => {
     result.request.documents.rif[0].url,
     'https://example.com/file.pdf',
   );
+  assert.equal(result.monitoring.total_duration_ms, 1200);
 });
 
 test('ApiJobsService.listCases computes stats, legal mode fallback, and filtering', async () => {

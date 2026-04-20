@@ -99,6 +99,7 @@ export class FirestoreJobRepository implements JobRepository {
       documents: job.documents ?? null,
       normalized_snapshot: job.normalizedSnapshot ?? null,
       cross_validation: job.crossValidation ?? null,
+      monitoring: job.monitoring ?? null,
       created_at: job.createdAt,
       updated_at: job.updatedAt,
     };
@@ -112,6 +113,7 @@ export class FirestoreJobRepository implements JobRepository {
     const overallResult = data.overall_result ?? data.overallResult ?? null;
     const normalizedSnapshot = data.normalized_snapshot ?? data.normalizedSnapshot ?? null;
     const crossValidation = data.cross_validation ?? data.crossValidation ?? null;
+    const monitoring = data.monitoring ?? null;
     const createdAt = data.created_at ?? data.createdAt;
     const updatedAt = data.updated_at ?? data.updatedAt;
 
@@ -127,6 +129,7 @@ export class FirestoreJobRepository implements JobRepository {
       documents: (data.documents as JobRecord['documents']) ?? null,
       normalizedSnapshot: (normalizedSnapshot as JobRecord['normalizedSnapshot']) ?? null,
       crossValidation: (crossValidation as JobRecord['crossValidation']) ?? null,
+      monitoring: (monitoring as JobRecord['monitoring']) ?? null,
       createdAt: parseDate(createdAt) ?? new Date().toISOString(),
       updatedAt: parseDate(updatedAt) ?? new Date().toISOString(),
     };

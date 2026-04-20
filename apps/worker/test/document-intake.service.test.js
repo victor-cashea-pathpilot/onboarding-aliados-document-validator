@@ -33,19 +33,18 @@ test('DocumentIntakeService approves supported PDF documents', async () => {
   };
 
   const result = await service.buildDocumentsResult(record);
-  assert.deepEqual(result.rif[0], {
-    document_id: 'rif-1',
-    status: 'APPROVED',
-    confidence: 90,
-    extracted_data: {
-      document_type: 'rif',
-      source_url: 'https://example.com/rif.pdf',
-      mock: false,
-      content_type: 'application/pdf',
-      content_length: 3,
-    },
-    errors: [],
-  });
+  assert.equal(result.rif[0].document_id, 'rif-1');
+  assert.equal(result.rif[0].status, 'APPROVED');
+  assert.equal(result.rif[0].confidence, 90);
+  assert.equal(result.rif[0].extracted_data.document_type, 'rif');
+  assert.equal(result.rif[0].extracted_data.source_url, 'https://example.com/rif.pdf');
+  assert.equal(result.rif[0].extracted_data.mock, false);
+  assert.equal(result.rif[0].extracted_data.content_type, 'application/pdf');
+  assert.equal(result.rif[0].extracted_data.content_length, 3);
+  assert.equal(typeof result.rif[0].extracted_data.intake_started_at, 'string');
+  assert.equal(typeof result.rif[0].extracted_data.intake_completed_at, 'string');
+  assert.equal(typeof result.rif[0].extracted_data.intake_duration_ms, 'number');
+  assert.deepEqual(result.rif[0].errors, []);
 });
 
 test('DocumentIntakeService rejects invalid URL schemes', async () => {

@@ -63,6 +63,9 @@ test('DocumentExtractionService extracts approved simple documents', async () =>
   assert.equal(updated.rif[0].status, 'APPROVED');
   assert.equal(updated.rif[0].extracted_data.extraction_status, 'completed');
   assert.equal(updated.rif[0].extracted_data.extraction_model, 'gemini-simple-test');
+  assert.equal(typeof updated.rif[0].extracted_data.extraction_started_at, 'string');
+  assert.equal(typeof updated.rif[0].extracted_data.extraction_completed_at, 'string');
+  assert.equal(typeof updated.rif[0].extracted_data.extraction_duration_ms, 'number');
   assert.match(updated.rif[0].extracted_data.extraction_prompt, /Registro de Información Fiscal/);
   assert.deepEqual(updated.rif[0].extracted_data.extracted_fields, {
     rif_number: 'J-12345678-0',
@@ -117,5 +120,7 @@ test('DocumentExtractionService marks extraction failures as requires review', a
   });
 
   assert.equal(updated.acta_mercantil[0].status, 'REQUIRES_REVIEW');
+  assert.equal(updated.acta_mercantil[0].extracted_data.extraction_status, 'failed');
+  assert.equal(typeof updated.acta_mercantil[0].extracted_data.extraction_duration_ms, 'number');
   assert.equal(updated.acta_mercantil[0].errors[0].error_code, 'EXTRACTION_FAILED');
 });

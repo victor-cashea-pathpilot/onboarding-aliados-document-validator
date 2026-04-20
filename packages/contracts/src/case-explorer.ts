@@ -17,6 +17,7 @@ export interface CaseExplorerResponse {
   documents?: DocumentsResult | null;
   normalizedSnapshot?: Record<string, unknown> | null;
   crossValidation?: CrossValidationResult | null;
+  monitoring?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }

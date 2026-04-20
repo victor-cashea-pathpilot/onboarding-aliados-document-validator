@@ -20,6 +20,32 @@ import { CrossValidationLlmService } from './cross-validation-llm.service';
 import { LegalAssessmentLlmService } from './legal-assessment-llm.service';
 import { JOB_REPOSITORY, WORKER_AUTH_TOKEN } from './worker.tokens';
 
+interface TimedOperation<T> {
+  result: T;
+  startedAt: string;
+  endedAt: string;
+  durationMs: number;
+}
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
 @Injectable()
 export class JobsService {
   constructor(
@@ -89,6 +115,12 @@ export class JobsService {
 
   private async markInitialProcessingState(record: JobRecord): Promise<JobRecord> {
     if (record.status === 'PENDING') {
+      const processingStartedMs = Date.now();
+      const processingStartedAt = new Date(processingStartedMs).toISOString();
+      const queueWaitMs = Math.max(
+        Math.round(processingStartedMs - new Date(record.createdAt).getTime()),
+        0,
+      );
       const intakeRecord: JobRecord = {
         ...record,
         status: 'PROCESSING',
@@ -97,11 +129,14 @@ export class JobsService {
           percentage: 25,
           message: 'Validando acceso y formato de documentos.',
         },
-        updatedAt: new Date().toISOString(),
+        updatedAt: processingStartedAt,
       };
       await this.repository.update(intakeRecord);
 
-      const intakeDocuments = await this.documentIntake.buildDocumentsResult(intakeRecord);
+      const intakeTiming = await this.measureAsync(() =>
+        this.documentIntake.buildDocumentsResult(intakeRecord),
+      );
+      const intakeDocuments = intakeTiming.result;
       const extractionPendingRecord: JobRecord = {
         ...intakeRecord,
         progress: {
@@ -110,14 +145,14 @@ export class JobsService {
           message: 'Extrayendo datos de documentos en paralelo.',
         },
         documents: intakeDocuments,
-        updatedAt: new Date().toISOString(),
+        updatedAt: intakeTiming.endedAt,
       };
       await this.repository.update(extractionPendingRecord);
 
-      const extractedDocuments = await this.documentExtraction.extractDocuments(
-        intakeDocuments,
-        extractionPendingRecord,
+      const extractionTiming = await this.measureAsync(() =>
+        this.documentExtraction.extractDocuments(intakeDocuments, extractionPendingRecord),
       );
+      const extractedDocuments = extractionTiming.result;
 
       const normalizationRecord: JobRecord = {
         ...extractionPendingRecord,
@@ -127,14 +162,17 @@ export class JobsService {
           message: 'Normalizando datos extraídos y consolidando snapshot canónico.',
         },
         documents: extractedDocuments,
-        updatedAt: new Date().toISOString(),
+        updatedAt: extractionTiming.endedAt,
       };
       await this.repository.update(normalizationRecord);
 
-      const normalizedSnapshot = this.documentNormalization.normalize(
-        normalizationRecord.merchantId,
-        extractedDocuments,
+      const normalizationTiming = this.measureSync(() =>
+        this.documentNormalization.normalize(
+          normalizationRecord.merchantId,
+          extractedDocuments,
+        ),
       );
+      const normalizedSnapshot = normalizationTiming.result;
 
       const crossValidationRecord: JobRecord = {
         ...normalizationRecord,
@@ -145,30 +183,41 @@ export class JobsService {
         },
         documents: extractedDocuments,
         normalizedSnapshot,
-        updatedAt: new Date().toISOString(),
+        updatedAt: normalizationTiming.endedAt,
       };
       await this.repository.update(crossValidationRecord);
 
-      const checks = this.crossValidation.validate(normalizedSnapshot);
+      const rulesTiming = this.measureSync(() =>
+        this.crossValidation.validate(normalizedSnapshot),
+      );
+      const checks = rulesTiming.result;
+      const llmBatchStartedMs = Date.now();
+      const llmBatchStartedAt = new Date(llmBatchStartedMs).toISOString();
       const [rawLlmCrossValidation, rawLlmLegalAssessment] = await Promise.all([
-        this.crossValidationLlm.review({
-          snapshot: normalizedSnapshot,
-          checks,
-        }),
-        this.legalAssessmentLlm.assess({
-          snapshot: normalizedSnapshot,
-          checks,
-        }),
+        this.measureAsync(() =>
+          this.crossValidationLlm.review({
+            snapshot: normalizedSnapshot,
+            checks,
+          }),
+        ),
+        this.measureAsync(() =>
+          this.legalAssessmentLlm.assess({
+            snapshot: normalizedSnapshot,
+            checks,
+          }),
+        ),
       ]);
+      const llmBatchEndedMs = Date.now();
+      const llmBatchEndedAt = new Date(llmBatchEndedMs).toISOString();
       const llmCrossValidation = this.alignLlmReviewForParity({
         snapshot: normalizedSnapshot,
         checks,
-        review: rawLlmCrossValidation,
+        review: rawLlmCrossValidation.result,
       });
       const llmLegalAssessment = this.alignLlmReviewForParity({
         snapshot: normalizedSnapshot,
         checks,
-        review: rawLlmLegalAssessment,
+        review: rawLlmLegalAssessment.result,
       });
 
       const failedChecks = checks.filter((check) => check.status === 'FAILED');
@@ -177,6 +226,7 @@ export class JobsService {
         llmCrossValidation,
         llmLegalAssessment,
       });
+      const completedAt = new Date().toISOString();
 
       const updatedRecord: JobRecord = {
         ...crossValidationRecord,
@@ -200,7 +250,25 @@ export class JobsService {
           llm_legal_assessment: llmLegalAssessment,
         },
         overallResult,
-        updatedAt: new Date().toISOString(),
+        monitoring: this.buildMonitoring({
+          record,
+          processingStartedAt,
+          completedAt,
+          queueWaitMs,
+          intakeTiming,
+          extractionTiming,
+          normalizationTiming,
+          rulesTiming,
+          llmBatch: {
+            startedAt: llmBatchStartedAt,
+            endedAt: llmBatchEndedAt,
+            durationMs: llmBatchEndedMs - llmBatchStartedMs,
+          },
+          llmCrossValidationTiming: rawLlmCrossValidation,
+          llmLegalAssessmentTiming: rawLlmLegalAssessment,
+          documents: extractedDocuments,
+        }),
+        updatedAt: completedAt,
       };
 
       return this.repository.update(updatedRecord);
@@ -214,6 +282,214 @@ export class JobsService {
       Math.round(new Date().getTime() - new Date(record.createdAt).getTime()),
       0,
     );
+  }
+
+  private async measureAsync<T>(operation: () => Promise<T>): Promise<TimedOperation<T>> {
+    const startedAtMs = Date.now();
+    const result = await operation();
+    const endedAtMs = Date.now();
+    return {
+      result,
+      startedAt: new Date(startedAtMs).toISOString(),
+      endedAt: new Date(endedAtMs).toISOString(),
+      durationMs: endedAtMs - startedAtMs,
+    };
+  }
+
+  private measureSync<T>(operation: () => T): TimedOperation<T> {
+    const startedAtMs = Date.now();
+    const result = operation();
+    const endedAtMs = Date.now();
+    return {
+      result,
+      startedAt: new Date(startedAtMs).toISOString(),
+      endedAt: new Date(endedAtMs).toISOString(),
+      durationMs: endedAtMs - startedAtMs,
+    };
+  }
+
+  private buildMonitoring(input: {
+    record: JobRecord;
+    processingStartedAt: string;
+    completedAt: string;
+    queueWaitMs: number;
+    intakeTiming: TimedOperation<Record<string, unknown>>;
+    extractionTiming: TimedOperation<Record<string, unknown>>;
+    normalizationTiming: TimedOperation<unknown>;
+    rulesTiming: TimedOperation<CrossValidationCheck[]>;
+    llmBatch: { startedAt: string; endedAt: string; durationMs: number };
+    llmCrossValidationTiming: TimedOperation<LLMValidationReview>;
+    llmLegalAssessmentTiming: TimedOperation<LLMValidationReview>;
+    documents: Record<string, unknown>;
+  }): Record<string, unknown> {
+    const spans: Record<string, unknown>[] = [
+      {
+        id: 'queue_wait',
+        label: 'Queue wait',
+        kind: 'queue',
+        started_at: input.record.createdAt,
+        ended_at: input.processingStartedAt,
+        duration_ms: input.queueWaitMs,
+      },
+      {
+        id: 'document_intake',
+        label: 'Document intake',
+        kind: 'stage',
+        started_at: input.intakeTiming.startedAt,
+        ended_at: input.intakeTiming.endedAt,
+        duration_ms: input.intakeTiming.durationMs,
+      },
+      ...this.buildDocumentSpans({
+        documents: input.documents,
+        phase: 'intake',
+        parentId: 'document_intake',
+        parallelGroup: null,
+      }),
+      {
+        id: 'document_extraction',
+        label: 'Document extraction',
+        kind: 'stage',
+        started_at: input.extractionTiming.startedAt,
+        ended_at: input.extractionTiming.endedAt,
+        duration_ms: input.extractionTiming.durationMs,
+      },
+      ...this.buildDocumentSpans({
+        documents: input.documents,
+        phase: 'extraction',
+        parentId: 'document_extraction',
+        parallelGroup: 'document_extraction',
+      }),
+      {
+        id: 'document_normalization',
+        label: 'Document normalization',
+        kind: 'stage',
+        started_at: input.normalizationTiming.startedAt,
+        ended_at: input.normalizationTiming.endedAt,
+        duration_ms: input.normalizationTiming.durationMs,
+      },
+      {
+        id: 'deterministic_checks',
+        label: 'Deterministic checks',
+        kind: 'rules',
+        started_at: input.rulesTiming.startedAt,
+        ended_at: input.rulesTiming.endedAt,
+        duration_ms: input.rulesTiming.durationMs,
+        metadata: {
+          check_count: input.rulesTiming.result.length,
+        },
+      },
+      {
+        id: 'llm_reviews',
+        label: 'LLM reviews',
+        kind: 'stage',
+        started_at: input.llmBatch.startedAt,
+        ended_at: input.llmBatch.endedAt,
+        duration_ms: input.llmBatch.durationMs,
+      },
+      {
+        id: 'llm_cross_validation',
+        label: 'LLM cross-validation',
+        kind: 'llm',
+        parent_id: 'llm_reviews',
+        parallel_group: 'llm_reviews',
+        started_at: input.llmCrossValidationTiming.startedAt,
+        ended_at: input.llmCrossValidationTiming.endedAt,
+        duration_ms: input.llmCrossValidationTiming.durationMs,
+        metadata: {
+          recommendation: input.llmCrossValidationTiming.result.recommendation,
+        },
+      },
+      {
+        id: 'llm_legal_assessment',
+        label: 'LLM legal assessment',
+        kind: 'llm',
+        parent_id: 'llm_reviews',
+        parallel_group: 'llm_reviews',
+        started_at: input.llmLegalAssessmentTiming.startedAt,
+        ended_at: input.llmLegalAssessmentTiming.endedAt,
+        duration_ms: input.llmLegalAssessmentTiming.durationMs,
+        metadata: {
+          recommendation: input.llmLegalAssessmentTiming.result.recommendation,
+        },
+      },
+    ];
+
+    return {
+      queue_wait_ms: input.queueWaitMs,
+      processing_duration_ms:
+        new Date(input.completedAt).getTime() - new Date(input.processingStartedAt).getTime(),
+      total_duration_ms:
+        new Date(input.completedAt).getTime() - new Date(input.record.createdAt).getTime(),
+      spans,
+    };
+  }
+
+  private buildDocumentSpans(input: {
+    documents: Record<string, unknown>;
+    phase: 'intake' | 'extraction';
+    parentId: string;
+    parallelGroup: string | null;
+  }): Record<string, unknown>[] {
+    const spans: Record<string, unknown>[] = [];
+    for (const item of this.flattenDocumentItems(input.documents)) {
+      const data = asObject(item.extracted_data) ?? {};
+      const startedAt = asString(data[`${input.phase}_started_at`]);
+      const endedAt = asString(data[`${input.phase}_completed_at`]);
+      const durationMs = asNumber(data[`${input.phase}_duration_ms`]);
+      if (!startedAt || !endedAt || durationMs === null) {
+        continue;
+      }
+
+      const documentType = asString(data.document_type) ?? 'document';
+      const documentId = asString(item.document_id) ?? 'unknown';
+      const metadata: Record<string, unknown> = {
+        document_type: documentType,
+        document_id: documentId,
+      };
+      if (input.phase === 'extraction') {
+        metadata.model = asString(data.extraction_model);
+      }
+
+      spans.push({
+        id: `${input.phase}:${documentType}:${documentId}`,
+        label: `${this.documentTypeLabel(documentType)} ${input.phase === 'intake' ? 'intake' : 'extraction'}`,
+        kind: 'document',
+        parent_id: input.parentId,
+        parallel_group: input.parallelGroup,
+        started_at: startedAt,
+        ended_at: endedAt,
+        duration_ms: durationMs,
+        metadata,
+      });
+    }
+    return spans;
+  }
+
+  private flattenDocumentItems(documents: Record<string, unknown>): Array<Record<string, unknown>> {
+    return [
+      'rif',
+      'cedula',
+      'certificado_emprendimiento',
+      'acta_constitutiva',
+      'acta_mercantil',
+    ].flatMap((key) => asArray(documents[key]).map((item) => asObject(item) ?? {}));
+  }
+
+  private documentTypeLabel(documentType: string): string {
+    switch (documentType) {
+      case 'rif':
+        return 'RIF';
+      case 'cedula':
+        return 'Cédula';
+      case 'acta_constitutiva':
+        return 'Acta constitutiva';
+      case 'acta_mercantil':
+        return 'Acta mercantil';
+      case 'certificado_emprendimiento':
+        return 'Certificado de emprendimiento';
+      default:
+        return documentType;
+    }
   }
 
   private composeCrossValidationResult(input: {

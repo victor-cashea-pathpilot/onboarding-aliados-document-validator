@@ -96,13 +96,20 @@ export class DocumentIntakeService {
     documentType: DocumentBucketName,
     record: JobRecord,
   ): Promise<Record<string, unknown>> {
+    const startedAtMs = Date.now();
+    const startedAt = new Date(startedAtMs).toISOString();
     const intake = await this.validateUrl(document.url);
+    const completedAtMs = Date.now();
+    const completedAt = new Date(completedAtMs).toISOString();
     const baseExtractedData = {
       document_type: documentType,
       source_url: document.url,
       mock: false,
       content_type: intake.contentType,
       content_length: intake.contentLength,
+      intake_started_at: startedAt,
+      intake_completed_at: completedAt,
+      intake_duration_ms: completedAtMs - startedAtMs,
     };
 
     if (!intake.ok) {
