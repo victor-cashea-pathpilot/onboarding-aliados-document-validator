@@ -46,7 +46,7 @@ Fecha actual de referencia: ${todayDdMmYyyy()}.
    - Preserva EXACTAMENTE los caracteres visibles del nombre legal.
    - No normalices, no corrijas y no elimines símbolos, prefijos o puntuación del nombre.
    - Si la razón social comienza con un símbolo como "+", "&" o similar, inclúyelo.
-   - Ejemplo: si el documento dice "+RPM MULTISERVICIOS C.A.", responde exactamente "+RPM MULTISERVICIOS C.A.".
+   - Ejemplo: si el documento dice "+EMPRESA DEMO C.A.", responde exactamente "+EMPRESA DEMO C.A.".
 3. Dirección Fiscal: dirección completa que aparece después de "DOMICILIO FISCAL".
 4. Fecha de Vencimiento: fecha de vencimiento del RIF en formato DD/MM/AAAA.
 

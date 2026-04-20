@@ -13,7 +13,7 @@ test('buildRifPrompt preserves legal name symbols verbatim', () => {
 
   assert.match(prompt, /Preserva EXACTAMENTE los caracteres visibles del nombre legal/);
   assert.match(prompt, /No normalices, no corrijas y no elimines símbolos/);
-  assert.match(prompt, /\+RPM MULTISERVICIOS C\.A\./);
+  assert.match(prompt, /\+EMPRESA DEMO C\.A\./);
 });
 
 test('buildActaConstitutivaPrompt includes full corporate extraction schema', () => {
