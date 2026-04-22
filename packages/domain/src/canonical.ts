@@ -20,6 +20,7 @@ export interface CanonicalCompanyRecord {
   sourceDocumentId?: string | null;
   sourceDocumentDate: string;
   fiscalAddress: string;
+  businessSummary: string;
   registrationNumber: string;
   registrationTomo: string;
   registrationDate: string;
@@ -27,6 +28,9 @@ export interface CanonicalCompanyRecord {
   companyExpirationDate: string;
   boardStatus: string;
   boardExpirationDate: string;
+  boardStatutoryTerm: string;
+  boardHoldoverUntilReplaced: string;
+  boardHoldoverQuote: string;
   boardSourceDocumentType: string;
   boardSourceDocumentId?: string | null;
   boardSourceDocumentDate: string;

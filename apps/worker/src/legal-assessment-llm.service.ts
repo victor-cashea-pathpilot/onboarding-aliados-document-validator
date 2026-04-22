@@ -79,12 +79,19 @@ export class LegalAssessmentLlmService {
       input.checks.filter((check) => check.status === 'FAILED').map((check) => check.code),
     );
 
-    if (failedCodes.has('RIF_VALIDITY') || failedCodes.has('CEDULA_VALIDITY_POLICY')) {
+    if (
+      failedCodes.has('RIF_VALIDITY') ||
+      failedCodes.has('CEDULA_VALIDITY_POLICY') ||
+      failedCodes.has('RIF_NATURE_ALLOWED') ||
+      failedCodes.has('COMPANY_VALIDITY') ||
+      failedCodes.has('BUSINESS_ACTIVITY_ALLOWED') ||
+      (input.snapshot.legalMode === 'sociedad_mercantil' && failedCodes.has('BOARD_VALIDITY'))
+    ) {
       return {
         recommendation: 'REJECTED',
         confidence: 90,
         summary:
-          'La evaluación legal recomienda rechazo por evidencia de invalidez fiscal o de identificación.',
+          'La evaluación legal recomienda rechazo por evidencia de invalidez fiscal, societaria o de actividad prohibida.',
         findings: [
           {
             source: 'llm_legal_assessment',
@@ -93,7 +100,14 @@ export class LegalAssessmentLlmService {
             message:
               'Existe una condición material que impide sostener una aprobación operativa.',
             relatedChecks: [...failedCodes].filter((code) =>
-              ['RIF_VALIDITY', 'CEDULA_VALIDITY_POLICY'].includes(code),
+              [
+                'RIF_VALIDITY',
+                'CEDULA_VALIDITY_POLICY',
+                'RIF_NATURE_ALLOWED',
+                'COMPANY_VALIDITY',
+                'BUSINESS_ACTIVITY_ALLOWED',
+                'BOARD_VALIDITY',
+              ].includes(code),
             ),
           },
         ],

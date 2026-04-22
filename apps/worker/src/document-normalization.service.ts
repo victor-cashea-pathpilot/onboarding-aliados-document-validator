@@ -82,6 +82,7 @@ export class DocumentNormalizationService {
       sourceDocumentId: null,
       sourceDocumentDate: '',
       fiscalAddress: '',
+      businessSummary: '',
       registrationNumber: '',
       registrationTomo: '',
       registrationDate: '',
@@ -89,6 +90,9 @@ export class DocumentNormalizationService {
       companyExpirationDate: '',
       boardStatus: '',
       boardExpirationDate: '',
+      boardStatutoryTerm: '',
+      boardHoldoverUntilReplaced: '',
+      boardHoldoverQuote: '',
       boardSourceDocumentType: '',
       boardSourceDocumentId: null,
       boardSourceDocumentDate: '',
@@ -217,6 +221,9 @@ export class DocumentNormalizationService {
       this.readString(fields.razon_social) || this.readString(fields.company_name),
     );
     const fiscalAddress = this.meaningful(this.nestedGet(fields, 'locations', 'fiscal_address'));
+    const businessSummary = this.meaningful(
+      this.nestedGet(fields, 'business_classification', 'business_summary'),
+    );
     const registrationNumber = this.meaningful(
       this.nestedGet(fields, 'registro_mercantil', 'numero'),
     );
@@ -241,6 +248,15 @@ export class DocumentNormalizationService {
     const boardExpiration = this.meaningful(
       this.nestedGet(fields, 'corporate_structure', 'board', 'expiration_date'),
     );
+    const boardStatutoryTerm = this.meaningful(
+      this.nestedGet(fields, 'corporate_structure', 'board', 'statutory_term'),
+    );
+    const boardHoldoverUntilReplaced = this.meaningful(
+      this.nestedGet(fields, 'corporate_structure', 'board', 'holdover_until_replaced'),
+    );
+    const boardHoldoverQuote = this.meaningful(
+      this.nestedGet(fields, 'corporate_structure', 'board', 'holdover_quote'),
+    );
     const lineCode = this.meaningful(
       this.nestedGet(fields, 'business_classification', 'line_code'),
     );
@@ -253,6 +269,9 @@ export class DocumentNormalizationService {
     }
     if (fiscalAddress) {
       record.fiscalAddress = fiscalAddress;
+    }
+    if (businessSummary) {
+      record.businessSummary = businessSummary;
     }
     if (registrationNumber) {
       record.registrationNumber = registrationNumber;
@@ -280,6 +299,15 @@ export class DocumentNormalizationService {
     }
     if (boardExpiration) {
       record.boardExpirationDate = boardExpiration;
+    }
+    if (boardStatutoryTerm) {
+      record.boardStatutoryTerm = boardStatutoryTerm;
+    }
+    if (boardHoldoverUntilReplaced) {
+      record.boardHoldoverUntilReplaced = boardHoldoverUntilReplaced;
+    }
+    if (boardHoldoverQuote) {
+      record.boardHoldoverQuote = boardHoldoverQuote;
     }
   }
 

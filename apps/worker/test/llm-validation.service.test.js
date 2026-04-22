@@ -64,3 +64,24 @@ test('LegalAssessmentLlmService mock review rejects hard invalidity checks', asy
   assert.equal(review.recommendation, 'REJECTED');
   assert.equal(review.findings[0].source, 'llm_legal_assessment');
 });
+
+test('LegalAssessmentLlmService mock review rejects excluded activity checks', async () => {
+  process.env.MOCK_MODE = 'true';
+  const service = new LegalAssessmentLlmService(
+    { analyzeJson: async () => ({}) },
+    createLogger(),
+  );
+
+  const review = await service.assess({
+    snapshot: { legalMode: 'sociedad_mercantil' },
+    checks: [
+      {
+        code: 'BUSINESS_ACTIVITY_ALLOWED',
+        status: 'FAILED',
+        message: 'excluded business activity',
+      },
+    ],
+  });
+
+  assert.equal(review.recommendation, 'REJECTED');
+});
