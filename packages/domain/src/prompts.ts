@@ -110,9 +110,10 @@ INSTRUCCIONES DE ANÁLISIS:
 - Extrae la cédula de cada representante.
 - Determina si la firma es SEPARADA o CONJUNTA.
 - Clasifica la línea de negocio:
-  - LC: supermercado, farmacia o educación
+  - LC: supermercado o farmacia
   - LCR: restaurante
   - LCB: licorería o venta de licores
+  - LCE: colegios, universidades, institutos, cursos o talleres formativos
   - LP: todo lo demás
 
 Responde ÚNICAMENTE con un JSON válido en este formato:
@@ -135,7 +136,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato:
   },
   "business_classification": {
     "business_summary": "",
-    "line_code": "LP / LC / LCR / LCB",
+    "line_code": "LP / LC / LCR / LCB / LCE",
     "justification": ""
   },
   "corporate_structure": {
@@ -144,7 +145,9 @@ Responde ÚNICAMENTE con un JSON válido en este formato:
       "members_and_roles": "",
       "expiration_date": "",
       "status": "VIGENTE / VENCIDA / N/A (FIRMA PERSONAL)",
-      "statutory_term": ""
+      "statutory_term": "",
+      "holdover_until_replaced": "YES / NO / UNKNOWN",
+      "holdover_quote": ""
     },
     "legal_representative": {
       "signature_type": "CONJUNTA / SEPARADA",
@@ -207,6 +210,12 @@ INSTRUCCIONES ESPECÍFICAS:
   - "representation_clause_modified" = "UNKNOWN"
   - "signature_clause_status" = "AMBIGUOUS"
 - Resume cambios relevantes de capital, razón social, domicilio u objeto.
+- Clasifica la línea de negocio usando:
+  - LC: supermercado o farmacia
+  - LCR: restaurante
+  - LCB: licorería o venta de licores
+  - LCE: colegios, universidades, institutos, cursos o talleres formativos
+  - LP: todo lo demás
 
 Responde ÚNICAMENTE con un JSON válido en este formato:
 {
@@ -228,7 +237,9 @@ Responde ÚNICAMENTE con un JSON válido en este formato:
       "members_and_roles": "",
       "expiration_date": "",
       "status": "VIGENTE / VENCIDA / N/A (FIRMA PERSONAL)",
-      "statutory_term": ""
+      "statutory_term": "",
+      "holdover_until_replaced": "YES / NO / UNKNOWN",
+      "holdover_quote": ""
     },
     "legal_representative": {
       "representation_clause_modified": "YES / NO / UNKNOWN",
@@ -254,7 +265,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato:
   },
   "business_classification": {
     "business_summary": "",
-    "line_code": "LP / LC / LCR / LCB"
+    "line_code": "LP / LC / LCR / LCB / LCE"
   },
   "locations": {
     "fiscal_address": "",
@@ -284,6 +295,7 @@ INSTRUCCIONES DE EXTRACCIÓN Y ANÁLISIS:
 - Calcula vigencia legal de 2 años desde la inscripción.
 - Identifica representación y facultad de firma.
 - Clasifica la línea de negocio en LC / LCR / LCB / LP.
+- Usa LCE para colegios, universidades, institutos, cursos o talleres formativos.
 - En emprendimientos usualmente la firma es SEPARADA.
 - Extrae la dirección fiscal completa y cualquier sucursal si existe.
 
@@ -308,7 +320,7 @@ Responde ÚNICAMENTE con un JSON válido en este formato:
   },
   "business_classification": {
     "business_summary": "",
-    "line_code": "LP / LC / LCR / LCB",
+    "line_code": "LP / LC / LCR / LCB / LCE",
     "justification": ""
   },
   "corporate_structure": {
@@ -384,6 +396,7 @@ FOCO DE REVISIÓN PARA FIRMA PERSONAL:
 - Es normal que exista un nombre comercial y que no coincida literalmente con el nombre del RIF persona natural.
 - La cédula del titular debe coincidir materialmente con la identidad principal del expediente.
 - El RIF debería ser de persona natural o equivalente compatible con firma personal.
+- La dirección fiscal del RIF debe coincidir exactamente con la dirección fiscal documentada.
 - Si la evidencia es insuficiente o ambigua, recomienda REQUIRES_REVIEW.
 - No inventes hechos fuera del payload.
 
@@ -407,9 +420,11 @@ OBJETIVO:
 
 FOCO DE REVISIÓN PARA SOCIEDAD MERCANTIL:
 - La razón social del RIF debe coincidir materialmente con la del expediente corporativo.
+- La dirección fiscal del RIF debe coincidir exactamente con la del expediente corporativo.
 - La junta directiva y la representación legal deben estar vigentes o claramente soportadas.
 - La precedencia documental importa: una acta mercantil posterior puede desplazar la constitutiva.
 - El esquema de firma (CONJUNTA o SEPARADA) debe quedar soportado por representantes vigentes.
+- Si el giro comercial cae en una categoría excluida, el expediente no debe aprobarse.
 - Si falta soporte suficiente o existe ambigüedad jurídica, recomienda REQUIRES_REVIEW.
 - No inventes hechos fuera del payload.
 
@@ -486,6 +501,7 @@ OBJETIVO:
 
 CRITERIOS PARA FIRMA PERSONAL:
 - REJECTED: RIF vencido, identidad materialmente inconsistente o falta de evidencia fundacional esencial.
+- REJECTED: RIF con prefijo no permitido para persona natural o actividad comercial excluida.
 - REQUIRES_REVIEW: evidencia incompleta, ambigua o contradicciones no concluyentes.
 - APPROVED: el titular está claramente identificado, la facultad es suficiente y el expediente es consistente.
 - No penalices ausencia de junta directiva como si fuera una sociedad mercantil.
@@ -510,7 +526,7 @@ OBJETIVO:
 - priorizar vigencia societaria, representación vigente, esquema de firma y consistencia fiscal
 
 CRITERIOS PARA SOCIEDAD MERCANTIL:
-- REJECTED: junta vencida sin soporte vigente, firma conjunta incompleta, RIF vencido o sociedad expirada.
+- REJECTED: junta vencida sin soporte vigente, firma conjunta incompleta, RIF vencido por más de 6 meses, sociedad expirada o actividad excluida.
 - REQUIRES_REVIEW: evidencia ambigua, contradicción documental o soporte insuficiente sobre representación.
 - APPROVED: RIF vigente, representación vigente, esquema de firma soportado y documentos consistentes.
 - Considera precedencia entre acta constitutiva y acta mercantil posterior.

@@ -25,6 +25,7 @@ export class CrossValidationService {
         'No se recibió cédula.',
       ),
       this.cedulaValidityPolicy(snapshot),
+      this.rifNatureAllowed(snapshot),
       this.checkPresence(
         'HAS_CONSTITUTIVE_DOC',
         snapshot.presence.acta_constitutiva ||
@@ -35,9 +36,12 @@ export class CrossValidationService {
       ),
       this.corporateDocumentPrecedence(snapshot),
       this.companyNameMatch(snapshot),
+      this.fiscalAddressMatch(snapshot),
       this.cedulaMatchesLegalRepresentative(snapshot),
+      this.companyValidity(snapshot),
       this.boardValidity(snapshot),
       this.rifValidity(snapshot),
+      this.businessActivityAllowed(snapshot),
       this.signatureAuthority(snapshot),
       this.signatureSchemeSupported(snapshot),
     ];
@@ -152,6 +156,28 @@ export class CrossValidationService {
     };
   }
 
+  private fiscalAddressMatch(snapshot: CanonicalMerchantSnapshot): CrossValidationCheck {
+    const rifAddress = this.normalizeComparableText(snapshot.rifFiscalAddress);
+    const legalAddress = this.normalizeComparableText(snapshot.companyRecord.fiscalAddress);
+    if (!rifAddress || !legalAddress) {
+      return {
+        code: 'FISCAL_ADDRESS_MATCH',
+        status: 'SKIPPED',
+        message:
+          'No hay suficientes datos para comparar la dirección fiscal entre RIF y documentos legales.',
+      };
+    }
+
+    const match = rifAddress === legalAddress;
+    return {
+      code: 'FISCAL_ADDRESS_MATCH',
+      status: match ? 'PASSED' : 'FAILED',
+      message: match
+        ? 'La dirección fiscal del RIF coincide con la de los documentos legales.'
+        : 'La dirección fiscal del RIF no coincide exactamente con la de los documentos legales.',
+    };
+  }
+
   private cedulaMatchesLegalRepresentative(
     snapshot: CanonicalMerchantSnapshot,
   ): CrossValidationCheck {
@@ -213,6 +239,79 @@ export class CrossValidationService {
     };
   }
 
+  private rifNatureAllowed(snapshot: CanonicalMerchantSnapshot): CrossValidationCheck {
+    const prefix = this.rifPrefix(snapshot.rifNumber);
+    if (!prefix) {
+      return {
+        code: 'RIF_NATURE_ALLOWED',
+        status: 'SKIPPED',
+        message: 'No hay número de RIF suficiente para evaluar la naturaleza permitida.',
+      };
+    }
+
+    const allowedPrefixes =
+      snapshot.legalMode === 'sociedad_mercantil'
+        ? ['J']
+        : snapshot.legalMode === 'firma_personal' || snapshot.legalMode === 'emprendimiento'
+          ? ['V']
+          : ['J', 'V'];
+
+    const valid = allowedPrefixes.includes(prefix);
+    return {
+      code: 'RIF_NATURE_ALLOWED',
+      status: valid ? 'PASSED' : 'FAILED',
+      message: valid
+        ? `El prefijo ${prefix}- del RIF es compatible con el modo legal detectado.`
+        : `El prefijo ${prefix}- del RIF no es compatible con el modo legal detectado.`,
+    };
+  }
+
+  private companyValidity(snapshot: CanonicalMerchantSnapshot): CrossValidationCheck {
+    if (snapshot.legalMode === 'firma_personal') {
+      return {
+        code: 'COMPANY_VALIDITY',
+        status: 'PASSED',
+        message: 'La vigencia societaria no aplica como control separado para firma personal.',
+      };
+    }
+
+    const status = this.normalizeText(snapshot.companyRecord.companyStatus);
+    const expiration = this.parseOptionalDate(snapshot.companyRecord.companyExpirationDate);
+
+    if (!status && !expiration) {
+      return {
+        code: 'COMPANY_VALIDITY',
+        status: 'SKIPPED',
+        message: 'No hay datos suficientes para evaluar la vigencia de la compañía.',
+      };
+    }
+
+    if (status.includes('vencida') || status.includes('expirada')) {
+      return {
+        code: 'COMPANY_VALIDITY',
+        status: 'FAILED',
+        message: 'La compañía figura como vencida o expirada en el expediente.',
+      };
+    }
+
+    if (expiration) {
+      const today = this.todayUtc();
+      if (expiration.getTime() < today.getTime()) {
+        return {
+          code: 'COMPANY_VALIDITY',
+          status: 'FAILED',
+          message: 'La compañía figura vencida según la fecha de duración societaria.',
+        };
+      }
+    }
+
+    return {
+      code: 'COMPANY_VALIDITY',
+      status: 'PASSED',
+      message: 'La compañía figura vigente según la evidencia societaria disponible.',
+    };
+  }
+
   private boardValidity(snapshot: CanonicalMerchantSnapshot): CrossValidationCheck {
     if (snapshot.legalMode === 'firma_personal') {
       return {
@@ -230,13 +329,26 @@ export class CrossValidationService {
       };
     }
 
-    const failed = boardStatus.includes('vencida') || boardStatus.includes('vencido');
+    const evaluation = this.evaluateBoardValidity(snapshot);
+    if (!evaluation) {
+      return {
+        code: 'BOARD_VALIDITY',
+        status: 'SKIPPED',
+        message: 'No hay datos suficientes para evaluar vigencia de junta directiva.',
+      };
+    }
+
+    if (evaluation.status === 'PASSED') {
+      return {
+        code: 'BOARD_VALIDITY',
+        status: 'PASSED',
+        message: evaluation.message,
+      };
+    }
     return {
       code: 'BOARD_VALIDITY',
-      status: failed ? 'FAILED' : 'PASSED',
-      message: failed
-        ? 'La junta directiva figura como vencida o no vigente para operar.'
-        : 'La junta directiva figura como vigente o no aplica.',
+      status: 'FAILED',
+      message: evaluation.message,
     };
   }
 
@@ -249,13 +361,51 @@ export class CrossValidationService {
         message: 'No hay fecha suficiente para evaluar vigencia del RIF.',
       };
     }
-    const now = new Date();
-    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const today = this.todayUtc();
     const valid = expiration.getTime() >= today.getTime();
+    if (valid) {
+      return {
+        code: 'RIF_VALIDITY',
+        status: 'PASSED',
+        message: 'El RIF figura vigente.',
+      };
+    }
+
+    const withinGrace = this.addMonths(expiration, 6).getTime() >= today.getTime();
     return {
       code: 'RIF_VALIDITY',
-      status: valid ? 'PASSED' : 'FAILED',
-      message: valid ? 'El RIF figura vigente.' : 'El RIF figura vencido.',
+      status: withinGrace ? 'SKIPPED' : 'FAILED',
+      message: withinGrace
+        ? 'El RIF figura vencido, pero todavía está dentro de la ventana de tolerancia de hasta 6 meses.'
+        : 'El RIF figura vencido por más de 6 meses.',
+    };
+  }
+
+  private businessActivityAllowed(snapshot: CanonicalMerchantSnapshot): CrossValidationCheck {
+    const businessSummary = this.normalizeComparableText(snapshot.companyRecord.businessSummary);
+    const companyName = this.normalizeComparableText(snapshot.companyRecord.companyName);
+    const candidateText = [businessSummary, companyName].filter(Boolean).join(' ');
+    if (!candidateText) {
+      return {
+        code: 'BUSINESS_ACTIVITY_ALLOWED',
+        status: 'SKIPPED',
+        message: 'No hay descripción suficiente del giro comercial para evaluar exclusiones.',
+      };
+    }
+
+    const matchedRule = this.excludedActivityRule(candidateText);
+    if (!matchedRule) {
+      return {
+        code: 'BUSINESS_ACTIVITY_ALLOWED',
+        status: 'PASSED',
+        message: 'El giro comercial no cae en una categoría excluida por política.',
+      };
+    }
+
+    return {
+      code: 'BUSINESS_ACTIVITY_ALLOWED',
+      status: 'FAILED',
+      message: `El giro comercial coincide con una categoría excluida: ${matchedRule.label}.`,
     };
   }
 
@@ -352,10 +502,82 @@ export class CrossValidationService {
   }
 
   private activeRepresentatives(snapshot: CanonicalMerchantSnapshot): CanonicalRepresentative[] {
+    const boardIsEffectivelyValid = this.evaluateBoardValidity(snapshot)?.status === 'PASSED';
     return snapshot.representatives.filter((rep) => {
       const boardStatus = this.normalizeText(rep.boardStatus);
-      return !boardStatus || (!boardStatus.includes('vencida') && !boardStatus.includes('vencido'));
+      if (!boardStatus) {
+        return true;
+      }
+      if (!boardStatus.includes('vencida') && !boardStatus.includes('vencido')) {
+        return true;
+      }
+      return boardIsEffectivelyValid;
     });
+  }
+
+  private evaluateBoardValidity(
+    snapshot: CanonicalMerchantSnapshot,
+  ): Pick<CrossValidationCheck, 'status' | 'message'> | null {
+    const boardStatus = this.normalizeText(snapshot.companyRecord.boardStatus);
+    if (!boardStatus) {
+      return null;
+    }
+
+    const failed = boardStatus.includes('vencida') || boardStatus.includes('vencido');
+    if (!failed) {
+      return {
+        status: 'PASSED',
+        message: 'La junta directiva figura como vigente o no aplica.',
+      };
+    }
+
+    const expiration = this.parseOptionalDate(snapshot.companyRecord.boardExpirationDate);
+    if (!expiration) {
+      return {
+        status: 'FAILED',
+        message:
+          'La junta figura vencida, pero no hay fecha suficiente para aplicar una excepción de vigencia.',
+      };
+    }
+
+    const holdover = this.normalizeYesNoUnknown(snapshot.companyRecord.boardHoldoverUntilReplaced);
+    const statutoryTermYears = this.parseYears(snapshot.companyRecord.boardStatutoryTerm);
+    const today = this.todayUtc();
+
+    if (holdover === 'YES') {
+      if (!statutoryTermYears) {
+        return {
+          status: 'FAILED',
+          message:
+            'La junta invoca continuidad hasta ser sustituida, pero falta el plazo estatutario para validar la gracia.',
+        };
+      }
+      if (statutoryTermYears > 20) {
+        return {
+          status: 'FAILED',
+          message:
+            'La junta vencida supera un plazo estatutario de 20 años y requeriría certificación adicional fuera del alcance automático.',
+        };
+      }
+
+      const graceExpiration = this.addYears(expiration, statutoryTermYears);
+      const valid = graceExpiration.getTime() >= today.getTime();
+      return {
+        status: valid ? 'PASSED' : 'FAILED',
+        message: valid
+          ? 'La junta vencida conserva vigencia por cláusula de continuidad hasta ser sustituida dentro del plazo estatutario.'
+          : 'La junta vencida ya agotó la gracia derivada de la cláusula de continuidad estatutaria.',
+      };
+    }
+
+    const graceExpiration = this.addYears(expiration, 5);
+    const valid = graceExpiration.getTime() >= today.getTime();
+    return {
+      status: valid ? 'PASSED' : 'FAILED',
+      message: valid
+        ? 'La junta vencida queda dentro de la gracia general de 5 años al no existir cláusula expresa de continuidad.'
+        : 'La junta directiva figura vencida y fuera de la gracia general de 5 años.',
+    };
   }
 
   private namesMatch(
@@ -367,13 +589,8 @@ export class CrossValidationService {
       return true;
     }
 
-    const rifTokens = this.tokenSet(rifName);
-    const legalTokens = this.tokenSet(legalName);
-    if (rifTokens.size > 0 && this.setsEqual(rifTokens, legalTokens)) {
-      return true;
-    }
-
     if (snapshot.legalMode === 'emprendimiento' || snapshot.legalMode === 'firma_personal') {
+      const rifTokens = this.tokenSet(rifName);
       const representativeTokens = new Set(
         snapshot.representatives
           .flatMap((rep) => [...this.tokenSet(this.normalizeText(rep.fullName))])
@@ -385,6 +602,12 @@ export class CrossValidationService {
     }
 
     return false;
+  }
+
+  private rifPrefix(value: string): string {
+    const normalized = value.trim().toUpperCase();
+    const match = normalized.match(/^([A-Z])\s*-/);
+    return match?.[1] ?? '';
   }
 
   private parseOptionalDate(value: string): Date | null {
@@ -411,13 +634,34 @@ export class CrossValidationService {
     return result;
   }
 
+  private addMonths(value: Date, months: number): Date {
+    const result = new Date(value.getTime());
+    result.setUTCMonth(result.getUTCMonth() + months);
+    if (result.getUTCDate() !== value.getUTCDate()) {
+      return new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0));
+    }
+    return result;
+  }
+
+  private todayUtc(): Date {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  }
+
+  private normalizeComparableText(value: string): string {
+    return this.normalizeText(value)
+      .replace(/\bca\b/g, 'c a')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   private normalizeText(value: string): string {
     return (value ?? '')
       .trim()
       .toLowerCase()
       .normalize('NFD')
       .replace(/\p{Diacritic}/gu, '')
-      .replace(/[,.\-\/()]/g, ' ')
+      .replace(/[^a-z0-9\s]/g, ' ')
       .split(/\s+/)
       .filter(Boolean)
       .join(' ');
@@ -448,5 +692,79 @@ export class CrossValidationService {
   private signatureProbability(value: string): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private normalizeYesNoUnknown(value: string): 'YES' | 'NO' | 'UNKNOWN' {
+    const normalized = this.normalizeText(value);
+    if (normalized === 'yes' || normalized === 'si') {
+      return 'YES';
+    }
+    if (normalized === 'no') {
+      return 'NO';
+    }
+    return 'UNKNOWN';
+  }
+
+  private parseYears(value: string): number | null {
+    const normalized = this.normalizeText(value);
+    if (!normalized) {
+      return null;
+    }
+
+    const directNumber = normalized.match(/\b(\d{1,2})\b/);
+    if (directNumber) {
+      return Number(directNumber[1]);
+    }
+
+    const spelledNumbers = new Map([
+      ['un', 1],
+      ['uno', 1],
+      ['dos', 2],
+      ['tres', 3],
+      ['cuatro', 4],
+      ['cinco', 5],
+      ['seis', 6],
+      ['siete', 7],
+      ['ocho', 8],
+      ['nueve', 9],
+      ['diez', 10],
+      ['once', 11],
+      ['doce', 12],
+      ['trece', 13],
+      ['catorce', 14],
+      ['quince', 15],
+      ['dieciseis', 16],
+      ['diecisiete', 17],
+      ['dieciocho', 18],
+      ['diecinueve', 19],
+      ['veinte', 20],
+    ]);
+
+    for (const [token, years] of spelledNumbers) {
+      if (normalized.includes(token)) {
+        return years;
+      }
+    }
+
+    return null;
+  }
+
+  private excludedActivityRule(value: string): { label: string } | null {
+    const rules = [
+      { label: 'modelo B2B o mayorista', pattern: /\b(b2b|mayorista|wholesale|empresa a empresa)\b/ },
+      { label: 'servicios financieros o seguros', pattern: /\b(seguro|seguros|aseguradora|financier|prestamo|credito|corretaje|medicina prepagada|punto de venta)\b/ },
+      { label: 'tabaco o vapers', pattern: /\b(tabaco|cigarrillo|cigarro|vape|vaper)\b/ },
+      { label: 'juegos de azar o apuestas', pattern: /\b(apuesta|apuestas|casino|casinos|loteria|bingo|juego de azar)\b/ },
+      { label: 'armas o municiones', pattern: /\b(arma|armas|municion|municiones)\b/ },
+      { label: 'pirotecnia, explosivos o materiales inflamables', pattern: /\b(pirotecnia|explosivo|explosivos|inflamable|inflamables)\b/ },
+      { label: 'sustancias controladas', pattern: /\b(sustancia controlada|estupefaciente|narcotico|droga|drogas)\b/ },
+      { label: 'materiales estratégicos o chatarra', pattern: /\b(chatarra|radioactivo|radioactivos|reactivo quimico|reactivos quimicos|material estrategico)\b/ },
+      { label: 'seguridad industrial restringida', pattern: /\b(extintor|extintores)\b/ },
+      { label: 'casa de empeño o tienda prendaria', pattern: /\b(empeno|prendaria|pawn)\b/ },
+      { label: 'contenido para adultos', pattern: /\b(adulto|adultos|sex shop|contenido adulto|erotico)\b/ },
+      { label: 'bares o clubes nocturnos', pattern: /\b(bar|bares|discoteca|club nocturno|night club)\b/ },
+    ];
+
+    return rules.find((rule) => rule.pattern.test(value)) ?? null;
   }
 }

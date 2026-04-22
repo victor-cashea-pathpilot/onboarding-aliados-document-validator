@@ -64,11 +64,17 @@ test('DocumentNormalizationService builds canonical snapshot from extracted docu
               status: 'VIGENTE',
               expiration_date: '07/09/2037',
             },
-            business_classification: { line_code: 'LP' },
+            business_classification: {
+              business_summary: 'Optica y venta minorista B2C',
+              line_code: 'LP',
+            },
             corporate_structure: {
               board: {
                 status: 'VENCIDA',
                 expiration_date: '07/09/2022',
+                statutory_term: '5 años',
+                holdover_until_replaced: 'YES',
+                holdover_quote: 'Los directores permanecen en sus cargos hasta ser sustituidos.',
               },
               legal_representative: {
                 signature_type: 'SEPARADA',
@@ -100,6 +106,9 @@ test('DocumentNormalizationService builds canonical snapshot from extracted docu
   assert.equal(snapshot.primaryCedulaPolicyOutcome, 'valid');
   assert.equal(snapshot.companyRecord.companyName, 'FREDLOU STILO Y BELLEZA C.A.');
   assert.equal(snapshot.companyRecord.boardStatus, 'VENCIDA');
+  assert.equal(snapshot.companyRecord.businessSummary, 'Optica y venta minorista B2C');
+  assert.equal(snapshot.companyRecord.boardStatutoryTerm, '5 años');
+  assert.equal(snapshot.companyRecord.boardHoldoverUntilReplaced, 'YES');
   assert.equal(snapshot.representatives[0].idNumber, 'V-12.048.047');
   assert.equal(snapshot.legalMode, 'sociedad_mercantil');
   assert.equal(snapshot.normalizationStatus, 'complete');

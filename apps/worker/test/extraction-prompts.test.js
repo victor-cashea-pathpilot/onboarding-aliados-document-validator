@@ -21,7 +21,10 @@ test('buildActaConstitutivaPrompt includes full corporate extraction schema', ()
 
   assert.match(prompt, /"company_validity"/);
   assert.match(prompt, /"business_classification"/);
+  assert.match(prompt, /LCE/);
   assert.match(prompt, /"members_and_roles"/);
+  assert.match(prompt, /"holdover_until_replaced"/);
+  assert.match(prompt, /"holdover_quote"/);
   assert.match(prompt, /"representatives"/);
   assert.match(prompt, /"signature_validity_probability"/);
   assert.match(prompt, /"store_addresses"/);
@@ -35,7 +38,9 @@ test('buildActaMercantilPrompt includes clause modification fields and board sch
   assert.match(prompt, /"signature_clause_status"/);
   assert.match(prompt, /"relevant_changes"/);
   assert.match(prompt, /"members_and_roles"/);
+  assert.match(prompt, /"holdover_until_replaced"/);
   assert.match(prompt, /"validity_observation"/);
+  assert.match(prompt, /LCE/);
   assert.match(prompt, /"representatives"/);
   assert.match(prompt, /"NO_ENCONTRADO"/);
   assert.match(prompt, /No infieras asambleas futuras/);
@@ -48,6 +53,7 @@ test('buildCertificadoEmprendimientoPrompt includes structured validity and repr
   assert.match(prompt, /"document_type": "CERTIFICADO_EMPRENDIMIENTO"/);
   assert.match(prompt, /"calculated_expiration_date"/);
   assert.match(prompt, /"current_status"/);
+  assert.match(prompt, /LCE/);
   assert.match(prompt, /"current_role"/);
   assert.match(prompt, /"signature_validity_probability"/);
   assert.match(prompt, /"store_addresses"/);
