@@ -7,7 +7,7 @@ source "$(dirname "$0")/common.sh"
 require_base_env
 
 API_URL="$(api_url)"
-TOKEN="$(gcloud auth print-identity-token)"
+TOKEN="$(gcloud auth print-identity-token --audiences="${API_URL}")"
 
 echo "Checking API health..."
 curl -sS -H "Authorization: Bearer ${TOKEN}" "${API_URL}/health"
