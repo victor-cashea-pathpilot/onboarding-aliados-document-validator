@@ -7,6 +7,7 @@ This folder is the operational source of truth for deploying the TypeScript stac
 The current runtime is composed of:
 
 - `Cloud Run — API Service`
+- `Cloud Run — API gRPC Service`
 - `Cloud Run — Worker Service`
 - `Cloud Run — Case Explorer`
 - `Firestore`
@@ -22,6 +23,7 @@ The services build from the root of the repo and publish to `Artifact Registry`.
 Dockerfiles:
 
 - API: `apps/api/Dockerfile`
+- API gRPC: `apps/api-grpc/Dockerfile`
 - Worker: `apps/worker/Dockerfile`
 - Case Explorer: `apps/case-explorer/Dockerfile`
 
@@ -29,6 +31,8 @@ Image names:
 
 - API:
   - `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api:${IMAGE_TAG}`
+- API gRPC:
+  - `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api-grpc:${IMAGE_TAG}`
 - Worker:
   - `${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-worker:${IMAGE_TAG}`
 - Case Explorer:
@@ -40,6 +44,7 @@ Examples:
 
 ```bash
 docker build -f apps/api/Dockerfile -t onboarding-api:local .
+docker build -f apps/api-grpc/Dockerfile -t onboarding-api-grpc:local .
 docker build -f apps/worker/Dockerfile -t onboarding-worker:local .
 docker build -f apps/case-explorer/Dockerfile -t onboarding-case-explorer:local .
 ```
@@ -65,9 +70,11 @@ Key variables:
 - `ARTIFACT_REPOSITORY`
 - `CLOUD_TASKS_QUEUE_ID`
 - `API_SERVICE_NAME`
+- `API_GRPC_SERVICE_NAME`
 - `WORKER_SERVICE_NAME`
 - `CASE_EXPLORER_SERVICE_NAME`
 - `API_RUNTIME_SERVICE_ACCOUNT_EMAIL`
+- `API_GRPC_RUNTIME_SERVICE_ACCOUNT_EMAIL`
 - `WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL`
 - `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
 - `CASE_EXPLORER_RUNTIME_SERVICE_ACCOUNT_EMAIL`
@@ -76,6 +83,7 @@ Key variables:
 - `CASE_EXPLORER_ENABLE_IAP`
 - `CASE_EXPLORER_IAP_MEMBERS`
 - `API_AUTH_MODE`
+- `API_GRPC_ALLOW_UNAUTHENTICATED`
 - `API_CORS_ALLOWED_ORIGINS`
 - `API_RATE_LIMIT_TTL_MS`
 - `API_RATE_LIMIT_LIMIT`
@@ -99,6 +107,11 @@ Key variables:
   - pushes to Artifact Registry
   - deploys the API to Cloud Run
 
+- `deploy_api_grpc.sh`
+  - builds the gRPC API image
+  - pushes to Artifact Registry
+  - deploys the gRPC API to Cloud Run with HTTP/2
+
 - `deploy_worker.sh`
   - builds the worker image
   - pushes to Artifact Registry
@@ -115,6 +128,7 @@ Key variables:
     - `bootstrap.sh`
     - `deploy_worker.sh`
     - `deploy_api.sh`
+    - `deploy_api_grpc.sh`
     - `deploy_case_explorer.sh`
 
 - `smoke_test.sh`
@@ -132,6 +146,7 @@ source infra/gcp/.env.dev
 bash infra/gcp/bootstrap.sh
 bash infra/gcp/deploy_worker.sh
 bash infra/gcp/deploy_api.sh
+bash infra/gcp/deploy_api_grpc.sh
 bash infra/gcp/deploy_case_explorer.sh
 ```
 
@@ -159,6 +174,7 @@ gcloud artifacts docker images list \
 ## Security model
 
 - API: authenticated access
+- API gRPC: authenticated service-to-service access
 - Worker: private, invoked by `Cloud Tasks` with `OIDC`
 - Case Explorer: protected with `IAP / Google login`
 - Firestore: internal source of truth, not exposed directly to clients

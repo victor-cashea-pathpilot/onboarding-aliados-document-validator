@@ -30,6 +30,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/case-explorer/tsconfig.json"
       }
+    },
+    "api-grpc": {
+      "type": "application",
+      "root": "apps/api-grpc",
+      "entryFile": "main",
+      "sourceRoot": "apps/api-grpc/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/api-grpc/tsconfig.json"
+      }
     }
   }
 }

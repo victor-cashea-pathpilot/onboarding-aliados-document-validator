@@ -1,0 +1,2 @@
+export const JOB_REPOSITORY = Symbol('GRPC_JOB_REPOSITORY');
+export const JOB_DISPATCHER = Symbol('GRPC_JOB_DISPATCHER');
