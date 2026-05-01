@@ -1,0 +1,97 @@
+version: 1
+
+environment:
+  name: dev
+  project_id: core-allies-dev
+  region: us-east1
+  artifact_repository: cashea-repo
+  network: projects/cashea-network-nonprod/global/networks/cashea-nonprod-vpc
+  subnet: projects/cashea-network-nonprod/regions/us-east1/subnetworks/snet-allies-onboarding-dev
+  firestore_database: legal-doc-validation
+  firestore_collection: validation_jobs
+  cloud_tasks_queue_id: legal-validation-jobs
+
+services:
+  api:
+    service_name: backend-ms-ldv-api-service
+    image_name: backend-ms-ldv-api-service
+    dockerfile: apps/api/Dockerfile
+    runtime_service_account: allies-ldv-api-sa-cr@core-allies-dev.iam.gserviceaccount.com
+    cloud_tasks_service_account_email: allies-ldv-api-sa-cr@core-allies-dev.iam.gserviceaccount.com
+    port: 8080
+    cpu: 1
+    memory: 1Gi
+    min_instances: 1
+    max_instances: 5
+    max_requests_per_instance: 100
+    use_http2: false
+    allow_unauthenticated: false
+    ingress: internal-and-cloud-load-balancing
+    vpc_egress: all-traffic
+    env:
+      TS_SERVICE_NAME: api
+      API_AUTH_MODE: google_oidc
+      API_CORS_ALLOWED_ORIGINS: ""
+      API_CORS_ALLOWED_METHODS: GET,POST,OPTIONS
+      API_CORS_ALLOWED_HEADERS: Authorization,Content-Type,X-Request-Id
+      API_CORS_EXPOSED_HEADERS: X-Request-Id
+      API_CORS_MAX_AGE_SECONDS: "3600"
+      API_RATE_LIMIT_TTL_MS: "60000"
+      API_RATE_LIMIT_LIMIT: "60"
+      API_BODY_SIZE_LIMIT: 1mb
+
+  grpc:
+    service_name: backend-ms-ldv-grpc-service
+    image_name: backend-ms-ldv-grpc-service
+    dockerfile: apps/api-grpc/Dockerfile
+    # Reuse the API runtime identity in dev until a dedicated gRPC SA is provisioned.
+    runtime_service_account: allies-ldv-api-sa-cr@core-allies-dev.iam.gserviceaccount.com
+    cloud_tasks_service_account_email: allies-ldv-api-sa-cr@core-allies-dev.iam.gserviceaccount.com
+    port: 8080
+    cpu: 1
+    memory: 1Gi
+    min_instances: 1
+    max_instances: 5
+    max_requests_per_instance: 100
+    use_http2: true
+    allow_unauthenticated: false
+    ingress: internal-and-cloud-load-balancing
+    vpc_egress: all-traffic
+    env:
+      TS_SERVICE_NAME: api-grpc
+
+  worker:
+    service_name: backend-ms-ldv-worker-service
+    image_name: backend-ms-ldv-worker-service
+    dockerfile: apps/worker/Dockerfile
+    runtime_service_account: allies-ldv-worker-sa-cr@core-allies-dev.iam.gserviceaccount.com
+    port: 8080
+    cpu: 1
+    memory: 1Gi
+    min_instances: 1
+    max_instances: 5
+    max_requests_per_instance: 100
+    use_http2: false
+    allow_unauthenticated: false
+    ingress: internal-and-cloud-load-balancing
+    vpc_egress: all-traffic
+    env:
+      TS_SERVICE_NAME: worker
+
+  explorer:
+    service_name: backend-ms-ldv-explorer-service
+    image_name: backend-ms-ldv-explorer-service
+    dockerfile: apps/case-explorer/Dockerfile
+    runtime_service_account: allies-ldv-explorer-sa-cr@core-allies-dev.iam.gserviceaccount.com
+    port: 8080
+    cpu: 1
+    memory: 1Gi
+    min_instances: 0
+    max_instances: 2
+    max_requests_per_instance: 100
+    use_http2: false
+    allow_unauthenticated: false
+    ingress: internal-and-cloud-load-balancing
+    vpc_egress: all-traffic
+    env:
+      TS_SERVICE_NAME: case-explorer

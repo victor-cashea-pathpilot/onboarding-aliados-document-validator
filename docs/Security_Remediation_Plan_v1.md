@@ -238,7 +238,67 @@ Reduce common API abuse and browser-facing exposure at the framework level.
 - Security headers are enabled.
 - Throttling is enforced on the API surface.
 
-## Stage 3: Sanitize Errors and Lock Down Operational Endpoints
+## Stage 3: Integrate with Cashea CI/CD and Dev Environment
+
+### Goal
+
+Make the service deployable into Cashea `core-allies-dev` using a repository-local workflow that aligns with the current DevOps shell-first deployment model.
+
+### Status
+
+- in progress
+- first dev-only GitHub Actions implementation added
+- temporary JSON key auth chosen for speed
+- WIF migration remains follow-up work
+
+### Why this stage exists
+
+The service now has working runtime code and GCP resources, but merge-readiness also depends on having a repeatable deployment path into the actual Cashea environment. The DevOps team already has a shell-based Cloud Run deployment pattern; this repo should align with that shape even if the first pass uses GitHub Actions before the platform standard is finalized.
+
+### Implementation Tasks
+
+- Add a repo-local deploy config for the Cashea dev environment:
+  - project `core-allies-dev`
+  - region `us-east1`
+  - Cashea VPC and subnet
+  - service names for `ldv-api`, `ldv-grpc`, and `ldv-worker`
+- Add a GitHub Actions workflow for manual dev deployment:
+  - `workflow_dispatch` only in the first pass
+  - deploy targets: `api`, `grpc`, `worker`, `all`
+  - temporary service-account JSON key authentication
+- Generate Cloud Run env vars from GitHub Environment variables and secrets instead of checked-in YAML.
+- Keep the implementation close to the Cashea DevOps deployment pattern:
+  - validate config
+  - build and push image
+  - deploy service
+- Document the GitHub Environment contract for:
+  - GCP auth secret
+  - Firestore settings
+  - Cloud Tasks queue
+  - worker auth token
+  - optional explorer settings for the fast-follow stage
+- Leave explorer deployment as a fast follow after the API, gRPC API, and worker path is stable.
+
+### Target Files
+
+- `.github/workflows/`
+- `infra/cicd/`
+- `docs/`
+
+### Verification
+
+- Confirm the workflow can deploy each selected target independently in `core-allies-dev`.
+- Confirm `all` deploys `api`, `grpc`, and `worker` in one run.
+- Confirm generated Cloud Run env vars match the expected runtime settings.
+- Perform a manual smoke deploy after GitHub Environment variables and secrets are populated.
+
+### Exit Criteria
+
+- The repo has a documented, repeatable dev deployment path for Cashea GCP.
+- The deploy path supports `api`, `grpc`, `worker`, and `all`.
+- The GitHub Environment contract is explicit and testable.
+
+## Stage 4: Sanitize Errors and Lock Down Operational Endpoints
 
 ### Goal
 
@@ -281,7 +341,7 @@ The app does not currently install a global exception filter, and Swagger is alw
 - Swagger exposure is explicitly controlled by environment or auth.
 - Operational endpoints have a documented exposure policy.
 
-## Stage 4: Harden Build, Container, and CI Controls
+## Stage 5: Harden Build, Container, and CI Controls
 
 ### Goal
 
@@ -336,7 +396,7 @@ The plan here is to harden what exists, not recreate it from scratch.
 - CI includes security-relevant checks in addition to build and tests.
 - Repo ownership and dependency update automation are in place.
 
-## Stage 5: Tighten TypeScript and Configuration Safety
+## Stage 6: Tighten TypeScript and Configuration Safety
 
 ### Goal
 
@@ -380,7 +440,7 @@ Reduce security bugs caused by weak typing or unchecked runtime configuration.
 - Security-sensitive configuration is validated at startup.
 - The DB TLS finding is either fixed or explicitly closed as not applicable.
 
-## Stage 6: Repository Hygiene, Team Guidance, and Final Verification
+## Stage 7: Repository Hygiene, Team Guidance, and Final Verification
 
 ### Goal
 
@@ -432,13 +492,14 @@ Close low-severity gaps, leave a documented operating model, and verify the full
 1. Stage 0: reconcile the audit
 2. Stage 1: add auth boundary
 3. Stage 2: harden the HTTP surface
-4. Stage 3: sanitize errors and lock down operational endpoints
-5. Stage 4: harden build, container, and CI controls
-6. Stage 5: tighten TypeScript and config safety
-7. Stage 6: finish hygiene items and run final verification
+4. Stage 3: integrate with Cashea CI/CD and dev environment
+5. Stage 4: sanitize errors and lock down operational endpoints
+6. Stage 5: harden build, container, and CI controls
+7. Stage 6: tighten TypeScript and config safety
+8. Stage 7: finish hygiene items and run final verification
 
 ## Notes for Implementation
 
 - The highest-risk gap remains missing API authentication.
 - The current repo already covers some items from the audit, so implementation should not blindly mirror the PDF.
-- The fastest path is to complete Stages 0 through 3 first, because they directly reduce exposure of the running API.
+- The fastest path is to complete Stages 0 through 4 first, because they reduce deployment risk and direct exposure of the running API.
