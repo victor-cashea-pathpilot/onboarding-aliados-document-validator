@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source "$(dirname "$0")/common.sh"
+
+require_base_env
+gcloud_auth_healthcheck
+
+WORKER_URL="$(worker_url)"
+IMAGE="$(api_grpc_image)"
+echo "Building API gRPC image: $IMAGE"
+build_and_push_image "$ROOT_DIR/apps/api-grpc/Dockerfile" "$IMAGE"
+
+ALLOW_FLAG="--no-allow-unauthenticated"
+if [[ "${API_GRPC_ALLOW_UNAUTHENTICATED}" == "true" ]]; then
+  ALLOW_FLAG="--allow-unauthenticated"
+fi
+
+echo "Deploying API gRPC..."
+gcloud run deploy "$API_GRPC_SERVICE_NAME" \
+  --project "$PROJECT_ID" \
+  --region "$REGION" \
+  --platform managed \
+  --service-account "$API_GRPC_RUNTIME_SERVICE_ACCOUNT_EMAIL" \
+  --cpu "$API_GRPC_CPU" \
+  --memory "$API_GRPC_MEMORY" \
+  --timeout "$API_GRPC_TIMEOUT" \
+  --concurrency "$API_GRPC_CONCURRENCY" \
+  --min-instances "$API_GRPC_MIN_INSTANCES" \
+  --max-instances "$API_GRPC_MAX_INSTANCES" \
+  --use-http2 \
+  $ALLOW_FLAG \
+  --image "$IMAGE" \
+  --set-env-vars \
+ENVIRONMENT="$ENVIRONMENT",\
+LOG_LEVEL="$LOG_LEVEL",\
+GCP_PROJECT_ID="$PROJECT_ID",\
+GCP_REGION="$REGION",\
+FIRESTORE_DATABASE="$FIRESTORE_DATABASE",\
+FIRESTORE_COLLECTION="$FIRESTORE_COLLECTION",\
+JOB_REPOSITORY_MODE=firestore,\
+JOB_QUEUE_MODE=cloud_tasks,\
+CLOUD_TASKS_QUEUE_ID="$CLOUD_TASKS_QUEUE_ID",\
+CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL="$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL",\
+WORKER_BASE_URL="$WORKER_URL",\
+WORKER_AUDIENCE="$WORKER_URL",\
+WORKER_AUTH_TOKEN="$WORKER_AUTH_TOKEN",\
+MOCK_MODE="$MOCK_MODE",\
+DOWNLOAD_TIMEOUT_SECONDS="$DOWNLOAD_TIMEOUT_SECONDS",\
+MAX_DOCUMENT_SIZE_BYTES="$MAX_DOCUMENT_SIZE_BYTES",\
+GEMINI_LOCATION="$GEMINI_LOCATION",\
+GEMINI_MODEL_SIMPLE="$GEMINI_MODEL_SIMPLE",\
+GEMINI_MODEL_COMPLEX="$GEMINI_MODEL_COMPLEX",\
+MAX_EXTRACTION_CONCURRENCY="$MAX_EXTRACTION_CONCURRENCY",\
+ENABLE_LLM_CROSS_VALIDATION="$ENABLE_LLM_CROSS_VALIDATION",\
+ENABLE_LLM_LEGAL_ASSESSMENT="$ENABLE_LLM_LEGAL_ASSESSMENT",\
+TS_SERVICE_NAME=api-grpc
+
+echo "API gRPC URL: $(api_grpc_url)"

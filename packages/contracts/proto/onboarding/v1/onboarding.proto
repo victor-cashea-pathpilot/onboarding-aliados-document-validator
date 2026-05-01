@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package onboarding.v1;
+
+service OnboardingService {
+  rpc GetHealth(HealthRequest) returns (HealthResponse);
+  rpc SubmitValidation(SubmitValidationRequest) returns (SubmitValidationResponse);
+  rpc GetStatus(StatusRequest) returns (StatusResponse);
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string service = 1;
+  string status = 2;
+  string phase = 3;
+}
+
+message DocumentReference {
+  string url = 1;
+  string document_id = 2;
+}
+
+message DocumentsPayload {
+  repeated DocumentReference rif = 1;
+  repeated DocumentReference cedula = 2;
+  repeated DocumentReference certificado_emprendimiento = 3;
+  repeated DocumentReference acta_constitutiva = 4;
+  repeated DocumentReference acta_mercantil = 5;
+}
+
+message SubmitValidationRequest {
+  string merchant_id = 1;
+  string request_id = 2;
+  DocumentsPayload documents = 3;
+  map<string, string> metadata = 4;
+}
+
+message SubmitValidationResponse {
+  string job_id = 1;
+  string status = 2;
+  string merchant_id = 3;
+  string request_id = 4;
+  string created_at = 5;
+}
+
+message StatusRequest {
+  repeated string job_ids = 1;
+}
+
+message ProgressInfo {
+  string stage = 1;
+  int32 percentage = 2;
+  string message = 3;
+}
+
+message OverallResult {
+  string status = 1;
+  double confidence = 2;
+  string summary = 3;
+  repeated string error_codes = 4;
+}
+
+message StatusResponseItem {
+  string job_id = 1;
+  string status = 2;
+  string merchant_id = 3;
+  bool has_progress = 4;
+  ProgressInfo progress = 5;
+  bool has_overall_result = 6;
+  OverallResult overall_result = 7;
+  string documents_json = 8;
+  string cross_validation_json = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+message StatusResponse {
+  repeated StatusResponseItem items = 1;
+}

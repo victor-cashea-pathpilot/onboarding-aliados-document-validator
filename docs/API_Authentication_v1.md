@@ -19,6 +19,13 @@ That means:
 - callers should authenticate as a Google service account
 - callers should send a Google-signed ID token in the `Authorization` header
 
+For the gRPC service:
+
+- the deployed service is also intended to run as a private Cloud Run service
+- the caller should still authenticate as a Google service account
+- the initial gRPC implementation relies on Cloud Run IAM / service-to-service authentication at the platform edge
+- the HTTP app-level Nest guard is specific to the HTTP API and is not reused directly by the gRPC transport
+
 ## Recommended Pattern
 
 Use service-to-service authentication with a dedicated service account for each calling workload.
@@ -35,6 +42,7 @@ This is the preferred model for:
 
 - Cloud Run calling Cloud Run
 - Cloud Run calling the API from the case explorer
+- Cloud Run calling the gRPC API from another microservice
 - CI or smoke-test jobs that already run with Google credentials
 
 ## Audience Rules
@@ -78,6 +86,20 @@ Important caveat:
 - `POST /v1/onboarding/status`
 - `GET /internal/jobs/:jobId`
 - `GET /internal/jobs`
+
+## gRPC Methods
+
+The current gRPC service exposes:
+
+- `GetHealth`
+- `SubmitValidation`
+- `GetStatus`
+
+Current scope:
+
+- unary RPCs only
+- intended for backend-to-backend callers in GCP
+- separate deployable from the HTTP API
 
 ## Public Endpoint
 
@@ -194,14 +216,28 @@ Before a new service calls the API:
 5. verify the caller sends a Google ID token
 6. run a smoke request to `/v1/onboarding/status`
 
+For another GCP service that calls the gRPC API:
+
+1. create or choose a dedicated service account for the caller
+2. grant that service account `roles/run.invoker` on the gRPC Cloud Run service
+3. configure the caller with:
+   - `API_GRPC_URL`
+   - `API_GRPC_AUDIENCE`
+4. generate a Google-signed ID token for the gRPC service audience
+5. send that token in gRPC metadata using `authorization: Bearer <token>`
+6. call `SubmitValidation` or `GetStatus`
+
 ## Related Files
 
 - `apps/api/src/auth/api-auth.config.ts`
 - `apps/api/src/auth/api-auth.guard.ts`
 - `apps/api/src/auth/google-id-token-verifier.ts`
 - `apps/api/src/health.controller.ts`
+- `apps/api-grpc/src/main.ts`
+- `apps/api-grpc/src/onboarding-grpc.controller.ts`
 - `apps/case-explorer/src/case-explorer.client.ts`
 - `infra/gcp/deploy_api.sh`
+- `infra/gcp/deploy_api_grpc.sh`
 - `infra/gcp/deploy_case_explorer.sh`
 - `infra/gcp/smoke_test.sh`
 - `docs/Security_Remediation_Plan_v1.md`

@@ -21,8 +21,10 @@ require_base_env() {
   required_env ARTIFACT_REPOSITORY
   required_env CLOUD_TASKS_QUEUE_ID
   required_env API_SERVICE_NAME
+  required_env API_GRPC_SERVICE_NAME
   required_env WORKER_SERVICE_NAME
   required_env API_RUNTIME_SERVICE_ACCOUNT_EMAIL
+  required_env API_GRPC_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env WORKER_RUNTIME_SERVICE_ACCOUNT_EMAIL
   required_env CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL
   required_env CASE_EXPLORER_SERVICE_NAME
@@ -40,6 +42,12 @@ require_base_env() {
   : "${API_MIN_INSTANCES:=0}"
   : "${API_MAX_INSTANCES:=10}"
   : "${API_AUTH_MODE:=google_oidc}"
+  : "${API_GRPC_CPU:=1}"
+  : "${API_GRPC_MEMORY:=1Gi}"
+  : "${API_GRPC_TIMEOUT:=300}"
+  : "${API_GRPC_CONCURRENCY:=80}"
+  : "${API_GRPC_MIN_INSTANCES:=0}"
+  : "${API_GRPC_MAX_INSTANCES:=10}"
   : "${API_CORS_ALLOWED_ORIGINS:=}"
   : "${API_CORS_ALLOWED_METHODS:=GET,POST,OPTIONS}"
   : "${API_CORS_ALLOWED_HEADERS:=Authorization,Content-Type,X-Request-Id}"
@@ -55,6 +63,7 @@ require_base_env() {
   : "${WORKER_MIN_INSTANCES:=0}"
   : "${WORKER_MAX_INSTANCES:=10}"
   : "${API_ALLOW_UNAUTHENTICATED:=false}"
+  : "${API_GRPC_ALLOW_UNAUTHENTICATED:=false}"
   : "${OBSERVABILITY_DASHBOARD_NAME:=Onboarding Agent Overview}"
   : "${OBSERVABILITY_JOB_METRIC_PREFIX:=onboarding_job}"
   : "${OBSERVABILITY_LLM_METRIC_PREFIX:=onboarding_llm}"
@@ -81,6 +90,10 @@ api_image() {
   echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api:${IMAGE_TAG}"
 }
 
+api_grpc_image() {
+  echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-api-grpc:${IMAGE_TAG}"
+}
+
 case_explorer_image() {
   echo "${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/onboarding-case-explorer:${IMAGE_TAG}"
 }
@@ -94,6 +107,13 @@ worker_url() {
 
 api_url() {
   gcloud run services describe "$API_SERVICE_NAME" \
+    --project "$PROJECT_ID" \
+    --region "$REGION" \
+    --format='value(status.url)'
+}
+
+api_grpc_url() {
+  gcloud run services describe "$API_GRPC_SERVICE_NAME" \
     --project "$PROJECT_ID" \
     --region "$REGION" \
     --format='value(status.url)'
