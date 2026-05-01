@@ -10,12 +10,14 @@ on:
       - "apps/**"
       - "packages/**"
       - "docs/**"
+      - "infra/cicd/**"
       - "infra/gcp/*.sh"
       - "package.json"
       - "package-lock.json"
       - "tsconfig.base.json"
       - "nest-cli.json"
-      - ".github/workflows/typescript-ci.yml"
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
   pull_request:
     branches:
       - main
@@ -24,12 +26,14 @@ on:
       - "apps/**"
       - "packages/**"
       - "docs/**"
+      - "infra/cicd/**"
       - "infra/gcp/*.sh"
       - "package.json"
       - "package-lock.json"
       - "tsconfig.base.json"
       - "nest-cli.json"
-      - ".github/workflows/typescript-ci.yml"
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
   workflow_dispatch:
 
 concurrency:

@@ -1,0 +1,120 @@
+name: Deploy Cloud Run Dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: Service to deploy
+        required: true
+        default: all
+        type: choice
+        options:
+          - api
+          - grpc
+          - worker
+          - all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-cloud-run-dev-${{ github.event.inputs.deploy_target }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-dev:
+    name: Deploy ${{ github.event.inputs.deploy_target }} to core-allies-dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: dev
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      ARTIFACT_REPOSITORY: ${{ vars.ARTIFACT_REPOSITORY }}
+      FIRESTORE_DATABASE: ${{ vars.FIRESTORE_DATABASE }}
+      FIRESTORE_COLLECTION: ${{ vars.FIRESTORE_COLLECTION }}
+      CLOUD_TASKS_QUEUE_ID: ${{ vars.CLOUD_TASKS_QUEUE_ID }}
+      LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+      MOCK_MODE: ${{ vars.MOCK_MODE }}
+      DOWNLOAD_TIMEOUT_SECONDS: ${{ vars.DOWNLOAD_TIMEOUT_SECONDS }}
+      MAX_DOCUMENT_SIZE_BYTES: ${{ vars.MAX_DOCUMENT_SIZE_BYTES }}
+      MAX_EXTRACTION_CONCURRENCY: ${{ vars.MAX_EXTRACTION_CONCURRENCY }}
+      GEMINI_LOCATION: ${{ vars.GEMINI_LOCATION }}
+      GEMINI_MODEL_SIMPLE: ${{ vars.GEMINI_MODEL_SIMPLE }}
+      GEMINI_MODEL_COMPLEX: ${{ vars.GEMINI_MODEL_COMPLEX }}
+      ENABLE_LLM_CROSS_VALIDATION: ${{ vars.ENABLE_LLM_CROSS_VALIDATION }}
+      ENABLE_LLM_LEGAL_ASSESSMENT: ${{ vars.ENABLE_LLM_LEGAL_ASSESSMENT }}
+      WORKER_BASE_URL: ${{ vars.WORKER_BASE_URL }}
+      WORKER_AUDIENCE: ${{ vars.WORKER_AUDIENCE }}
+      WORKER_AUTH_TOKEN: ${{ secrets.WORKER_AUTH_TOKEN }}
+      WEBAPP_SESSION_SECRET: ${{ secrets.WEBAPP_SESSION_SECRET }}
+      CASE_EXPLORER_API_URL: ${{ vars.CASE_EXPLORER_API_URL }}
+      CASE_EXPLORER_API_AUDIENCE: ${{ vars.CASE_EXPLORER_API_AUDIENCE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_DEV }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: |
+          REGION="${GCP_REGION:-us-east1}"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Resolve deploy set
+        id: targets
+        run: |
+          case "${{ github.event.inputs.deploy_target }}" in
+            api)
+              echo "services=api" >>"$GITHUB_OUTPUT"
+              ;;
+            grpc)
+              echo "services=grpc" >>"$GITHUB_OUTPUT"
+              ;;
+            worker)
+              echo "services=worker" >>"$GITHUB_OUTPUT"
+              ;;
+            all)
+              echo "services=api grpc worker" >>"$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported deploy target: ${{ github.event.inputs.deploy_target }}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Build and deploy
+        run: |
+          set -euo pipefail
+          IMAGE_TAG="dev.${GITHUB_SHA::7}"
+          CONFIG_FILE="infra/cicd/deploy-config.dev.yaml"
+
+          for service in ${{ steps.targets.outputs.services }}; do
+            env_file=".deploy/${service}.yaml"
+            bash infra/cicd/render_cloud_run_env.sh "$service" "$env_file" "$CONFIG_FILE"
+            bash infra/cicd/build_and_push_service.sh "$service" "$IMAGE_TAG" "$CONFIG_FILE"
+            bash infra/cicd/deploy_cloud_run_service.sh "$service" "$IMAGE_TAG" "$env_file" "$CONFIG_FILE"
+          done
+
+      - name: Summarize deployed services
+        run: |
+          {
+            echo "## Dev Deploy Summary"
+            echo
+            echo "Target: \`${{ github.event.inputs.deploy_target }}\`"
+            echo "Image tag: \`dev.${GITHUB_SHA::7}\`"
+            echo "Project: \`${GCP_PROJECT_ID}\`"
+            echo "Region: \`${GCP_REGION}\`"
+          } >>"$GITHUB_STEP_SUMMARY"
