@@ -82,7 +82,6 @@ if [[ "$SERVICE_KEY" == "api" || "$SERVICE_KEY" == "grpc" ]]; then
   )"
   require_value "CLOUD_TASKS_QUEUE_ID" "$CLOUD_TASKS_QUEUE_ID"
   require_value "CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL"
-  require_value "WORKER_AUTH_TOKEN" "${WORKER_AUTH_TOKEN:-}"
   require_value "WORKER_BASE_URL" "$WORKER_BASE_URL_RESOLVED"
 
   append_pair "JOB_REPOSITORY_MODE" "firestore"
@@ -91,20 +90,22 @@ if [[ "$SERVICE_KEY" == "api" || "$SERVICE_KEY" == "grpc" ]]; then
   append_pair "CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL" "$CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL"
   append_pair "WORKER_BASE_URL" "$WORKER_BASE_URL_RESOLVED"
   append_pair "WORKER_AUDIENCE" "$WORKER_AUDIENCE_RESOLVED"
-  append_pair "WORKER_AUTH_TOKEN" "${WORKER_AUTH_TOKEN}"
+  # WORKER_AUTH_TOKEN is injected by Cloud Run from GCP Secret Manager at runtime.
+  # Do not write it here.
 fi
 
 if [[ "$SERVICE_KEY" == "worker" ]]; then
-  require_value "WORKER_AUTH_TOKEN" "${WORKER_AUTH_TOKEN:-}"
-  append_pair "WORKER_AUTH_TOKEN" "${WORKER_AUTH_TOKEN}"
+  # WORKER_AUTH_TOKEN is injected by Cloud Run from GCP Secret Manager at runtime.
+  # Do not write it here.
+  true
 fi
 
 if [[ "$SERVICE_KEY" == "explorer" ]]; then
-  require_value "WEBAPP_SESSION_SECRET" "${WEBAPP_SESSION_SECRET:-}"
   require_value "CASE_EXPLORER_API_URL" "${CASE_EXPLORER_API_URL:-}"
-  append_pair "WEBAPP_SESSION_SECRET" "${WEBAPP_SESSION_SECRET}"
   append_pair "CASE_EXPLORER_API_URL" "${CASE_EXPLORER_API_URL}"
   append_pair "CASE_EXPLORER_API_AUDIENCE" "${CASE_EXPLORER_API_AUDIENCE:-${CASE_EXPLORER_API_URL}}"
+  # WEBAPP_SESSION_SECRET is injected by Cloud Run from GCP Secret Manager at runtime.
+  # Do not write it here.
 fi
 
 while IFS= read -r key; do

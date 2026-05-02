@@ -39,6 +39,7 @@ fi
 FULL_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}"
 AUTH_FLAG="--no-allow-unauthenticated"
 HTTP2_FLAG=""
+SET_SECRETS_FLAG=""
 
 if [[ "$ALLOW_UNAUTHENTICATED" == "true" ]]; then
   AUTH_FLAG="--allow-unauthenticated"
@@ -46,6 +47,22 @@ fi
 
 if [[ "$USE_HTTP2" == "true" ]]; then
   HTTP2_FLAG="--use-http2"
+fi
+
+# Build --set-secrets from the secrets section in deploy config.
+# Each entry maps an env var name to a Secret Manager secret ref (name:version).
+SECRETS_LIST="$(
+  yq -r "
+    .services.${SERVICE_KEY}.secrets
+    | to_entries
+    | .[]
+    | .key + \"=\" + .value
+  " "$CONFIG_FILE" 2>/dev/null || true
+)"
+
+if [[ -n "$SECRETS_LIST" ]]; then
+  JOINED_SECRETS="$(echo "$SECRETS_LIST" | paste -sd ',' -)"
+  SET_SECRETS_FLAG="--set-secrets=${JOINED_SECRETS}"
 fi
 
 echo "Deploying ${SERVICE_KEY} to Cloud Run service ${SERVICE_NAME}"
@@ -68,4 +85,5 @@ gcloud run deploy "$SERVICE_NAME" \
   --execution-environment gen2 \
   --env-vars-file "$ENV_VARS_FILE" \
   ${AUTH_FLAG} \
-  ${HTTP2_FLAG}
+  ${HTTP2_FLAG} \
+  ${SET_SECRETS_FLAG}
