@@ -28,6 +28,8 @@ services:
     allow_unauthenticated: false
     ingress: internal-and-cloud-load-balancing
     vpc_egress: all-traffic
+    secrets:
+      WORKER_AUTH_TOKEN: cashea-dev-ldv-worker-auth-token:latest
     env:
       TS_SERVICE_NAME: api
       API_AUTH_MODE: google_oidc
@@ -57,6 +59,8 @@ services:
     allow_unauthenticated: false
     ingress: internal-and-cloud-load-balancing
     vpc_egress: all-traffic
+    secrets:
+      WORKER_AUTH_TOKEN: cashea-dev-ldv-worker-auth-token:latest
     env:
       TS_SERVICE_NAME: api-grpc
 
@@ -75,6 +79,8 @@ services:
     allow_unauthenticated: false
     ingress: internal-and-cloud-load-balancing
     vpc_egress: all-traffic
+    secrets:
+      WORKER_AUTH_TOKEN: cashea-dev-ldv-worker-auth-token:latest
     env:
       TS_SERVICE_NAME: worker
 
@@ -93,5 +99,7 @@ services:
     allow_unauthenticated: false
     ingress: internal-and-cloud-load-balancing
     vpc_egress: all-traffic
+    secrets:
+      WEBAPP_SESSION_SECRET: cashea-dev-ldv-webapp-session-secret:latest
     env:
       TS_SERVICE_NAME: case-explorer

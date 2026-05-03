@@ -46,10 +46,11 @@ jobs:
       ENABLE_LLM_LEGAL_ASSESSMENT: ${{ vars.ENABLE_LLM_LEGAL_ASSESSMENT }}
       WORKER_BASE_URL: ${{ vars.WORKER_BASE_URL }}
       WORKER_AUDIENCE: ${{ vars.WORKER_AUDIENCE }}
-      WORKER_AUTH_TOKEN: ${{ secrets.WORKER_AUTH_TOKEN }}
-      WEBAPP_SESSION_SECRET: ${{ secrets.WEBAPP_SESSION_SECRET }}
       CASE_EXPLORER_API_URL: ${{ vars.CASE_EXPLORER_API_URL }}
       CASE_EXPLORER_API_AUDIENCE: ${{ vars.CASE_EXPLORER_API_AUDIENCE }}
+      # WORKER_AUTH_TOKEN and WEBAPP_SESSION_SECRET are NOT read from GitHub secrets.
+      # They are injected by Cloud Run directly from GCP Secret Manager at deploy time
+      # via --set-secrets in deploy_cloud_run_service.sh.
 
     steps:
       - name: Checkout

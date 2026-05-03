@@ -249,6 +249,7 @@ Make the service deployable into Cashea `core-allies-dev` using a repository-loc
 - in progress
 - first dev-only GitHub Actions implementation added
 - temporary JSON key auth chosen for speed
+- runtime secrets (`WORKER_AUTH_TOKEN`, `WEBAPP_SESSION_SECRET`) moved from GitHub secrets to GCP Secret Manager; injected into Cloud Run via `--set-secrets`
 - WIF migration remains follow-up work
 
 ### Why this stage exists
