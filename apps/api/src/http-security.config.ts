@@ -101,6 +101,22 @@ export function getApiHttpSecuritySettings(): ApiHttpSecuritySettings {
   };
 }
 
+/**
+ * Returns true when Swagger should be mounted.
+ *
+ * Swagger is only enabled in local/development/test environments so that
+ * the API schema is never publicly reachable in staging or production.
+ * Override with SWAGGER_ENABLED=true|false to change the default.
+ */
+export function isSwaggerEnabled(): boolean {
+  const explicit = readEnv('SWAGGER_ENABLED');
+  if (explicit !== null) {
+    return explicit.toLowerCase() === 'true';
+  }
+
+  return isLocalEnvironment();
+}
+
 export function isOriginAllowed(
   origin: string | undefined,
   settings: ApiCorsSettings,
