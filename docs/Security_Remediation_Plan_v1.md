@@ -305,6 +305,14 @@ The service now has working runtime code and GCP resources, but merge-readiness 
 
 Prevent stack trace leakage and reduce accidental exposure of internal tooling.
 
+### Status
+
+- completed
+- global `HttpExceptionFilter` added in `apps/api/src/filters/http-exception.filter.ts` — normalizes all exceptions, no stack traces or internal details in client responses, unhandled errors logged server-side at ERROR level
+- Swagger gated behind `isSwaggerEnabled()` in `http-security.config.ts` — disabled outside local/dev/test by default, overridable via `SWAGGER_ENABLED=true|false`
+- filter registered via `app.useGlobalFilters()` in `main.ts`
+- tests added for filter behavior and Swagger config
+
 ### Current Gap
 
 The app does not currently install a global exception filter, and Swagger is always enabled.

@@ -5,9 +5,11 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './filters/http-exception.filter';
 import {
   getApiHttpSecuritySettings,
   isOriginAllowed,
+  isSwaggerEnabled,
 } from './http-security.config';
 
 async function bootstrap() {
@@ -69,23 +71,28 @@ async function bootstrap() {
     }),
   );
 
-  const config = new DocumentBuilder()
-    .setTitle('AI Legal Doc Validation API')
-    .setDescription('TypeScript migration scaffold for the onboarding API')
-    .setVersion('0.1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'Google OIDC identity token or configured static bearer token.',
-      },
-      'bearer',
-    )
-    .build();
+  app.useGlobalFilters(new HttpExceptionFilter());
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  if (isSwaggerEnabled()) {
+    const config = new DocumentBuilder()
+      .setTitle('AI Legal Doc Validation API')
+      .setDescription('TypeScript migration scaffold for the onboarding API')
+      .setVersion('0.1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description:
+            'Google OIDC identity token or configured static bearer token.',
+        },
+        'bearer',
+      )
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const port = Number(process.env.PORT || 3000);
   await app.listen(port);

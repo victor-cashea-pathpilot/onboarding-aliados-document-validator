@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   getApiHttpSecuritySettings,
   isOriginAllowed,
+  isSwaggerEnabled,
 } = require('../../../dist/apps/api/apps/api/src/http-security.config.js');
 
 const ORIGINAL_ENV = { ...process.env };
@@ -73,4 +74,32 @@ test('http security config rejects invalid positive integer settings', () => {
     () => getApiHttpSecuritySettings(),
     /API_RATE_LIMIT_LIMIT must be a positive integer/,
   );
+});
+
+test('swagger is enabled in local environment by default', () => {
+  process.env.ENVIRONMENT = 'local';
+  delete process.env.SWAGGER_ENABLED;
+
+  assert.equal(isSwaggerEnabled(), true);
+});
+
+test('swagger is disabled in staging environment by default', () => {
+  process.env.ENVIRONMENT = 'staging';
+  delete process.env.SWAGGER_ENABLED;
+
+  assert.equal(isSwaggerEnabled(), false);
+});
+
+test('swagger can be force-enabled via SWAGGER_ENABLED=true', () => {
+  process.env.ENVIRONMENT = 'staging';
+  process.env.SWAGGER_ENABLED = 'true';
+
+  assert.equal(isSwaggerEnabled(), true);
+});
+
+test('swagger can be force-disabled via SWAGGER_ENABLED=false in local', () => {
+  process.env.ENVIRONMENT = 'local';
+  process.env.SWAGGER_ENABLED = 'false';
+
+  assert.equal(isSwaggerEnabled(), false);
 });
