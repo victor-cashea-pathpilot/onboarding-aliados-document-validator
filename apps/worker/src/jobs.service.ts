@@ -542,8 +542,8 @@ export class JobsService {
 
     const [dominantSource, dominantStatus, dominantConfidence, dominantSummary] = candidates.reduce(
       (best, current) => {
-        const bestRank = severityOrder[best[1]];
-        const currentRank = severityOrder[current[1]];
+        const bestRank = severityOrder[best[1] as keyof typeof severityOrder];
+        const currentRank = severityOrder[current[1] as keyof typeof severityOrder];
         if (currentRank > bestRank) {
           return current;
         }

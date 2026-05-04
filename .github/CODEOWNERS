@@ -1,0 +1,22 @@
+# CODEOWNERS — ai-legal-doc-validation
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Rules are evaluated last-match-wins.
+# The team @cashea-bnpl/ldv-maintainers must approve every PR by default.
+
+# Global fallback — all files require LDV maintainer review
+*                                          @cashea-bnpl/ldv-maintainers
+
+# Infrastructure and CI/CD — stricter: also require infra team
+/.github/                                  @cashea-bnpl/ldv-maintainers @cashea-bnpl/infra
+/infra/                                    @cashea-bnpl/ldv-maintainers @cashea-bnpl/infra
+/apps/*/Dockerfile                         @cashea-bnpl/ldv-maintainers @cashea-bnpl/infra
+
+# Security-sensitive files — require maintainers (infra notified via global match on /infra/)
+/apps/api/src/auth/                        @cashea-bnpl/ldv-maintainers
+/apps/api/src/filters/                     @cashea-bnpl/ldv-maintainers
+/apps/api/src/http-security.config.ts      @cashea-bnpl/ldv-maintainers
+/tsconfig.base.json                        @cashea-bnpl/ldv-maintainers
+
+# Docs
+/docs/                                     @cashea-bnpl/ldv-maintainers
