@@ -1,4 +1,4 @@
-FROM node:20-slim AS build
+FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS build
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN npm ci
 RUN npm run build
 RUN npm prune --omit=dev
 
-FROM node:20-slim AS runtime
+FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS runtime
 
 ENV NODE_ENV=production
 ENV PORT=8080

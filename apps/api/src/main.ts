@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { json, urlencoded } from 'express';
+import { type NextFunction, type Request, type Response, json, urlencoded } from 'express';
 import helmet from 'helmet';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
@@ -21,7 +21,7 @@ async function bootstrap() {
 
   expressApp.set('trust proxy', true);
 
-  app.use((request, response, next) => {
+  app.use((request: Request, response: Response, next: NextFunction) => {
     const requestIdHeader = request.header('x-request-id');
     const requestId =
       typeof requestIdHeader === 'string' && requestIdHeader.trim().length > 0

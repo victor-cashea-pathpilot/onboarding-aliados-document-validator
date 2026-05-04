@@ -1,0 +1,47 @@
+version: 2
+updates:
+  # npm — monorepo root (covers all apps and packages)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Bogota"
+    open-pull-requests-limit: 5
+    target-branch: "develop"
+    labels:
+      - "dependencies"
+    groups:
+      # Batch NestJS core updates together
+      nestjs:
+        patterns:
+          - "@nestjs/*"
+      # Batch Google Cloud SDK updates together
+      gcp-sdk:
+        patterns:
+          - "@google-cloud/*"
+          - "google-auth-library"
+      # Batch Gemini / AI SDK updates together
+      gemini:
+        patterns:
+          - "@google/generative-ai"
+          - "@google-cloud/vertexai"
+    ignore:
+      # Pin major versions — review manually before bumping
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Bogota"
+    open-pull-requests-limit: 3
+    target-branch: "develop"
+    labels:
+      - "dependencies"
+      - "ci"
