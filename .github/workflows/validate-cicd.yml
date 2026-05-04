@@ -1,0 +1,99 @@
+name: Validate CI/CD Config
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - "infra/cicd/**"
+      - ".github/workflows/**"
+
+  workflow_dispatch:
+
+concurrency:
+  group: validate-cicd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate CI/CD scripts and config
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Validate deploy config YAML
+        run: |
+          echo "Validating infra/cicd/deploy-config.dev.yaml..."
+          yq '.' infra/cicd/deploy-config.dev.yaml > /dev/null
+          echo "YAML is well-formed."
+
+          echo "Checking required top-level keys..."
+          for key in version environment services; do
+            val="$(yq -r ".${key} // \"\"" infra/cicd/deploy-config.dev.yaml)"
+            if [[ -z "$val" ]]; then
+              echo "Missing required key: ${key}" >&2
+              exit 1
+            fi
+          done
+
+          echo "Checking required service keys..."
+          for svc in api worker grpc; do
+            for field in service_name image_name dockerfile runtime_service_account; do
+              val="$(yq -r ".services.${svc}.${field} // \"\"" infra/cicd/deploy-config.dev.yaml)"
+              if [[ -z "$val" ]]; then
+                echo "Missing .services.${svc}.${field}" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "All service definitions are complete."
+
+      - name: Shell script syntax check
+        run: |
+          echo "Checking shell script syntax..."
+          for script in \
+            infra/cicd/render_cloud_run_env.sh \
+            infra/cicd/build_and_push_service.sh \
+            infra/cicd/deploy_cloud_run_service.sh; do
+            bash -n "$script" && echo "OK: $script" || { echo "Syntax error in $script" >&2; exit 1; }
+          done
+
+      - name: Dry-run render_cloud_run_env for all services
+        run: |
+          echo "Dry-running render_cloud_run_env.sh for each service..."
+          export GCP_PROJECT_ID="dry-run-project"
+          export GCP_REGION="us-east1"
+          export FIRESTORE_DATABASE="dry-run-db"
+          export FIRESTORE_COLLECTION="dry-run-col"
+          export CLOUD_TASKS_QUEUE_ID="dry-run-queue"
+          export WORKER_BASE_URL="https://dry-run-worker.example.com"
+          export ENVIRONMENT="development"
+          export LOG_LEVEL="INFO"
+          export MOCK_MODE="false"
+          export DOWNLOAD_TIMEOUT_SECONDS="20"
+          export MAX_DOCUMENT_SIZE_BYTES="15728640"
+          export MAX_EXTRACTION_CONCURRENCY="4"
+          export GEMINI_LOCATION="global"
+          export GEMINI_MODEL_SIMPLE="gemini-2.5-flash"
+          export GEMINI_MODEL_COMPLEX="gemini-2.5-pro"
+          export ENABLE_LLM_CROSS_VALIDATION="true"
+          export ENABLE_LLM_LEGAL_ASSESSMENT="true"
+          export CASE_EXPLORER_API_URL="https://dry-run-explorer.example.com"
+
+          for svc in api worker grpc; do
+            out="/tmp/dry-run-${svc}.yaml"
+            bash infra/cicd/render_cloud_run_env.sh "$svc" "$out" \
+              infra/cicd/deploy-config.dev.yaml
+            echo "OK: $svc → $out"
+            cat "$out"
+            echo "---"
+          done
