@@ -1,6 +1,20 @@
 name: Deploy Cloud Run Dev
 
 on:
+  # Auto-deploy all services when a PR is merged into develop
+  push:
+    branches:
+      - develop
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "infra/cicd/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.base.json"
+      - "nest-cli.json"
+
+  # Manual trigger — allows targeting a single service
   workflow_dispatch:
     inputs:
       deploy_target:
@@ -16,14 +30,15 @@ on:
 
 permissions:
   contents: read
+  id-token: write   # required for Workload Identity Federation
 
 concurrency:
-  group: deploy-cloud-run-dev-${{ github.event.inputs.deploy_target }}
+  group: deploy-cloud-run-dev-${{ github.event.inputs.deploy_target || 'all' }}
   cancel-in-progress: false
 
 jobs:
   deploy-dev:
-    name: Deploy ${{ github.event.inputs.deploy_target }} to core-allies-dev
+    name: Deploy ${{ github.event.inputs.deploy_target || 'all' }} to core-allies-dev
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: dev
@@ -64,7 +79,8 @@ jobs:
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY_DEV }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SA_EMAIL }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -77,21 +93,16 @@ jobs:
       - name: Resolve deploy set
         id: targets
         run: |
-          case "${{ github.event.inputs.deploy_target }}" in
-            api)
-              echo "services=api" >>"$GITHUB_OUTPUT"
-              ;;
-            grpc)
-              echo "services=grpc" >>"$GITHUB_OUTPUT"
-              ;;
-            worker)
-              echo "services=worker" >>"$GITHUB_OUTPUT"
-              ;;
-            all)
-              echo "services=api grpc worker" >>"$GITHUB_OUTPUT"
-              ;;
+          # On push to develop, always deploy all services.
+          # On workflow_dispatch, respect the selected target.
+          TARGET="${{ github.event.inputs.deploy_target || 'all' }}"
+          case "$TARGET" in
+            api)    echo "services=api"           >>"$GITHUB_OUTPUT" ;;
+            grpc)   echo "services=grpc"          >>"$GITHUB_OUTPUT" ;;
+            worker) echo "services=worker"        >>"$GITHUB_OUTPUT" ;;
+            all)    echo "services=api grpc worker" >>"$GITHUB_OUTPUT" ;;
             *)
-              echo "Unsupported deploy target: ${{ github.event.inputs.deploy_target }}" >&2
+              echo "Unsupported deploy target: ${TARGET}" >&2
               exit 1
               ;;
           esac
@@ -110,12 +121,15 @@ jobs:
           done
 
       - name: Summarize deployed services
+        if: always()
         run: |
           {
             echo "## Dev Deploy Summary"
             echo
-            echo "Target: \`${{ github.event.inputs.deploy_target }}\`"
+            echo "Trigger: \`${{ github.event_name }}\`"
+            echo "Target: \`${{ github.event.inputs.deploy_target || 'all' }}\`"
             echo "Image tag: \`dev.${GITHUB_SHA::7}\`"
             echo "Project: \`${GCP_PROJECT_ID}\`"
             echo "Region: \`${GCP_REGION}\`"
+            echo "Commit: \`${GITHUB_SHA}\`"
           } >>"$GITHUB_STEP_SUMMARY"
