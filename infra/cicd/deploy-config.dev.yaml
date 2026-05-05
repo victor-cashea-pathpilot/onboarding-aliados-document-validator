@@ -1,7 +1,10 @@
 version: 1
+# Last updated: 2026-05-04 — added ENVIRONMENT and LOG_LEVEL to shared defaults
 
 environment:
   name: dev
+  log_level: INFO
+  environment: development
   project_id: core-allies-dev
   region: us-east1
   artifact_repository: cashea-repo
