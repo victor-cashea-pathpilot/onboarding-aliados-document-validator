@@ -49,7 +49,7 @@ export function getInfrastructureSettings(): InfrastructureSettings {
       process.env.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL ?? undefined,
     workerBaseUrl: process.env.WORKER_BASE_URL ?? undefined,
     workerAudience: process.env.WORKER_AUDIENCE ?? undefined,
-    workerAuthToken: process.env.WORKER_AUTH_TOKEN?.trim() ?? undefined,
+    workerAuthToken: process.env.WORKER_AUTH_TOKEN ?? undefined,
     geminiLocation: process.env.GEMINI_LOCATION ?? 'global',
     geminiModelSimple: process.env.GEMINI_MODEL_SIMPLE ?? 'gemini-2.5-flash',
     geminiModelComplex: process.env.GEMINI_MODEL_COMPLEX ?? 'gemini-2.5-pro',
