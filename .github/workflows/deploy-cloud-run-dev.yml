@@ -26,6 +26,7 @@ on:
           - api
           - grpc
           - worker
+          - explorer
           - all
 
 permissions:
@@ -97,10 +98,11 @@ jobs:
           # On workflow_dispatch, respect the selected target.
           TARGET="${{ github.event.inputs.deploy_target || 'all' }}"
           case "$TARGET" in
-            api)    echo "services=api"           >>"$GITHUB_OUTPUT" ;;
-            grpc)   echo "services=grpc"          >>"$GITHUB_OUTPUT" ;;
-            worker) echo "services=worker"        >>"$GITHUB_OUTPUT" ;;
-            all)    echo "services=api grpc worker" >>"$GITHUB_OUTPUT" ;;
+            api)      echo "services=api"                  >>"$GITHUB_OUTPUT" ;;
+            grpc)     echo "services=grpc"                 >>"$GITHUB_OUTPUT" ;;
+            worker)   echo "services=worker"               >>"$GITHUB_OUTPUT" ;;
+            explorer) echo "services=explorer"             >>"$GITHUB_OUTPUT" ;;
+            all)      echo "services=api grpc worker explorer" >>"$GITHUB_OUTPUT" ;;
             *)
               echo "Unsupported deploy target: ${TARGET}" >&2
               exit 1

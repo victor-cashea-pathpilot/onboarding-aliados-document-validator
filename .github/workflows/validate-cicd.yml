@@ -46,7 +46,7 @@ jobs:
           done
 
           echo "Checking required service keys..."
-          for svc in api worker grpc; do
+          for svc in api worker grpc explorer; do
             for field in service_name image_name dockerfile runtime_service_account; do
               val="$(yq -r ".services.${svc}.${field} // \"\"" infra/cicd/deploy-config.dev.yaml)"
               if [[ -z "$val" ]]; then
@@ -87,9 +87,11 @@ jobs:
           export GEMINI_MODEL_COMPLEX="gemini-2.5-pro"
           export ENABLE_LLM_CROSS_VALIDATION="true"
           export ENABLE_LLM_LEGAL_ASSESSMENT="true"
-          export CASE_EXPLORER_API_URL="https://dry-run-explorer.example.com"
+          export CASE_EXPLORER_API_URL="https://dry-run-api.example.com"
+          export CASE_EXPLORER_API_AUDIENCE="https://dry-run-api.example.com"
+          export WORKER_AUDIENCE="https://dry-run-worker.example.com"
 
-          for svc in api worker grpc; do
+          for svc in api worker grpc explorer; do
             out="/tmp/dry-run-${svc}.yaml"
             bash infra/cicd/render_cloud_run_env.sh "$svc" "$out" \
               infra/cicd/deploy-config.dev.yaml
