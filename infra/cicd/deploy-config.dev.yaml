@@ -99,8 +99,10 @@ services:
     max_instances: 2
     max_requests_per_instance: 100
     use_http2: false
-    allow_unauthenticated: false
-    ingress: internal-and-cloud-load-balancing
+    # DEBUG ACCESS: set both fields below to true / all to open the Explorer from any browser.
+    # Set back to false / internal-and-cloud-load-balancing and redeploy to lock it down again.
+    allow_unauthenticated: true
+    ingress: all
     vpc_egress: all-traffic
     secrets:
       WEBAPP_SESSION_SECRET: cashea-dev-ldv-webapp-session-secret:latest
