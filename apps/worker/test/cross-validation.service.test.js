@@ -57,7 +57,7 @@ test('CrossValidationService passes matching identity and company checks', () =>
   );
 
   assert.equal(checks.COMPANY_NAME_MATCH.status, 'PASSED');
-  assert.equal(checks.FISCAL_ADDRESS_MATCH.status, 'PASSED');
+  // FISCAL_ADDRESS_MATCH removed: legal team does not validate address consistency
   assert.equal(checks.CEDULA_MATCHES_LEGAL_REPRESENTATIVE.status, 'PASSED');
   assert.equal(checks.CEDULA_VALIDITY_POLICY.status, 'PASSED');
   assert.equal(checks.RIF_NATURE_ALLOWED.status, 'PASSED');

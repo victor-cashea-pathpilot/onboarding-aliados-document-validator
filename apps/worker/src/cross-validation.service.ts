@@ -36,7 +36,6 @@ export class CrossValidationService {
       ),
       this.corporateDocumentPrecedence(snapshot),
       this.companyNameMatch(snapshot),
-      this.fiscalAddressMatch(snapshot),
       this.cedulaMatchesLegalRepresentative(snapshot),
       this.companyValidity(snapshot),
       this.boardValidity(snapshot),
@@ -156,27 +155,13 @@ export class CrossValidationService {
     };
   }
 
-  private fiscalAddressMatch(snapshot: CanonicalMerchantSnapshot): CrossValidationCheck {
-    const rifAddress = this.normalizeComparableText(snapshot.rifFiscalAddress);
-    const legalAddress = this.normalizeComparableText(snapshot.companyRecord.fiscalAddress);
-    if (!rifAddress || !legalAddress) {
-      return {
-        code: 'FISCAL_ADDRESS_MATCH',
-        status: 'SKIPPED',
-        message:
-          'No hay suficientes datos para comparar la dirección fiscal entre RIF y documentos legales.',
-      };
-    }
-
-    const match = rifAddress === legalAddress;
-    return {
-      code: 'FISCAL_ADDRESS_MATCH',
-      status: match ? 'PASSED' : 'FAILED',
-      message: match
-        ? 'La dirección fiscal del RIF coincide con la de los documentos legales.'
-        : 'La dirección fiscal del RIF no coincide exactamente con la de los documentos legales.',
-    };
-  }
+  // NOTE: FISCAL_ADDRESS_MATCH intentionally removed.
+  // The legal team does not validate fiscal address consistency — the merchant's
+  // preferred address is what they register in their store information.
+  // Comparing RIF address against corporate document address was producing
+  // false CRITICAL findings for addresses that are the same location written
+  // differently across document types (e.g. RIF uses bureaucratic long form,
+  // notarial docs use a shorter form).
 
   private cedulaMatchesLegalRepresentative(
     snapshot: CanonicalMerchantSnapshot,
