@@ -1,5 +1,5 @@
 version: 1
-# Last updated: 2026-05-04 — added ENVIRONMENT and LOG_LEVEL to shared defaults
+# Last updated: 2026-05-07 — added Explorer service with public debug access toggle
 
 environment:
   name: dev
