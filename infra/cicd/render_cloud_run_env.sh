@@ -36,9 +36,11 @@ FIRESTORE_DATABASE="${FIRESTORE_DATABASE:-$(read_config '.environment.firestore_
 FIRESTORE_COLLECTION="${FIRESTORE_COLLECTION:-$(read_config '.environment.firestore_collection')}"
 CLOUD_TASKS_QUEUE_ID="${CLOUD_TASKS_QUEUE_ID:-$(read_config '.environment.cloud_tasks_queue_id')}"
 WORKER_SERVICE_NAME="$(read_config '.services.worker.service_name')"
+API_SERVICE_NAME="$(read_config '.services.api.service_name')"
 WORKER_BASE_URL_OVERRIDE="${WORKER_BASE_URL:-}"
 WORKER_AUDIENCE_OVERRIDE="${WORKER_AUDIENCE:-}"
 WORKER_BASE_URL_CURRENT=""
+API_BASE_URL_CURRENT=""
 
 require_value "GCP_PROJECT_ID" "$PROJECT_ID"
 require_value "GCP_REGION" "$REGION"
@@ -54,8 +56,19 @@ if [[ -n "$WORKER_SERVICE_NAME" ]]; then
   )"
 fi
 
+if [[ -n "$API_SERVICE_NAME" ]]; then
+  API_BASE_URL_CURRENT="$(
+    gcloud run services describe "$API_SERVICE_NAME" \
+      --project "$PROJECT_ID" \
+      --region "$REGION" \
+      --format='value(status.url)' 2>/dev/null || true
+  )"
+fi
+
 WORKER_BASE_URL_RESOLVED="${WORKER_BASE_URL_OVERRIDE:-$WORKER_BASE_URL_CURRENT}"
 WORKER_AUDIENCE_RESOLVED="${WORKER_AUDIENCE_OVERRIDE:-$WORKER_BASE_URL_RESOLVED}"
+CASE_EXPLORER_API_URL_RESOLVED="${CASE_EXPLORER_API_URL:-$API_BASE_URL_CURRENT}"
+CASE_EXPLORER_API_AUDIENCE_RESOLVED="${CASE_EXPLORER_API_AUDIENCE:-$CASE_EXPLORER_API_URL_RESOLVED}"
 
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 : >"$OUTPUT_FILE"
@@ -101,9 +114,9 @@ if [[ "$SERVICE_KEY" == "worker" ]]; then
 fi
 
 if [[ "$SERVICE_KEY" == "explorer" ]]; then
-  require_value "CASE_EXPLORER_API_URL" "${CASE_EXPLORER_API_URL:-}"
-  append_pair "CASE_EXPLORER_API_URL" "${CASE_EXPLORER_API_URL}"
-  append_pair "CASE_EXPLORER_API_AUDIENCE" "${CASE_EXPLORER_API_AUDIENCE:-${CASE_EXPLORER_API_URL}}"
+  require_value "CASE_EXPLORER_API_URL" "$CASE_EXPLORER_API_URL_RESOLVED"
+  append_pair "CASE_EXPLORER_API_URL" "$CASE_EXPLORER_API_URL_RESOLVED"
+  append_pair "CASE_EXPLORER_API_AUDIENCE" "$CASE_EXPLORER_API_AUDIENCE_RESOLVED"
   # WEBAPP_SESSION_SECRET is injected by Cloud Run from GCP Secret Manager at runtime.
   # Do not write it here.
 fi
