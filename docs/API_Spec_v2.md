@@ -48,7 +48,7 @@ Headers:
 
 ```http
 Content-Type: application/json
-X-API-Key: <api-key>
+X-Api-Key: <api-key>
 ```
 
 Body:
