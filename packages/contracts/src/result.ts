@@ -24,9 +24,26 @@ export interface DocumentsResult {
   actaMercantil: DocumentResultItem[];
 }
 
+export interface ConfidenceBreakdown {
+  /** Confidence score from the LLM legal assessment model (0–100). */
+  llm_assessment: number;
+  /**
+   * Average document legibility score across all extracted documents (0–100).
+   * Null when no documents reported quality (e.g. mock mode or legacy cases).
+   */
+  document_quality: number | null;
+  /**
+   * Composite score: llm_assessment × (document_quality / 100), expressed as 0–100.
+   * Null when document_quality is unavailable (composite equals llm_assessment in that case).
+   */
+  composite: number | null;
+}
+
 export interface OverallResult {
   status: DocumentDecisionStatus;
   confidence: number;
   summary: string;
   errorCodes: string[];
+  /** Breakdown of how confidence was computed. Present for all cases processed after this feature was deployed. */
+  confidenceBreakdown?: ConfidenceBreakdown;
 }

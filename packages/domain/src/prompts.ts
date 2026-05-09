@@ -55,8 +55,21 @@ Responde SOLO con un JSON válido en este formato exacto:
   "rif_number": "",
   "company_name": "",
   "fiscal_address": "",
-  "expiration_date": ""
+  "expiration_date": "",
+  "document_quality": {
+    "legibility_score": 0.0,
+    "completeness_score": 0.0,
+    "notes": ""
+  }
 }
+
+Instrucciones para document_quality:
+- legibility_score: número entre 0.0 y 1.0 que refleja qué tan legible está el documento.
+  1.0 = todo el texto es perfectamente legible. 0.0 = el documento es ilegible.
+  Considera borroso, pixelado, texto cortado, sellos sobre texto, iluminación deficiente.
+- completeness_score: número entre 0.0 y 1.0 que refleja qué proporción de los campos esperados
+  pudiste extraer con información real (no vacía). 1.0 = todos los campos presentes.
+- notes: observación breve si hay algún problema de calidad (máx. 100 caracteres). Vacío si el documento es claro.
 
 Si algún dato no está disponible, deja el campo como cadena vacía.
 No incluyas bloques de código markdown.
@@ -79,8 +92,21 @@ Responde SOLO con un JSON válido en este formato exacto:
   "id_number": "",
   "first_name": "",
   "last_name": "",
-  "expiration_date": ""
+  "expiration_date": "",
+  "document_quality": {
+    "legibility_score": 0.0,
+    "completeness_score": 0.0,
+    "notes": ""
+  }
 }
+
+Instrucciones para document_quality:
+- legibility_score: número entre 0.0 y 1.0 que refleja qué tan legible está el documento.
+  1.0 = todo el texto es perfectamente legible. 0.0 = el documento es ilegible.
+  Considera borroso, pixelado, texto cortado, sellos sobre texto, iluminación deficiente.
+- completeness_score: número entre 0.0 y 1.0 que refleja qué proporción de los campos esperados
+  pudiste extraer con información real (no vacía). 1.0 = todos los campos presentes.
+- notes: observación breve si hay algún problema de calidad (máx. 100 caracteres). Vacío si el documento es claro.
 
 Si algún dato no es legible o no está presente, usa una cadena vacía para ese campo.
 No incluyas bloques de código markdown.
@@ -166,8 +192,21 @@ Responde ÚNICAMENTE con un JSON válido en este formato:
   "locations": {
     "fiscal_address": "",
     "store_addresses": ""
+  },
+  "document_quality": {
+    "legibility_score": 0.0,
+    "completeness_score": 0.0,
+    "notes": ""
   }
 }
+
+Instrucciones para document_quality:
+- legibility_score: número entre 0.0 y 1.0 que refleja qué tan legible está el documento.
+  1.0 = todo el texto es perfectamente legible. 0.0 = el documento es ilegible.
+  Considera borroso, pixelado, texto cortado, sellos sobre texto, iluminación deficiente.
+- completeness_score: número entre 0.0 y 1.0 que refleja qué proporción de los campos esperados
+  pudiste extraer con información real (no vacía). 1.0 = todos los campos presentes.
+- notes: observación breve si hay algún problema de calidad (máx. 100 caracteres). Vacío si el documento es claro.
 
 Si un dato no existe, usa "NO_ENCONTRADO".
 No incluyas bloques de código markdown.
@@ -270,8 +309,21 @@ Responde ÚNICAMENTE con un JSON válido en este formato:
   "locations": {
     "fiscal_address": "",
     "store_addresses": ""
+  },
+  "document_quality": {
+    "legibility_score": 0.0,
+    "completeness_score": 0.0,
+    "notes": ""
   }
 }
+
+Instrucciones para document_quality:
+- legibility_score: número entre 0.0 y 1.0 que refleja qué tan legible está el documento.
+  1.0 = todo el texto es perfectamente legible. 0.0 = el documento es ilegible.
+  Considera borroso, pixelado, texto cortado, sellos sobre texto, iluminación deficiente.
+- completeness_score: número entre 0.0 y 1.0 que refleja qué proporción de los campos esperados
+  pudiste extraer con información real (no vacía). 1.0 = todos los campos presentes.
+- notes: observación breve si hay algún problema de calidad (máx. 100 caracteres). Vacío si el documento es claro.
 
 Si un dato no existe o no cambió, usa "NO_ENCONTRADO".
 No incluyas bloques de código markdown.
@@ -340,8 +392,21 @@ Responde ÚNICAMENTE con un JSON válido en este formato:
   "locations": {
     "fiscal_address": "",
     "store_addresses": ""
+  },
+  "document_quality": {
+    "legibility_score": 0.0,
+    "completeness_score": 0.0,
+    "notes": ""
   }
 }
+
+Instrucciones para document_quality:
+- legibility_score: número entre 0.0 y 1.0 que refleja qué tan legible está el documento.
+  1.0 = todo el texto es perfectamente legible. 0.0 = el documento es ilegible.
+  Considera borroso, pixelado, texto cortado, sellos sobre texto, iluminación deficiente.
+- completeness_score: número entre 0.0 y 1.0 que refleja qué proporción de los campos esperados
+  pudiste extraer con información real (no vacía). 1.0 = todos los campos presentes.
+- notes: observación breve si hay algún problema de calidad (máx. 100 caracteres). Vacío si el documento es claro.
 
 Si un dato no existe, usa cadena vacía o "NO_ENCONTRADO" solo cuando sea realmente necesario.
 No incluyas bloques de código markdown.
