@@ -19,6 +19,14 @@ type AuthenticatedRequest = Request & {
   };
 };
 
+/**
+ * Extract a static API key from the X-Api-Key header.
+ * This is the preferred auth method for server-to-server calls.
+ */
+function extractApiKey(request: Request): string | null {
+  return extractHeaderValue(request.headers['x-api-key']);
+}
+
 function extractHeaderValue(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) {
     return value[0] ?? null;
@@ -71,11 +79,23 @@ export class ApiAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+
+    // 1. X-Api-Key header — preferred for server-to-server calls
+    const apiKey = extractApiKey(request);
+    if (apiKey) {
+      if (settings.staticBearerToken && safeEquals(apiKey, settings.staticBearerToken)) {
+        request.auth = { principal: 'static-bearer', type: 'static_bearer' };
+        return true;
+      }
+      throw new UnauthorizedException('Invalid API key.');
+    }
+
+    // 2. Authorization: Bearer — Google OIDC tokens and legacy static bearer
     const authorizationHeader = extractHeaderValue(request.headers.authorization);
     const bearerToken = extractBearerToken(authorizationHeader);
 
     if (!bearerToken) {
-      throw new UnauthorizedException('Missing bearer token.');
+      throw new UnauthorizedException('Missing authentication. Provide X-Api-Key or Authorization: Bearer <token>.');
     }
 
     if (

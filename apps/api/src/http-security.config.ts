@@ -88,6 +88,7 @@ export function getApiHttpSecuritySettings(): ApiHttpSecuritySettings {
       allowedHeaders: parseCsvEnv('API_CORS_ALLOWED_HEADERS', [
         'Authorization',
         'Content-Type',
+        'X-Api-Key',
         'X-Request-Id',
       ]),
       exposedHeaders: parseCsvEnv('API_CORS_EXPOSED_HEADERS', ['X-Request-Id']),

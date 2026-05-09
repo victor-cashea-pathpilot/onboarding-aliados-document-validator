@@ -26,7 +26,11 @@
     "start:api:dev": "nest start api --watch",
     "start:api-grpc:dev": "nest start api-grpc --watch",
     "start:worker:dev": "nest start worker --watch",
-    "start:case-explorer:dev": "nest start case-explorer --watch"
+    "start:case-explorer:dev": "nest start case-explorer --watch",
+    "test:cases": "bash scripts/run_test_cases.sh",
+    "eval:extraction": "node --test evals/run_extraction_eval.js",
+    "eval:cross-validation": "node --test evals/run_cross_validation_eval.js",
+    "eval:legal-assessment": "node --test evals/run_legal_assessment_eval.js"
   },
   "dependencies": {
     "@google-cloud/firestore": "^8.5.0",
