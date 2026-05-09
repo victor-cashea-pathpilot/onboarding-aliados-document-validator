@@ -28,10 +28,8 @@ services:
     max_instances: 5
     max_requests_per_instance: 100
     use_http2: false
-    # DEBUG ACCESS: set both fields below to true / all to open the API for external testing.
-    # Set back to false / internal-and-cloud-load-balancing and redeploy to lock it down again.
-    allow_unauthenticated: true
-    ingress: all
+    allow_unauthenticated: false
+    ingress: internal-and-cloud-load-balancing
     vpc_egress: all-traffic
     secrets:
       WORKER_AUTH_TOKEN: cashea-dev-ldv-worker-auth-token:latest
