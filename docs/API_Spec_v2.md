@@ -2,106 +2,201 @@
 
 ## Purpose
 
-This document defines the customer-facing API contract for Cashea's onboarding document validation service.
+This document defines the integration contract for Cashea's onboarding document validation service.
 
-The service is asynchronous. Cashea submits a validation job with typed document URLs, receives a `job_id`, and later retrieves the result by polling a status endpoint.
+The service is asynchronous. The caller submits a validation job with typed document URLs, receives a `job_id`, and later retrieves the result by polling a status endpoint.
 
-## Design Decisions
+---
 
-- The request already provides the type of each document.
-- The API does not classify document types.
-- The service validates files, extracts structured fields, cross-validates them, and returns a final verdict.
-- The contract is independent from internal implementation details such as workflow engines or prompt structure.
+## Transport options
 
-## Authentication
+| Transport | Intended for | Auth |
+|---|---|---|
+| **gRPC** | Production integrations (Cashea team) | Google identity token via Cloud Run IAM |
+| **HTTP REST** | Internal testing, smoke tests, CI | `X-Api-Key` static key |
 
-MVP recommendation:
+> **The Cashea integration team should use gRPC.** The HTTP API exists for testing and tooling — it is not the primary integration surface.
 
-- `X-API-Key` header
+---
 
-Future options:
+## gRPC (primary)
 
-- service-to-service auth through Google-native identity or API gateway controls
+### Connection
 
-## Async Model
+- **Package**: `onboarding.v1`
+- **Service**: `OnboardingService`
+- **Proto file**: `packages/contracts/proto/onboarding/v1/onboarding.proto`
 
-### Job Status Values
+### Authentication
 
-- `PENDING`: request accepted and queued
-- `PROCESSING`: extraction and validation in progress
-- `COMPLETED`: processing finished successfully
-- `FAILED`: technical failure prevented completion
+Auth is enforced by Cloud Run at the infrastructure level. Every gRPC call must carry a valid Google identity token in the `Authorization` metadata header:
 
-### Document Result Values
+```
+Authorization: Bearer <google-identity-token>
+```
 
-- `APPROVED`
-- `REJECTED`
-- `REQUIRES_REVIEW`
+Callers should use a Google service account with the `roles/run.invoker` IAM role on the gRPC Cloud Run service. The token can be obtained via:
 
-## Endpoint 1: Submit Validation Job
+```bash
+gcloud auth print-identity-token --audiences=<grpc-service-url>
+```
 
-### Request
+Or programmatically via the Google Auth Library (`google-auth-library`, `google.golang.org/grpc/credentials`, etc.).
 
-`POST /v1/onboarding/validate`
+### RPC methods
 
-Headers:
+#### `SubmitValidation`
+
+Submits a new validation job. Returns immediately with a `job_id`.
+
+**Request: `SubmitValidationRequest`**
+
+```proto
+message SubmitValidationRequest {
+  string merchant_id = 1;       // Required
+  string request_id  = 2;       // Optional — idempotency key
+  DocumentsPayload documents = 3;
+  map<string, string> metadata = 4;  // Optional custom metadata
+}
+
+message DocumentsPayload {
+  repeated DocumentReference rif                        = 1;
+  repeated DocumentReference cedula                     = 2;
+  repeated DocumentReference certificado_emprendimiento = 3;
+  repeated DocumentReference acta_constitutiva          = 4;
+  repeated DocumentReference acta_mercantil             = 5;
+}
+
+message DocumentReference {
+  string url         = 1;  // Required — publicly reachable HTTPS URL
+  string document_id = 2;  // Optional — caller-assigned identifier
+}
+```
+
+**Response: `SubmitValidationResponse`**
+
+```proto
+message SubmitValidationResponse {
+  string job_id      = 1;  // e.g. "val_789abc"
+  string status      = 2;  // Always "PENDING" on acceptance
+  string merchant_id = 3;
+  string request_id  = 4;
+  string created_at  = 5;  // ISO 8601
+}
+```
+
+---
+
+#### `GetStatus`
+
+Polls status for one or more jobs. Safe to call repeatedly.
+
+**Request: `StatusRequest`**
+
+```proto
+message StatusRequest {
+  repeated string job_ids = 1;
+}
+```
+
+**Response: `StatusResponse`**
+
+```proto
+message StatusResponse {
+  repeated StatusResponseItem items = 1;
+}
+
+message StatusResponseItem {
+  string job_id      = 1;
+  string status      = 2;  // PENDING | PROCESSING | COMPLETED | FAILED
+  string merchant_id = 3;
+
+  bool         has_progress    = 4;
+  ProgressInfo progress        = 5;  // Present when status != PENDING
+
+  bool          has_overall_result = 6;
+  OverallResult overall_result     = 7;  // Present when status == COMPLETED
+
+  string documents_json        = 8;   // JSON-encoded document results
+  string cross_validation_json = 9;   // JSON-encoded cross-validation detail
+
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+message ProgressInfo {
+  string stage      = 1;  // See Job Stages below
+  int32  percentage = 2;  // 0–100
+  string message    = 3;
+}
+
+message OverallResult {
+  string status     = 1;  // APPROVED | REJECTED | REQUIRES_REVIEW
+  double confidence = 2;  // 0–100 composite score
+  string summary    = 3;  // Human-readable decision rationale
+  repeated string error_codes = 4;
+}
+```
+
+> **Note:** `documents_json` and `cross_validation_json` are serialised JSON strings. Parse them as JSON after receiving to access the full document-level results and cross-validation detail. See the HTTP response examples below for their structure.
+
+---
+
+#### `GetHealth`
+
+Liveness check. Returns immediately.
+
+```proto
+// Request:  HealthRequest  {}
+// Response: HealthResponse { service, status, phase }
+```
+
+---
+
+## HTTP REST (testing / internal)
+
+### Authentication
+
+All protected endpoints require an API key passed as a header:
 
 ```http
+X-Api-Key: <api-key>
+```
+
+> This key is stored in GCP Secret Manager (`cashea-dev-ldv-api-key`). It is intended for test scripts and CI — **not** for production integrations.
+
+`Authorization: Bearer <token>` is also accepted for Google OIDC tokens and backward compatibility.
+
+### Endpoints
+
+#### `POST /v1/onboarding/validate` — Submit job
+
+```http
+POST /v1/onboarding/validate
 Content-Type: application/json
 X-Api-Key: <api-key>
 ```
 
-Body:
+**Body:**
 
 ```json
 {
   "merchant_id": "98765",
   "request_id": "cashea-req-001",
   "documents": {
-    "rif": [
-      {
-        "url": "https://storage.example/rif.pdf",
-        "document_id": "rif-1"
-      }
-    ],
-    "cedula": [
-      {
-        "url": "https://storage.example/cedula-frente.jpg",
-        "document_id": "cedula-1"
-      }
-    ],
-    "certificado_emprendimiento": [],
-    "acta_constitutiva": [
-      {
-        "url": "https://storage.example/acta-constitutiva.pdf",
-        "document_id": "acta-1"
-      }
-    ],
-    "acta_mercantil": [
-      {
-        "url": "https://storage.example/acta-mercantil.pdf",
-        "document_id": "acta-2"
-      }
-    ]
+    "rif":                        [{ "url": "https://storage.example/rif.pdf",       "document_id": "rif-1"  }],
+    "cedula":                     [{ "url": "https://storage.example/cedula.jpg",     "document_id": "ced-1"  }],
+    "acta_constitutiva":          [{ "url": "https://storage.example/acta.pdf",       "document_id": "acta-1" }],
+    "acta_mercantil":             [{ "url": "https://storage.example/mercantil.pdf",  "document_id": "merc-1" }],
+    "certificado_emprendimiento": []
   },
   "metadata": {
-    "submitted_by": "cashea-onboarding",
-    "source_system": "cashea-backoffice"
+    "submitted_by": "cashea-onboarding"
   }
 }
 ```
 
-### Request Rules
-
-- `merchant_id` is required.
-- At least one document must be provided.
-- Each document entry must include a reachable `url`.
-- Document routing is based on the key under `documents`.
-- Empty arrays are allowed for non-submitted document types.
-
-### Success Response
-
-`202 Accepted`
+**Response `202 Accepted`:**
 
 ```json
 {
@@ -113,48 +208,29 @@ Body:
 }
 ```
 
-### Error Response
+**Request rules:**
+- `merchant_id` is required.
+- At least one document must be provided.
+- Each document entry must include a reachable `url`.
+- Empty arrays are allowed for unused document types.
 
-`400 Bad Request`
+---
 
-```json
-{
-  "error_code": "INVALID_REQUEST",
-  "message": "The request body is malformed or missing required fields.",
-  "details": [
-    {
-      "field": "documents.rif[0].url",
-      "message": "URL is required."
-    }
-  ]
-}
+#### `POST /v1/onboarding/status` — Poll status
+
+```http
+POST /v1/onboarding/status
+Content-Type: application/json
+X-Api-Key: <api-key>
 ```
 
-## Endpoint 2: Get Validation Status
-
-### Recommended MVP Shape
-
-`POST /v1/onboarding/status`
-
-Body:
+**Body:**
 
 ```json
-{
-  "job_ids": ["val_789abc", "val_456def"]
-}
+{ "job_ids": ["val_789abc", "val_456def"] }
 ```
 
-This keeps parity with Cashea's expected bulk polling model.
-
-### Optional Convenience Endpoint
-
-Internal or future external use:
-
-`GET /v1/onboarding/jobs/{job_id}`
-
-## Status Response
-
-`200 OK`
+**Response `200 OK` — job in progress:**
 
 ```json
 [
@@ -169,7 +245,14 @@ Internal or future external use:
     },
     "created_at": "2026-03-25T18:00:00Z",
     "updated_at": "2026-03-25T18:01:10Z"
-  },
+  }
+]
+```
+
+**Response `200 OK` — job completed:**
+
+```json
+[
   {
     "job_id": "val_456def",
     "merchant_id": "98766",
@@ -186,76 +269,51 @@ Internal or future external use:
       }
     },
     "documents": {
-      "rif": [
-        {
-          "document_id": "rif-1",
-          "status": "APPROVED",
-          "confidence": 96,
-          "extracted_data": {
-            "rif_number": "J-12345678-0",
-            "company_name": "Comercial Ejemplo C.A.",
-            "expiration_date": "2026-12-31"
-          },
-          "errors": []
-        }
-      ],
-      "cedula": [
-        {
-          "document_id": "cedula-1",
-          "status": "APPROVED",
-          "confidence": 93,
-          "extracted_data": {
-            "id_number": "V-12345678",
-            "first_name": "Ana",
-            "last_name": "Perez"
-          },
-          "errors": []
-        }
-      ],
-      "acta_constitutiva": [
-        {
-          "document_id": "acta-1",
-          "status": "REJECTED",
-          "confidence": 88,
-          "extracted_data": {
-            "company_name": "Comercial Ejemplo C.A.",
-            "legal_representatives": [
-              {
-                "full_name": "Carlos Perez",
-                "id_number": "V-99887766",
-                "role": "Presidente"
-              }
-            ],
-            "signature_mode": "SEPARADA"
-          },
-          "errors": [
-            {
-              "error_code": "NO_COINCIDE_REPRESENTANTE",
-              "message": "The identity document does not match a valid legal representative in the constitutive documents."
-            }
-          ]
-        }
-      ],
+      "rif": [{
+        "document_id": "rif-1",
+        "status": "APPROVED",
+        "confidence": 96,
+        "extracted_data": {
+          "rif_number": "J-12345678-0",
+          "company_name": "Comercial Ejemplo C.A.",
+          "expiration_date": "2026-12-31"
+        },
+        "errors": []
+      }],
+      "cedula": [{
+        "document_id": "ced-1",
+        "status": "APPROVED",
+        "confidence": 93,
+        "extracted_data": {
+          "id_number": "V-12345678",
+          "first_name": "Ana",
+          "last_name": "Perez"
+        },
+        "errors": []
+      }],
+      "acta_constitutiva": [{
+        "document_id": "acta-1",
+        "status": "REJECTED",
+        "confidence": 88,
+        "extracted_data": {
+          "company_name": "Comercial Ejemplo C.A.",
+          "legal_representatives": [
+            { "full_name": "Carlos Perez", "id_number": "V-99887766", "role": "Presidente" }
+          ],
+          "signature_mode": "SEPARADA"
+        },
+        "errors": [
+          { "error_code": "NO_COINCIDE_REPRESENTANTE", "message": "The identity document does not match a valid legal representative in the constitutive documents." }
+        ]
+      }],
       "acta_mercantil": [],
       "certificado_emprendimiento": []
     },
     "cross_validation": {
       "checks": [
-        {
-          "code": "MATCH_COMPANY_NAME",
-          "status": "PASSED",
-          "message": "Company name is consistent across RIF and constitutive documentation."
-        },
-        {
-          "code": "MATCH_REPRESENTATIVE_ID",
-          "status": "FAILED",
-          "message": "Identity card does not match the legal representative declared in the constitutive documentation."
-        },
-        {
-          "code": "RIF_VALIDITY",
-          "status": "PASSED",
-          "message": "RIF is valid and not expired."
-        }
+        { "code": "MATCH_COMPANY_NAME",    "status": "PASSED", "message": "Company name is consistent across RIF and constitutive documentation." },
+        { "code": "MATCH_REPRESENTATIVE_ID","status": "FAILED", "message": "Identity card does not match the legal representative declared in the constitutive documentation." },
+        { "code": "RIF_VALIDITY",           "status": "PASSED", "message": "RIF is valid and not expired." }
       ]
     },
     "created_at": "2026-03-25T17:55:00Z",
@@ -264,72 +322,79 @@ Internal or future external use:
 ]
 ```
 
-## Confidence Score
-
-The `confidence` field in `overall_result` is a 0–100 score reflecting how certain the system is about its decision.
-
-It is a composite of two factors:
-
-| Factor | Field | Description |
-|---|---|---|
-| LLM assessment | `confidence_breakdown.llm_assessment` | How confident the legal assessment model is in its verdict (0–100) |
-| Document quality | `confidence_breakdown.document_quality` | Average legibility of submitted documents as rated by Gemini during extraction (0–100) |
-| **Composite** | `confidence_breakdown.composite` | `llm_assessment × (document_quality / 100)` — the final penalised score |
-
-A perfect-quality case with `llm_assessment: 95` and `document_quality: 100` yields `composite: 95`. The same case with blurry documents (`document_quality: 70`) yields `composite: 66`, surfacing to the Cashea team that the decision is less reliable.
-
-`confidence_breakdown` is `null` when the job is not yet `COMPLETED` or when documents were not extractable.
-
 ---
 
-## Error Taxonomy
+## Reference
 
-### Request-Level Errors
+### Job statuses
 
-- `INVALID_REQUEST`
-- `UNSUPPORTED_DOCUMENT_TYPE`
-- `DOCUMENT_URL_UNREACHABLE`
-- `DOCUMENT_DOWNLOAD_FAILED`
-- `DOCUMENT_TOO_LARGE`
-- `DOCUMENT_CONTENT_TYPE_INVALID`
+| Status | Meaning |
+|---|---|
+| `PENDING` | Request accepted and queued |
+| `PROCESSING` | Extraction and validation in progress |
+| `COMPLETED` | Processing finished — `overall_result` is populated |
+| `FAILED` | Technical failure — retry or escalate |
 
-### Processing-Level Errors
+### Job stages (`progress.stage`)
 
-- `EXTRACTION_FAILED`
-- `NORMALIZATION_FAILED`
-- `CROSS_VALIDATION_FAILED`
-- `MODEL_TIMEOUT`
-- `INTERNAL_PROCESSING_ERROR`
+| Stage | Description |
+|---|---|
+| `document_intake` | Validating document URLs and downloading files |
+| `document_extraction` | Extracting structured fields via Gemini |
+| `document_normalization` | Building canonical merchant snapshot |
+| `cross_validation` | Rule-based + LLM cross-validation |
+| `completed` | All stages done |
 
-### Document-Level Rejection or Alert Codes
+### Decision statuses
 
-- `CALIDAD_INSUFICIENTE`
-- `DOCUMENTO_ILEGIBLE`
-- `DOCUMENTO_INCORRECTO`
-- `DOCUMENTO_INCOMPLETO`
-- `DOCUMENTO_VENCIDO`
-- `NO_COINCIDE_RIF`
-- `NO_COINCIDE_REPRESENTANTE`
-- `NO_COINCIDE_RAZON_SOCIAL`
-- `JUNTA_DIRECTIVA_VENCIDA`
-- `FIRMA_CONJUNTA_INCOMPLETA`
-- `BAJA_CONFIANZA`
+| Status | Meaning |
+|---|---|
+| `APPROVED` | All checks passed |
+| `REJECTED` | One or more critical checks failed |
+| `REQUIRES_REVIEW` | Ambiguous result — manual review needed |
 
-## Canonical Validation Expectations
+### Confidence score
 
-The service should validate at least the following:
+`overall_result.confidence` is a 0–100 composite score reflecting both legal certainty and document quality.
 
-- required document presence
-- document readability and extractability
-- expiration dates where applicable
-- RIF-to-company consistency
-- representative identity consistency
-- legal authority consistency
-- board validity where applicable
-- signature-rule consistency
+| Field | Description |
+|---|---|
+| `confidence_breakdown.llm_assessment` | Legal assessment model confidence (0–100) |
+| `confidence_breakdown.document_quality` | Average legibility of submitted documents (0–100) |
+| `confidence_breakdown.composite` | `llm_assessment × (document_quality / 100)` — final score |
 
-## Notes for Implementation
+A high `llm_assessment` with low `document_quality` means the model is uncertain due to poor document scans, not legal issues.
 
-- Internal processing may use multiple Gemini prompts, but the API must return a stable schema.
-- The final result should preserve both document-level results and cross-validation evidence.
-- `REQUIRES_REVIEW` should be used for ambiguity, low confidence, or incomplete legal certainty.
+### Error / finding codes
+
+| Code | Meaning |
+|---|---|
+| `NO_COINCIDE_RIF` | RIF number mismatch across documents |
+| `NO_COINCIDE_REPRESENTANTE` | Legal representative identity mismatch |
+| `NO_COINCIDE_RAZON_SOCIAL` | Company name mismatch |
+| `JUNTA_DIRECTIVA_VENCIDA` | Board of directors term expired |
+| `FIRMA_CONJUNTA_INCOMPLETA` | Joint signature requirement not met |
+| `DOCUMENTO_VENCIDO` | Document is expired |
+| `DOCUMENTO_ILEGIBLE` | Document could not be read |
+| `DOCUMENTO_INCOMPLETO` | Document is missing required sections |
+| `CALIDAD_INSUFICIENTE` | Document quality too low for reliable extraction |
+| `BAJA_CONFIANZA` | Confidence below acceptable threshold |
+
+### Request-level errors (HTTP only)
+
+| Code | HTTP status |
+|---|---|
+| `INVALID_REQUEST` | 400 |
+| `DOCUMENT_URL_UNREACHABLE` | 400 |
+| `DOCUMENT_TOO_LARGE` | 400 |
+| `DOCUMENT_CONTENT_TYPE_INVALID` | 400 |
+
+### Canonical validation checks
+
+The service validates:
+- Required document presence for the merchant's legal mode
+- Document readability and extractability
+- Expiration dates (RIF, cédula, acta constitutiva board term)
+- RIF-to-company name consistency
+- Representative identity consistency across cédula and acta constitutiva
+- Signature rule compliance (individual vs. joint)
