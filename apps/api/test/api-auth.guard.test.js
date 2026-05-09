@@ -87,7 +87,7 @@ test('ApiAuthGuard rejects protected routes without bearer token when auth is en
 
 test('ApiAuthGuard accepts a valid static bearer token', async () => {
   process.env.API_AUTH_MODE = 'google_oidc';
-  process.env.API_STATIC_BEARER_TOKEN = 'super-secret-token';
+  process.env.API_KEY = 'super-secret-token';
 
   const guard = new ApiAuthGuard(
     {
@@ -134,7 +134,7 @@ test('ApiAuthGuard accepts a valid static bearer token', async () => {
 
 test('ApiAuthGuard verifies Google identity tokens against forwarded audience', async () => {
   process.env.API_AUTH_MODE = 'google_oidc';
-  delete process.env.API_STATIC_BEARER_TOKEN;
+  delete process.env.API_KEY;
   delete process.env.API_AUTH_AUDIENCE;
   delete process.env.API_AUTH_AUDIENCES;
 
@@ -195,7 +195,7 @@ test('ApiAuthGuard verifies Google identity tokens against forwarded audience', 
 test('ApiAuthGuard disables auth by default in local environments', async () => {
   delete process.env.API_AUTH_MODE;
   process.env.ENVIRONMENT = 'local';
-  delete process.env.API_STATIC_BEARER_TOKEN;
+  delete process.env.API_KEY;
 
   const guard = new ApiAuthGuard(
     {
