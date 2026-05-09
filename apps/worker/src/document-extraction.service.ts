@@ -147,6 +147,7 @@ export class DocumentExtractionService {
       });
 
       const completedAtMs = Date.now();
+      const documentQuality = this.extractDocumentQuality(extractedFields);
 
       return {
         ...item,
@@ -160,6 +161,7 @@ export class DocumentExtractionService {
           extraction_completed_at: new Date(completedAtMs).toISOString(),
           extraction_duration_ms: completedAtMs - startedAtMs,
           extracted_fields: extractedFields,
+          document_quality: documentQuality,
         },
       };
     } catch (error) {
@@ -304,6 +306,39 @@ export class DocumentExtractionService {
       default:
         throw new Error(`Unsupported document type: ${documentType satisfies never}`);
     }
+  }
+
+  /**
+   * Extracts the document_quality block from the raw Gemini response fields.
+   * Returns a normalized quality object with legibility_score (0-1),
+   * completeness_score (0-1), and optional notes.
+   * Defaults to null if the model did not report quality (e.g. older prompts or mock mode).
+   */
+  private extractDocumentQuality(
+    extractedFields: Record<string, unknown>,
+  ): { legibility_score: number; completeness_score: number; notes: string } | null {
+    const raw = extractedFields['document_quality'];
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return null;
+    }
+    const q = raw as Record<string, unknown>;
+    const legibility = this.clampScore(q['legibility_score']);
+    const completeness = this.clampScore(q['completeness_score']);
+    if (legibility === null && completeness === null) {
+      return null;
+    }
+    return {
+      legibility_score: legibility ?? 1.0,
+      completeness_score: completeness ?? 1.0,
+      notes: typeof q['notes'] === 'string' ? q['notes'].slice(0, 200) : '',
+    };
+  }
+
+  private clampScore(value: unknown): number | null {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return null;
+    }
+    return Math.min(1, Math.max(0, value));
   }
 
   private asDocumentArray(value: unknown): DocumentResultItem[] {

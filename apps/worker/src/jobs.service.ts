@@ -1,4 +1,5 @@
 import type {
+  ConfidenceBreakdown,
   CrossValidationCheck,
   CrossValidationFinding,
   LLMValidationReview,
@@ -221,10 +222,12 @@ export class JobsService {
       });
 
       const failedChecks = checks.filter((check) => check.status === 'FAILED');
+      const documentQualityScore = this.computeDocumentQualityScore(extractedDocuments);
       const overallResult = this.composeCrossValidationResult({
         failedChecks,
         llmCrossValidation,
         llmLegalAssessment,
+        documentQualityScore,
       });
       const completedAt = new Date().toISOString();
 
@@ -496,6 +499,7 @@ export class JobsService {
     failedChecks: CrossValidationCheck[];
     llmCrossValidation: LLMValidationReview;
     llmLegalAssessment: LLMValidationReview;
+    documentQualityScore: number | null;
   }) {
     const failedCodes = input.failedChecks.map((check) => check.code);
     const baseResult =
@@ -554,27 +558,74 @@ export class JobsService {
       },
     );
 
-    if (dominantSource === 'rules') {
-      return baseResult;
-    }
-
-    const combinedErrorCodes = [...baseResult.error_codes];
-    for (const review of [input.llmCrossValidation, input.llmLegalAssessment]) {
-      for (const finding of review.findings) {
-        for (const relatedCheck of finding.relatedChecks) {
-          if (!combinedErrorCodes.includes(relatedCheck)) {
-            combinedErrorCodes.push(relatedCheck);
+    const combinedErrorCodes = dominantSource === 'rules' ? [...baseResult.error_codes] : [...baseResult.error_codes];
+    if (dominantSource !== 'rules') {
+      for (const review of [input.llmCrossValidation, input.llmLegalAssessment]) {
+        for (const finding of review.findings) {
+          for (const relatedCheck of finding.relatedChecks) {
+            if (!combinedErrorCodes.includes(relatedCheck)) {
+              combinedErrorCodes.push(relatedCheck);
+            }
           }
         }
       }
     }
 
+    // Build confidence breakdown: composite = llm_assessment × document_quality
+    const llmAssessmentConfidence = input.llmLegalAssessment.confidence;
+    const documentQuality100 =
+      input.documentQualityScore !== null
+        ? Math.round(input.documentQualityScore * 100)
+        : null;
+    const compositeConfidence =
+      documentQuality100 !== null
+        ? Math.round(llmAssessmentConfidence * (documentQuality100 / 100))
+        : null;
+
+    const confidenceBreakdown: ConfidenceBreakdown = {
+      llm_assessment: llmAssessmentConfidence,
+      document_quality: documentQuality100,
+      composite: compositeConfidence,
+    };
+
+    // The reported confidence is the composite when available, otherwise the dominant source's confidence.
+    const reportedConfidence = compositeConfidence ?? dominantConfidence;
+
+    if (dominantSource === 'rules') {
+      return {
+        ...baseResult,
+        confidence: reportedConfidence,
+        confidence_breakdown: confidenceBreakdown,
+      };
+    }
+
     return {
       status: dominantStatus,
-      confidence: dominantConfidence,
+      confidence: reportedConfidence,
       summary: dominantSummary,
       error_codes: combinedErrorCodes,
+      confidence_breakdown: confidenceBreakdown,
     };
+  }
+
+  /**
+   * Aggregates document legibility scores from all extracted documents.
+   * Each document reports legibility_score (0–1) inside extracted_data.document_quality.
+   * Returns the average across all documents that reported a score, or null if none did.
+   */
+  private computeDocumentQualityScore(documents: Record<string, unknown>): number | null {
+    const scores: number[] = [];
+    for (const item of this.flattenDocumentItems(documents)) {
+      const data = asObject(item['extracted_data']) ?? {};
+      const quality = asObject(data['document_quality']);
+      if (!quality) continue;
+      const score = typeof quality['legibility_score'] === 'number' ? quality['legibility_score'] : null;
+      if (score !== null && Number.isFinite(score)) {
+        scores.push(Math.min(1, Math.max(0, score)));
+      }
+    }
+    if (scores.length === 0) return null;
+    return scores.reduce((sum, s) => sum + s, 0) / scores.length;
   }
 
   private alignLlmReviewForParity(input: {
