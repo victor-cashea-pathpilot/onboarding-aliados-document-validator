@@ -33,6 +33,7 @@ services:
     vpc_egress: all-traffic
     secrets:
       WORKER_AUTH_TOKEN: cashea-dev-ldv-worker-auth-token:latest
+      API_KEY: cashea-dev-ldv-api-key:latest
     env:
       TS_SERVICE_NAME: api
       API_AUTH_MODE: google_oidc
@@ -64,6 +65,7 @@ services:
     vpc_egress: all-traffic
     secrets:
       WORKER_AUTH_TOKEN: cashea-dev-ldv-worker-auth-token:latest
+      API_KEY: cashea-dev-ldv-api-key:latest
     env:
       TS_SERVICE_NAME: api-grpc
 

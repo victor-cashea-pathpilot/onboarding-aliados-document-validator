@@ -64,6 +64,6 @@ export function getApiAuthSettings(): ApiAuthSettings {
   return {
     mode: parseAuthMode(readEnv('API_AUTH_MODE')) ?? defaultAuthMode(),
     configuredAudiences: parseAudiences(),
-    staticBearerToken: readEnv('API_STATIC_BEARER_TOKEN'),
+    staticBearerToken: readEnv('API_KEY'),
   };
 }
