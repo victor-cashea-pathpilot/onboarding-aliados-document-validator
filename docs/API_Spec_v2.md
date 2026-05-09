@@ -178,7 +178,12 @@ Internal or future external use:
       "status": "REJECTED",
       "confidence": 92,
       "summary": "The case was rejected because the representative identity does not match the constitutive documentation.",
-      "error_codes": ["NO_COINCIDE_REPRESENTANTE"]
+      "error_codes": ["NO_COINCIDE_REPRESENTANTE"],
+      "confidence_breakdown": {
+        "llm_assessment": 95,
+        "document_quality": 97,
+        "composite": 92
+      }
     },
     "documents": {
       "rif": [
@@ -258,6 +263,24 @@ Internal or future external use:
   }
 ]
 ```
+
+## Confidence Score
+
+The `confidence` field in `overall_result` is a 0–100 score reflecting how certain the system is about its decision.
+
+It is a composite of two factors:
+
+| Factor | Field | Description |
+|---|---|---|
+| LLM assessment | `confidence_breakdown.llm_assessment` | How confident the legal assessment model is in its verdict (0–100) |
+| Document quality | `confidence_breakdown.document_quality` | Average legibility of submitted documents as rated by Gemini during extraction (0–100) |
+| **Composite** | `confidence_breakdown.composite` | `llm_assessment × (document_quality / 100)` — the final penalised score |
+
+A perfect-quality case with `llm_assessment: 95` and `document_quality: 100` yields `composite: 95`. The same case with blurry documents (`document_quality: 70`) yields `composite: 66`, surfacing to the Cashea team that the decision is less reliable.
+
+`confidence_breakdown` is `null` when the job is not yet `COMPLETED` or when documents were not extractable.
+
+---
 
 ## Error Taxonomy
 
