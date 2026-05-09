@@ -10,3 +10,7 @@ dist/
 backend/.env
 .local_test_docs/
 eval_cases/baseline.json
+
+# Local environment secrets
+.env
+.env.local
