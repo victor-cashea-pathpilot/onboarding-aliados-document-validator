@@ -81,7 +81,7 @@ test('ApiAuthGuard rejects protected routes without bearer token when auth is en
 
   await assert.rejects(
     () => guard.canActivate(createExecutionContext({ host: 'api.example.com' })),
-    /Missing bearer token/,
+    /Missing authentication/,
   );
 });
 
