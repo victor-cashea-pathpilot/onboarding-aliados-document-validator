@@ -28,11 +28,8 @@ services:
     max_instances: 5
     max_requests_per_instance: 100
     use_http2: false
-    # DEBUG ACCESS: allow_unauthenticated + ingress:all opens the HTTP API to external traffic.
-    # NestJS enforces X-Api-Key auth. Lock back down when testing is complete:
-    #   allow_unauthenticated: false / ingress: internal-and-cloud-load-balancing
-    allow_unauthenticated: true
-    ingress: all
+    allow_unauthenticated: false
+    ingress: internal-and-cloud-load-balancing
     vpc_egress: all-traffic
     secrets:
       WORKER_AUTH_TOKEN: cashea-dev-ldv-worker-auth-token:latest
