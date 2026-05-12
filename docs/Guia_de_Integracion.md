@@ -59,19 +59,37 @@ Cliente                          Servicio
 
 ## 3. Autenticación
 
+### REST (HTTP)
+
 Todas las solicitudes deben incluir el header:
 
 ```http
 X-API-Key: <tu-api-key>
 ```
 
-Para gRPC, enviar como metadata:
+Contactar al equipo de Cashea para obtener la API key del entorno correspondiente.
 
-```
-x-api-key: <tu-api-key>
+### gRPC
+
+El servicio gRPC corre en Cloud Run con `allow_unauthenticated: false` e ingress `internal-and-cloud-load-balancing`. **No usa `x-api-key`** — la autenticación es a nivel de infraestructura mediante **Google OIDC**.
+
+El cliente necesita:
+1. Una **service account de GCP** con el rol `roles/run.invoker` sobre el servicio gRPC.
+2. Generar un **OIDC token** para esa service account con la URL del servicio como `audience`.
+3. Enviar el token como metadata `Authorization: Bearer <token>` en cada llamada.
+
+```js
+const { GoogleAuth } = require('google-auth-library');
+
+const auth = new GoogleAuth();
+const client = await auth.getIdTokenClient(GRPC_SERVICE_URL);
+const token = await client.idTokenProvider.fetchIdToken(GRPC_SERVICE_URL);
+
+const metadata = new grpc.Metadata();
+metadata.set('authorization', `Bearer ${token}`);
 ```
 
-Contactar al equipo de Cashea para obtener las credenciales de acceso al entorno correspondiente.
+Coordinar con el equipo de Cashea para que se les provisione la service account y los permisos de acceso al entorno.
 
 ---
 
@@ -276,6 +294,7 @@ El servicio expone la misma funcionalidad a través de gRPC (`onboarding.v1.Onbo
 | Servicio | `OnboardingService` |
 | Protocolo | gRPC sobre HTTP/2 |
 | Host/Puerto | Provisto por el equipo de Cashea por entorno |
+| Auth | OIDC Bearer token — ver sección 3 (gRPC) |
 
 **Opciones del proto loader recomendadas:**
 ```js
@@ -593,8 +612,14 @@ const client = new proto.OnboardingService(
   { 'grpc.default_authority': 'api-grpc.cashea.app' }
 );
 
+// Auth: OIDC token para Cloud Run (no x-api-key)
+const { GoogleAuth } = require('google-auth-library');
+const auth = new GoogleAuth();
+const idClient = await auth.getIdTokenClient(GRPC_SERVICE_URL);
+const token = await idClient.idTokenProvider.fetchIdToken(GRPC_SERVICE_URL);
+
 const metadata = new grpc.Metadata();
-metadata.set('x-api-key', process.env.CASHEA_API_KEY);
+metadata.set('authorization', `Bearer ${token}`);
 
 // Enviar solicitud
 client.submitValidation({ merchant_id: '98765', documents: { ... } }, metadata, (err, response) => {
